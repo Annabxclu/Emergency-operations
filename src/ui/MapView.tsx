@@ -45,9 +45,13 @@ export function MapView(props: Props) {
   useEffect(() => {
     const { game } = props;
     const cityDef = game.cityDef;
-    const map = L.map(el.current, { zoomControl: false, attributionControl: true, minZoom: 10, maxBoundsViscosity: 0.8 });
-    map.setView(cityDef.center, cityDef.zoom);
-    map.setMaxBounds?.([[cityDef.bounds[0][0] - 0.15, cityDef.bounds[0][1] - 0.2], [cityDef.bounds[1][0] + 0.15, cityDef.bounds[1][1] + 0.2]]);
+    const map = L.map(el.current, { zoomControl: false, attributionControl: true, minZoom: 9, maxBoundsViscosity: 0.8 });
+    const showCity = (d: typeof cityDef) => {
+      map.setMaxBounds?.(null);
+      map.setView(d.center, d.zoom);
+      map.setMaxBounds?.([[d.bounds[0][0] - 0.15, d.bounds[0][1] - 0.2], [d.bounds[1][0] + 0.15, d.bounds[1][1] + 0.2]]);
+    };
+    showCity(cityDef);
     map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a> | Routing <a href="https://project-osrm.org">OSRM</a>');
 
     // ---- tiles with failure detection
@@ -89,15 +93,16 @@ export function MapView(props: Props) {
       for (const [id, m] of store) if (!ids.has(id)) { layer.removeLayer(m); store.delete(id); keys.delete(m); }
     };
 
-    let lastState: unknown = null;
+    let lastState: unknown = null, lastCity = '';
     const reconcile = () => {
       const { game: g, selected } = propsRef.current;
-      if (g.state !== lastState) {
-        // A different save was loaded: drop every marker so ids can't collide.
+      if (g.state !== lastState || g.state.activeCity !== lastCity) {
+        // A different save or city: drop every marker so ids can't collide.
+        lastCity = g.state.activeCity;
         if (lastState) {
           for (const [k, store] of Object.entries(markers)) { for (const m of (store as Map<string, any>).values()) (layers as any)[k].removeLayer(m); (store as Map<string, any>).clear(); }
           keys.clear();
-          map.setView(g.cityDef.center, g.cityDef.zoom);
+          showCity(g.cityDef);
         }
         lastState = g.state;
       }

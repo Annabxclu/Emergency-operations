@@ -3,7 +3,7 @@
 // state directly.
 
 import type {
-  CityState, Employee, FinanceBucket, GameEvent, GameState, Incident, LatLng, Outcome,
+  CityDef, CityState, Employee, FinanceBucket, GameEvent, GameState, Incident, LatLng, Outcome,
   Requirement, RoutingProvider, Station, Vehicle,
 } from './types';
 import {
@@ -11,7 +11,7 @@ import {
   dept, qualification, stationType, stationTypeForDept, vehicleType,
 } from '../data/departments';
 import { INCIDENT_TYPES, incidentType } from '../data/incidents';
-import { city as cityDef } from '../data/cities';
+import { CITIES, CITY_SLOT_LEVELS } from '../data/cities';
 import { FIRST_NAMES, LAST_NAMES } from '../data/names';
 import { destination, directRoute, distanceM, estimateEtaS, makeRoute, pointAlong } from './geo';
 
@@ -37,7 +37,8 @@ export function newCityState(cityId: string): CityState {
   };
 }
 
-export function newGameState(cityId = 'atlanta'): GameState {
+export function newGameState(def: CityDef = CITIES[0]): GameState {
+  const cityId = def.id;
   const deptFilter: Record<string, boolean> = {};
   DEPARTMENTS.forEach(d => (deptFilter[d.id] = true));
   return {
@@ -46,6 +47,7 @@ export function newGameState(cityId = 'atlanta'): GameState {
     time: 8 * 3600, // Day 1, 08:00
     xp: 0, level: 1, activeCity: cityId,
     cities: { [cityId]: newCityState(cityId) },
+    cityDefs: CITIES.some(c => c.id === cityId) ? {} : { [cityId]: def },
     seq: 1,
     settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter },
   };
@@ -58,7 +60,9 @@ export function migrate(raw: unknown): GameState {
     throw new Error('This file is not an Emergency Operations save.');
   }
   if (s.schema > SCHEMA) throw new Error('This save was made by a newer version of the game.');
-  const fresh = newGameState(s.activeCity);
+  s.cityDefs ||= {};
+  if (!s.cityDefs[s.activeCity] && !CITIES.some(c => c.id === s.activeCity)) throw new Error('This save references an unknown city.');
+  const fresh = newGameState();
   s.settings = { ...fresh.settings, ...(s.settings || {}) };
   s.settings.deptFilter = { ...fresh.settings.deptFilter, ...(s.settings.deptFilter || {}) };
   if (!['osm', 'hot'].includes(s.settings.tileStyle)) s.settings.tileStyle = 'osm'; // CARTO styles retired (need a key)
@@ -118,14 +122,18 @@ export class Game {
     this.state = state;
   }
 
-  get city(): CityState { return this.state.cities[this.state.activeCity]; }
-  get cityDef() { return cityDef(this.state.activeCity); }
+  /** City being simulated right now (background cities tick too). */
+  private cur: string | null = null;
+  get cityId(): string { return this.cur ?? this.state.activeCity; }
+  get city(): CityState { return this.state.cities[this.cityId]; }
+  get cityDef(): CityDef { return this.defOf(this.cityId); }
+  defOf(id: string): CityDef { return this.state.cityDefs[id] || CITIES.find(c => c.id === id)!; }
   get setupDone() { return this.city.setupStep >= SETUP_ORDER.length; }
 
   subscribe(fn: () => void) { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; }
   onEvent(fn: (e: GameEvent) => void) { this.eventListeners.add(fn); return () => { this.eventListeners.delete(fn); }; }
   changed() { this.version++; this.listeners.forEach(f => f()); }
-  private emit(e: GameEvent) { this.eventListeners.forEach(f => f(e)); }
+  private emit(e: GameEvent, cityId = this.cityId) { const ev = { ...e, cityId }; this.eventListeners.forEach(f => f(ev)); }
   private id(prefix: string) { return `${prefix}${this.state.seq++}`; }
 
   /** Replace the whole state (load / import / reset). */
@@ -138,6 +146,16 @@ export class Game {
 
   /** Vehicles that were waiting on a route when the game was saved need a fresh request. */
   resumeAfterLoad() {
+    for (const id of Object.keys(this.state.cities)) this.inCity(id, () => this.resumeCity());
+  }
+
+  private inCity<T>(id: string, fn: () => T): T {
+    const prev = this.cur;
+    this.cur = id;
+    try { return fn(); } finally { this.cur = prev; }
+  }
+
+  private resumeCity() {
     for (const v of this.city.vehicles) {
       if (v.status === 'dispatched' && !v.route) {
         const inc = this.incident(v.incidentId || '');
@@ -600,20 +618,50 @@ export class Game {
   tick(dt: number) {
     if (dt <= 0) return;
     this.state.time += dt;
+    for (const id of Object.keys(this.state.cities)) this.inCity(id, () => this.tickCity(dt, id === this.state.activeCity));
+  }
+
+  private tickCity(dt: number, active: boolean) {
     const c = this.city;
+    if (c.setupStep < SETUP_ORDER.length) return; // city not set up yet: nothing runs
     this.accrue(dt);
     this.updateTraining();
     this.updateVehicles();
-    if (this.setupDone) {
-      this.updateIncidents();
-      this.maybeSpawn();
-    }
+    this.updateIncidents();
+    if (active) this.maybeSpawn();
     const day = Math.floor(this.state.time / DAY);
     if (day !== c.finance.day) {
       c.finance.yesterday = c.finance.today;
       c.finance.today = emptyBucket();
       c.finance.day = day;
     }
+  }
+
+  // ------------------------------------------------------------ cities
+  citySlots() {
+    const unlocked = CITY_SLOT_LEVELS.filter(l => l <= this.state.level).length;
+    const used = Object.keys(this.state.cities).length;
+    const nextLevel = CITY_SLOT_LEVELS[used] ?? null;
+    return { unlocked, used, nextLevel, canAdd: used < unlocked };
+  }
+
+  addCity(def: CityDef) {
+    if (!this.citySlots().canAdd) throw new ActionError(`Your next city unlocks at level ${this.citySlots().nextLevel}.`);
+    if (this.state.cities[def.id]) throw new ActionError('You already run that city.');
+    if (!CITIES.some(c => c.id === def.id)) this.state.cityDefs[def.id] = def;
+    const cs = newCityState(def.id);
+    cs.lastHour = Math.floor(this.state.time / 3600);
+    cs.finance.day = Math.floor(this.state.time / DAY);
+    this.state.cities[def.id] = cs;
+    this.state.activeCity = def.id;
+    this.changed();
+  }
+
+  switchCity(id: string) {
+    if (!this.state.cities[id]) throw new ActionError('City not found.');
+    this.state.activeCity = id;
+    this.spawning = false;
+    this.changed();
   }
 
   private accrue(dt: number) {
@@ -848,12 +896,13 @@ export class Game {
     if (!t || !this.city.stations.length) return null;
     this.spawning = true;
     const stateRef = this.state;
+    const c = this.city, def = this.cityDef;
     try {
       const primary = CAPABILITIES.find(c => c.id === t.requirements[0].cap)!.dept;
-      const anchors = this.city.stations.filter(s => s.dept === primary);
-      const anchor = pick(anchors.length ? anchors : this.city.stations);
+      const anchors = c.stations.filter(s => s.dept === primary);
+      const anchor = pick(anchors.length ? anchors : c.stations);
       const radius = stationType(anchor.typeId).coverageKm * 1000;
-      const [[s, w], [n, e]] = this.cityDef.bounds;
+      const [[s, w], [n, e]] = def.bounds;
       let pos: LatLng | null = null, street = '';
       for (let attempt = 0; attempt < 3; attempt++) {
         let p = destination(anchor.pos, rand(0, 360), Math.sqrt(Math.random()) * radius * 0.95 + 150);
@@ -865,13 +914,12 @@ export class Game {
         if (snapped.name) { street = snapped.name; break; } // prefer named streets
       }
       if (this.state !== stateRef || !pos) return null;
-      const c = this.city;
-      const district = this.districtFor(pos);
+      const district = this.districtFor(pos, def);
       const num = (Math.floor(rand(1, 60)) * 2 + (Math.random() < 0.5 ? 1 : 0)) * 10 + Math.floor(rand(0, 9));
       const address = street ? `${num} ${street}` : `Near ${district}`;
       c.incidentCounter++;
       const inc: Incident = {
-        id: this.id('i'), number: `${this.cityDef.prefix}-${String(c.incidentCounter).padStart(5, '0')}`,
+        id: this.id('i'), number: `${def.prefix}-${String(c.incidentCounter).padStart(5, '0')}`,
         typeId: t.id, name: t.name, category: t.category, pos, address, district, severity: t.severity,
         description: pick(t.descriptions), requirements: t.requirements.map(r => ({ ...r })),
         createdAt: this.state.time, deadline: this.state.time + t.deadlineMin * 60,
@@ -879,7 +927,7 @@ export class Game {
         reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
       };
       c.incidents.push(inc);
-      this.emit({ type: 'incident_new', id: inc.id });
+      this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
       this.changed();
       return inc;
     } finally {
@@ -894,9 +942,9 @@ export class Game {
     return items[items.length - 1] || null;
   }
 
-  districtFor(p: LatLng): string {
-    const ds = this.cityDef.districts;
-    if (!ds.length) return this.cityDef.name;
+  districtFor(p: LatLng, def: CityDef = this.cityDef): string {
+    const ds = def.districts;
+    if (!ds.length) return def.name;
     return ds.reduce((best, d) => (distanceM(p, d.center) < distanceM(p, best.center) ? d : best)).name;
   }
 

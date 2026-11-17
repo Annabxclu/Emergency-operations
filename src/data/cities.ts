@@ -1,7 +1,8 @@
 import type { CityDef } from '../engine/types';
 
-// Each city is self-contained data. Only Atlanta is playable in this prototype;
-// the others show how unlocks will work once multi-city play is enabled.
+// Atlanta ships as a preset with hand-picked districts. Any other US city is
+// generated at runtime from OpenStreetMap (see services/geocode.ts) and stored
+// in the save as GameState.cityDefs.
 
 export const CITIES: CityDef[] = [
   {
@@ -37,10 +38,9 @@ export const CITIES: CityDef[] = [
       { name: 'Druid Hills', center: [33.7800, -84.3270] },
     ],
   },
-  { id: 'charlotte', name: 'Charlotte', state: 'NC', prefix: 'CLT', playable: false, unlockLevel: 5, population: 880000, center: [35.2271, -80.8431], zoom: 13, bounds: [[35.0, -81.0], [35.4, -80.6]], districts: [] },
-  { id: 'nashville', name: 'Nashville', state: 'TN', prefix: 'BNA', playable: false, unlockLevel: 10, population: 690000, center: [36.1627, -86.7816], zoom: 13, bounds: [[36.0, -87.0], [36.35, -86.55]], districts: [] },
-  { id: 'orlando', name: 'Orlando', state: 'FL', prefix: 'ORL', playable: false, unlockLevel: 15, population: 310000, center: [28.5384, -81.3789], zoom: 13, bounds: [[28.35, -81.55], [28.7, -81.2]], districts: [] },
-  { id: 'dallas', name: 'Dallas', state: 'TX', prefix: 'DAL', playable: false, unlockLevel: 20, population: 1300000, center: [32.7767, -96.7970], zoom: 13, bounds: [[32.6, -97.0], [33.0, -96.55]], districts: [] },
 ];
 
 export const city = (id: string) => CITIES.find(c => c.id === id)!;
+
+/** Levels at which the player can run an additional city (first city is free). */
+export const CITY_SLOT_LEVELS = [1, 5, 10, 15, 20];

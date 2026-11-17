@@ -20,7 +20,7 @@ async function start() {
   const game = new Game(state || newGameState(), routing);
   game.resumeAfterLoad();
   (window as any).__game = game; // handy for debugging from the console
-  createRoot(document.getElementById('root')).render(<App game={game} routing={routing} />);
+  createRoot(document.getElementById('root')).render(<App game={game} routing={routing} firstRun={!state} />);
 
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('./sw.js').catch(() => undefined);

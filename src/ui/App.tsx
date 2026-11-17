@@ -14,6 +14,9 @@ import { VehicleDetail, VehiclesList } from './panels/Vehicles';
 import { EmployeeDetail, HirePanel, PersonnelList } from './panels/Personnel';
 import { FinancesPanel } from './panels/Finances';
 import { SettingsPanel } from './panels/Settings';
+import { MissionsPanel } from './panels/Missions';
+import { CityPicker } from './CityPicker';
+import type { CityDef } from '../engine/types';
 
 const TABS = [
   { id: 'map', label: 'Map' }, { id: 'dispatch', label: 'Dispatch' }, { id: 'stations', label: 'Stations' },
@@ -21,13 +24,13 @@ const TABS = [
 ];
 const TAB_OF: Record<string, string> = {
   dispatch: 'dispatch', incident: 'dispatch', stations: 'stations', station: 'stations', build: 'stations', hire: 'stations',
-  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'personnel', employee: 'personnel', finances: 'finances', settings: 'settings',
+  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'personnel', employee: 'personnel', finances: 'finances', settings: 'settings', missions: 'settings',
 };
 const SPEEDS = [0, 1, 4, 8];
 
 interface Toast { id: number; text: string; tone: string; action?: () => void }
 
-export function App({ game, routing }: { game: Game; routing: OsrmRouting }) {
+export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRouting; firstRun: boolean }) {
   const [, setFrame] = useState(0);
   const [stack, setStack] = useState([] as Route[]);
   const [expanded, setExpanded] = useState(false);
@@ -37,6 +40,7 @@ export function App({ game, routing }: { game: Game; routing: OsrmRouting }) {
   const [buildName, setBuildName] = useState('');
   const [tileTrouble, setTileTrouble] = useState(false);
   const [routingOk, setRoutingOk] = useState(null as boolean | null);
+  const [picker, setPicker] = useState((firstRun ? 'first' : null) as null | 'first' | 'new' | 'add');
   const mapApi = useRef(null as MapApi | null);
   const toastId = useRef(0);
   const lastFallbackToast = useRef(0);
@@ -80,6 +84,12 @@ export function App({ game, routing }: { game: Game; routing: OsrmRouting }) {
 
   // ---------------------------------------------------------- events -> toasts
   useEffect(() => game.onEvent((e: GameEvent) => {
+    if (e.cityId && e.cityId !== game.state.activeCity) {
+      const name = game.defOf(e.cityId).name;
+      if (e.type === 'incident_resolved') toast(`${name}: call ${OUTCOME[e.outcome].label.toLowerCase()} ${money(e.payout)}`, e.payout >= 0 ? 'info' : 'warn');
+      else if (e.type === 'incident_escalated') toast(`${name}: a call escalated`, 'warn');
+      return;
+    }
     const c = game.city;
     switch (e.type) {
       case 'incident_new': {
@@ -140,12 +150,19 @@ export function App({ game, routing }: { game: Game; routing: OsrmRouting }) {
       toast('Save loaded', 'ok');
     } catch (e) { toast((e as Error).message, 'bad'); }
   };
-  const onReset = async () => {
+  const onPickCity = async (def: CityDef) => {
+    if (picker === 'add') {
+      if (act(() => game.addCity(def), `Welcome to ${def.name}. Place your first stations.`)) { setPicker(null); openRoot(null); setBuildType(null); setPending(null); }
+      return;
+    }
     await clearSave();
-    game.load(newGameState());
-    openRoot(null);
-    setBuildType(null); setPending(null);
-    toast('New game started', 'info');
+    game.load(newGameState(def));
+    routing.setBaseUrl(game.state.settings.routingUrl);
+    saveGame(game.state);
+    setPicker(null); openRoot(null); setBuildType(null); setPending(null);
+  };
+  const onSwitchCity = (id: string) => {
+    if (act(() => game.switchCity(id), `Now managing ${game.defOf(id).name}`)) { openRoot(null); setBuildType(null); setPending(null); }
   };
   const onRoutingUrl = (url: string) => {
     if (!/^https?:\/\//.test(url)) { toast('Enter a full URL starting with https://', 'bad'); return; }
@@ -159,7 +176,7 @@ export function App({ game, routing }: { game: Game; routing: OsrmRouting }) {
   const c = game.city;
   const setup = !game.setupDone;
   const setupType = setup ? stationTypeForDept(SETUP_ORDER[c.setupStep]).id : null;
-  const activeBuild = setup ? setupType : buildType;
+  const activeBuild = picker ? null : setup ? setupType : buildType;
   const t = clock(game.state.time);
   const speed = game.state.settings.speed;
   const lvl = game.state.level;
@@ -197,7 +214,8 @@ export function App({ game, routing }: { game: Game; routing: OsrmRouting }) {
       case 'personnel': return <PersonnelList />;
       case 'employee': return <EmployeeDetail key={r.id} id={r.id} />;
       case 'finances': return <FinancesPanel />;
-      case 'settings': return <SettingsPanel onImport={onImport} onReset={onReset} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
+      case 'settings': return <SettingsPanel onImport={onImport} onNewGame={() => setPicker('new')} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
+      case 'missions': return <MissionsPanel />;
     }
   };
 
@@ -218,7 +236,7 @@ export function App({ game, routing }: { game: Game; routing: OsrmRouting }) {
             <span className={c.money < 0 ? 'bad' : ''}>{moneyShort(c.money)}</span>
             <span className="lvl">Lv {lvl}<span className="xpbar"><span style={{ width: `${xpFrac * 100}%` }} /></span></span>
           </button>
-          <div className="clock"><span className="day">Day {t.day}</span><span className="hm">{t.hm}</span></div>
+          <div className="clock"><span className="day">{game.cityDef.name} · Day {t.day}</span><span className="hm">{t.hm}</span></div>
           <div className="speed" role="group" aria-label="Simulation speed">
             {SPEEDS.map(s => (
               <button key={s} className={(setup ? 0 : speed) === s ? 'on' : ''} disabled={setup} data-testid={`speed-${s}`}
@@ -288,6 +306,17 @@ export function App({ game, routing }: { game: Game; routing: OsrmRouting }) {
             <button className="close" aria-label="Close panel" onClick={() => openRoot(null)}>×</button>
             <div className="sheet-body">{renderSheet(top)}</div>
           </div>
+        )}
+
+        {picker && (
+          <CityPicker
+            title={picker === 'add' ? 'Expand to a new city' : picker === 'new' ? 'Start a new game' : 'Choose your city'}
+            subtitle={picker === 'add' ? 'Your new city has its own stations, staff, calls and budget. You keep your level.'
+              : picker === 'new' ? 'This replaces your current game. Export a backup first if you want to keep it.'
+              : 'Build an emergency services network on real streets. Pick any US city to begin.'}
+            existingIds={picker === 'add' ? Object.keys(game.state.cities) : []}
+            onPick={onPickCity}
+            onCancel={picker === 'first' ? undefined : () => setPicker(null)} />
         )}
 
         <nav className="tabbar">

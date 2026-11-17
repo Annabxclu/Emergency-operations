@@ -211,6 +211,7 @@ export interface GameState {
   level: number;
   activeCity: string;
   cities: Record<string, CityState>;
+  cityDefs: Record<string, CityDef>;   // generated cities (presets live in data/cities)
   seq: number;
   settings: Settings;
 }
@@ -222,7 +223,7 @@ export interface RoutingProvider {
   nearest(p: LatLng): Promise<{ pos: LatLng; name: string } | null>;
 }
 
-export type GameEvent =
+export type GameEvent = { cityId?: string } & (
   | { type: 'incident_new'; id: string }
   | { type: 'incident_escalated'; id: string }
   | { type: 'incident_late'; id: string }
@@ -231,4 +232,4 @@ export type GameEvent =
   | { type: 'level_up'; level: number }
   | { type: 'training_done'; empId: string; qual: string }
   | { type: 'routing_fallback' }
-  | { type: 'notice'; text: string };
+  | { type: 'notice'; text: string });

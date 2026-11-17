@@ -1,21 +1,23 @@
 import { useRef, useState } from 'react';
 import { xpForLevel } from '../../engine/game';
-import { CITIES } from '../../data/cities';
+import { CITY_SLOT_LEVELS } from '../../data/cities';
 import { INCIDENT_TYPES } from '../../data/incidents';
 import { Btn, ConfirmBtn, Header, Section, useCtx } from '../common';
+import { money } from '../format';
 import { TILE_STYLES } from '../MapView';
 import { exportJson } from '../../services/storage';
 
-interface Props { onImport(text: string): void; onReset(): void; onRoutingUrl(url: string): void; routingOk: boolean | null }
+interface Props { onImport(text: string): void; onNewGame(): void; onAddCity(): void; onSwitchCity(id: string): void; onRoutingUrl(url: string): void; routingOk: boolean | null }
 
 export function SettingsPanel(p: Props) {
-  const { game, toast, act } = useCtx();
+  const { game, toast, act, push } = useCtx();
   const s = game.state.settings;
   const [url, setUrl] = useState(s.routingUrl);
   const [paste, setPaste] = useState('');
   const [exported, setExported] = useState('');
   const fileRef = useRef(null as HTMLInputElement | null);
   const lvl = game.state.level;
+  const slots = game.citySlots();
 
   const doExport = () => {
     const json = exportJson(game.state);
@@ -39,15 +41,33 @@ export function SettingsPanel(p: Props) {
     <div>
       <Header title="Settings" sub={`Level ${lvl} · ${game.state.xp}/${xpForLevel(lvl + 1)} XP`} />
 
-      <Section title="Cities">
+      <Section title="Missions">
+        <button className="row" onClick={() => push({ kind: 'missions' })} data-testid="missions-open">
+          <div className="grow"><div className="row-title">All missions & requirements</div>
+            <div className="row-sub">{INCIDENT_TYPES.length} call types · {INCIDENT_TYPES.filter(t => t.unlockLevel <= lvl).length} unlocked</div></div>
+          <span className="muted">›</span>
+        </button>
+      </Section>
+
+      <Section title="Cities" right={<span className="muted small">{slots.used}/{CITY_SLOT_LEVELS.length} slots</span>}>
         <div className="list">
-          {CITIES.map(c => (
-            <div key={c.id} className={`row compact ${c.id !== game.state.activeCity ? 'disabled' : ''}`}>
-              <div className="grow"><div className="row-title">{c.name}, {c.state}</div>
-                <div className="row-sub">{c.id === game.state.activeCity ? 'Active city' : c.playable ? `Unlocks at level ${c.unlockLevel}` : `Planned · level ${c.unlockLevel}`}</div></div>
-            </div>
-          ))}
+          {Object.keys(game.state.cities).map(id => {
+            const d = game.defOf(id), cs = game.state.cities[id];
+            const active = id === game.state.activeCity;
+            return (
+              <div key={id} className="row compact">
+                <div className="grow"><div className="row-title">{d.name}, {d.state}</div>
+                  <div className="row-sub">{cs.stations.length} stations · {cs.vehicles.length} vehicles · {money(cs.money)}{cs.incidents.length ? ` · ${cs.incidents.length} active calls` : ''}</div></div>
+                {active ? <span className="chip ok">Active</span> : <Btn small onClick={() => p.onSwitchCity(id)}>Switch</Btn>}
+              </div>
+            );
+          })}
         </div>
+        <div className="actions">
+          <Btn small kind="primary" disabled={!slots.canAdd} onClick={p.onAddCity} testid="add-city">+ Add a city</Btn>
+          {!slots.canAdd && slots.nextLevel && <span className="muted small">Next city unlocks at level {slots.nextLevel}</span>}
+        </div>
+        <p className="hint">Each city has its own stations, staff, calls and budget. Cities you're not viewing keep running, but new calls only arrive in the city you're viewing.</p>
       </Section>
 
       <Section title="Map">
@@ -91,7 +111,7 @@ export function SettingsPanel(p: Props) {
       </Section>
 
       <Section title="Danger zone">
-        <ConfirmBtn small onConfirm={p.onReset}>Start a new game</ConfirmBtn>
+        <ConfirmBtn small onConfirm={p.onNewGame}>Start a new game in any city</ConfirmBtn>
       </Section>
 
       <Section title="About">

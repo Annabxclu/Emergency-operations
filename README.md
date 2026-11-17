@@ -21,7 +21,7 @@ Progress saves automatically on the device (IndexedDB). Use Settings → Export 
 
 ## How to play
 
-1. Tap the map to place your first Fire Station, Police Precinct and EMS Station (free, already staffed and equipped).
+1. Pick any US city (search "City, ST"; Atlanta is a preset). Then tap the map to place your first Fire Station, Police Precinct and EMS Station (free, already staffed and equipped).
 2. Calls appear on the map and in **Dispatch**. Open one: recommended units are pre-checked; adjust and press **Dispatch**.
 3. Units turn out, then drive along real roads. When all required units are on scene the crew works the call, then you get paid and earn XP.
 4. Spend money in **Stations**: build more stations anywhere, buy vehicles, hire staff, upgrade buildings.
@@ -29,6 +29,9 @@ Progress saves automatically on the device (IndexedDB). Use Settings → Export 
 
 Call outcomes: **Successful** (all units before the deadline, bonus if fast), **Delayed** (late),
 **Escalated** (ignored → bigger, then handled), **Partial** (worked with missing units), **Failed** (small fine).
+
+Extra cities: at levels 5, 10, 15 and 20 you can add another city (Settings → Cities), each with its own
+stations, staff, calls and budget. Settings → Missions lists every call type with its requirements.
 
 ## Project layout
 
@@ -53,6 +56,7 @@ stations, vehicles, staff, incidents and finances; `src/data/cities.ts` lists th
 ## Services and limits
 
 - **Map tiles**: OpenStreetMap standard (default) or Humanitarian OSM (lighter) — both keyless; switch in Settings. Attribution is shown on the map.
+- **City search**: OpenStreetMap Nominatim (search) and Overpass (neighborhood names) — keyless, used once per new city.
 - **Routing**: the public OSRM demo server, limited to ~1 request/second and meant for light use. The game queues and caches
   requests. If routing fails it falls back to an approximate direct path (drawn dashed) and tells you. For heavy play,
   set your own OSRM server URL in Settings.

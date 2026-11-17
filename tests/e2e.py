@@ -42,6 +42,16 @@ def osrm(route):
         body = {'code': 'Ok', 'routes': [{'distance': d, 'duration': d / 12, 'geometry': {'type': 'LineString', 'coordinates': steps}}]}
     route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
 
+def nominatim(route):
+    body = [{'lat': '36.1540', 'lon': '-95.9928', 'boundingbox': ['36.00', '36.30', '-96.10', '-95.75'], 'name': 'Tulsa',
+             'address': {'city': 'Tulsa', 'state': 'Oklahoma', 'ISO3166-2-lvl4': 'US-OK'}}]
+    route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
+
+def overpass(route):
+    names = ['Brady Arts District', 'Cherry Street', 'Brookside', 'Kendall-Whittier', 'Pearl District', 'Riverview', 'Maple Ridge']
+    els = [{'type': 'node', 'lat': 36.154 + random.uniform(-0.05, 0.05), 'lon': -95.99 + random.uniform(-0.05, 0.05), 'tags': {'name': n, 'place': 'neighbourhood'}} for n in names]
+    route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps({'elements': els}))
+
 def main():
     server = subprocess.Popen([sys.executable, '-m', 'http.server', '8123', '-d', os.path.join(ROOT, 'dist')], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(0.8)
@@ -56,12 +66,23 @@ def main():
             page.route('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', lambda r: r.fulfill(status=200, content_type='application/javascript', body=STUB))
             page.route('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', lambda r: r.fulfill(status=200, content_type='text/css', body=''))
             page.route('https://router.project-osrm.org/**', osrm)
+            page.route('https://nominatim.openstreetmap.org/**', nominatim)
+            page.route('https://overpass-api.de/**', overpass)
             page.goto('http://localhost:8123/index.html')
             page.wait_for_selector('.topbar')
             check = lambda cond, msg: (print('ok -', msg) if cond else (_ for _ in ()).throw(AssertionError(msg)))
             game = lambda js: page.evaluate(f'() => {{ const g = window.__game; return {js}; }}')
             shot = lambda name: page.screenshot(path=os.path.join(OUT, name + '.png'))
 
+            # --- Choose a city
+            page.wait_for_selector('[data-testid=city-search]')
+            shot('00-city-picker')
+            page.fill('[data-testid=city-search]', 'Tulsa, OK')
+            page.keyboard.press('Enter')
+            page.click('[data-testid=city-result]')
+            page.wait_for_selector('[data-testid=build-confirm], .buildbar', timeout=10000)
+            check(game('g.cityDef.name') == 'Tulsa' and game('g.cityDef.state') == 'OK', 'started a new game in Tulsa, OK via city search')
+            check(game('g.cityDef.districts.length') >= 4, 'neighborhoods loaded for districts')
             shot('01-welcome')
             # --- Setup: place fire, police, EMS by tapping the map
             for (x, y) in [(170, 360), (250, 300), (215, 470)]:
@@ -151,11 +172,27 @@ def main():
             exported = page.locator('textarea.mono').first.input_value()
             check('"state"' in exported and len(exported) > 1000, f'save exported ({len(exported)} chars)')
             shot('10-settings')
+            page.click('[data-testid=missions-open]')
+            page.wait_for_selector('[data-testid=mission]')
+            check(page.locator('[data-testid=mission]').count() == 24, 'missions catalogue lists all 24 call types')
+            shot('12-missions')
+            # --- Multi-city: unlock a second city at level 5 and add Atlanta
+            game('(g.state.level = 5, g.changed(), 0)')
+            page.click('.back')
+            page.click('[data-testid=add-city]')
+            page.click('[data-testid=city-atlanta]')
+            page.wait_for_selector('.buildbar')
+            check(game('g.state.activeCity') == 'atlanta' and len(game('Object.keys(g.state.cities)')) == 2, 'second city added and active')
+            check(game('g.city.money') == 100000 and game('g.city.stations.length') == 0, 'new city has its own budget and network')
+            page.mouse.click(170, 360); page.click('[data-testid=build-confirm]')
+            game('g.switchCity("tulsa-ok")')
+            page.wait_for_timeout(200)
+            check(game('g.city.stations.length') == 4, 'switched back to Tulsa with network intact')
 
             # --- Routing failure falls back gracefully
             page.unroute('https://router.project-osrm.org/**')
             page.route('https://router.project-osrm.org/**', lambda r: r.fulfill(status=503, body='down'))
-            page.click('.close')
+            if page.locator('.close').count(): page.click('.close')
             game('g.spawnIncident("theft")')
             page.wait_for_function('() => window.__game.city.incidents.length >= 1', timeout=15000)
             inc_id = game('g.city.incidents[g.city.incidents.length - 1].id')
