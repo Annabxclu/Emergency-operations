@@ -43,6 +43,14 @@ export function SettingsPanel(p: Props) {
       <div className="actions"><Btn kind="primary" onClick={p.onMenu} testid="to-menu">Main menu</Btn><span className="muted small">Game pauses while the menu is open.</span></div>
 
       <Section title="Gameplay">
+        <div className="field"><label>Travel times</label>
+          <select value={s.travelModel ?? 'fixed'} onChange={(e: any) => { s.travelModel = e.target.value; game.changed(); }} data-testid="travel-model">
+            <option value="fixed">Fixed vehicle speeds (Mission Chief style)</option>
+            <option value="roads">Road speed limits (realistic)</option>
+          </select></div>
+        <p className="hint">{(s.travelModel ?? 'fixed') === 'fixed'
+          ? 'Each vehicle drives the real road route at its own constant speed (e.g. patrol car 65 mph, engine 45 mph). Faster, game-like.'
+          : 'Travel time follows each road’s speed limit, sped up for lights and sirens. Slower, more realistic in dense cities.'} Applies to new trips.</p>
         <label className="check"><input type="checkbox" checked={s.sound} onChange={(e: any) => { s.sound = e.target.checked; game.changed(); }} /> Alert sounds for new calls</label>
         <div className="field"><label>Auto-dispatch</label>
           <select value={s.autoDispatch} onChange={(e: any) => { s.autoDispatch = e.target.value; game.changed(); }} data-testid="auto-dispatch">

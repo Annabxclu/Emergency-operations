@@ -124,7 +124,7 @@ export function StationDetail({ id }: { id: string }) {
               <div key={vt.id} className={`row compact ${locked ? 'disabled' : ''}`}>
                 <span className="veh-badge" style={{ borderColor: d.color }}>{vt.short}</span>
                 <div className="grow"><div className="row-title">{vt.name}</div>
-                  <div className="row-sub">Crew {vt.minCrew}–{vt.maxCrew}{quals ? ` · ${quals}` : ''} · {money(vt.maintenancePerHour)}/h</div></div>
+                  <div className="row-sub wrap">{vt.mph} mph · crew {vt.minCrew}–{vt.maxCrew}{quals ? ` · ${quals}` : ''} · {money(vt.maintenancePerHour)}/h</div></div>
                 <div className="row-right">
                   {locked ? <span className="muted small">Level {vt.unlockLevel}</span> :
                     <Btn small kind="primary" disabled={full || game.city.money < vt.price} testid={`buy-${vt.id}`}

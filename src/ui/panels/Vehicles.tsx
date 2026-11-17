@@ -84,7 +84,7 @@ export function VehicleDetail({ id }: { id: string }) {
       <div className="stats">
         <Stat label="Condition" value={`${Math.round(v.condition)}%`} tone={v.condition < MIN_CONDITION ? 'bad' : v.condition < 50 ? 'warn' : ''} />
         <Stat label="Crew" value={`${crew.length}/${t.maxCrew}`} tone={staffProb ? 'bad' : ''} />
-        <Stat label="Speed" value={`${Math.round(t.speedFactor * 100)}%`} />
+        <Stat label="Speed" value={game.state.settings.travelModel === 'roads' && !t.air ? `${Math.round(t.speedFactor * 100)}%` : `${t.mph} mph`} />
         <Stat label="Calls" value={v.calls} />
       </div>
 

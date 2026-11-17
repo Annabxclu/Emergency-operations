@@ -156,6 +156,16 @@ export const VEHICLE_TYPES: VehicleTypeDef[] = [
   vt({ id: 'relief_unit', dept: 'disaster', name: 'Relief & Shelter Unit', callsign: 'Relief', short: 'RU', price: 40000, speedFactor: 1.0, minCrew: 2, maxCrew: 4, caps: ['relief'], maintenancePerHour: 8, fuelPerKm: 1.1, turnoutSec: 150, unlockLevel: 10 }),
 ];
 
+// Fixed driving speeds used by the Mission Chief-style travel model (mph).
+const MPH: Record<string, number> = {
+  engine: 45, ladder: 40, brush: 50, heavy_rescue: 45, chief: 60, hazmat: 40, tanker: 40,
+  patrol: 65, traffic: 70, k9: 65, detective: 55, prisoner_van: 50, swat: 50,
+  bls: 55, als: 55, ems_supervisor: 60, ccu: 50, mci_unit: 40,
+  road_crew: 40, tree_crew: 40, signal_crew: 45, rescue_boat: 45, dive_team: 50,
+  med_heli: 150, police_heli: 160, bomb_squad: 50, usar: 40, mobile_command: 40, logistics: 45, heavy_equipment: 30, relief_unit: 45,
+};
+VEHICLE_TYPES.forEach(v => { v.mph = MPH[v.id] ?? 45; });
+
 // Units each department starts with when its first station is placed.
 export const STARTER_KITS: Record<string, { vehicles: string[]; staff: number }> = {
   fire: { vehicles: ['engine'], staff: 5 },

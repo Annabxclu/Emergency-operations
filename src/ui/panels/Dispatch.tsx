@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { missingRequirements } from '../../engine/game';
+import { distanceM } from '../../engine/geo';
 import type { Incident, Vehicle } from '../../engine/types';
 import { capability, dept, vehicleType } from '../../data/departments';
 import { CATEGORY_DEPT } from '../../data/incidents';
@@ -193,7 +194,7 @@ export function IncidentDetail({ id }: { id: string }) {
                     <div className="row-title">{v.name}{useful && !problem && <span className="tag ok">Needed</span>}</div>
                     <div className="row-sub">{problem || `${t.name} · ${game.station(v.stationId)?.name ?? ''}`}</div>
                   </div>
-                  <div className="row-right"><span className="eta">~{dur(eta)}</span></div>
+                  <div className="row-right"><span className="eta">~{dur(eta)}</span><span className="muted small">{(distanceM(v.pos, inc.pos) * (t.air ? 1 : 1.35) / 1609).toFixed(1)} mi</span></div>
                 </label>
               );
             })}

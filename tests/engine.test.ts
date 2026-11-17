@@ -2,6 +2,7 @@
 import { Game, newGameState, missingRequirements, xpForLevel } from '../src/engine/game';
 import type { LatLng, RoutingProvider } from '../src/engine/types';
 import { distanceM } from '../src/engine/geo';
+import { vehicleType } from '../src/data/departments';
 
 let routeCalls = 0;
 const fake: RoutingProvider = {
@@ -61,6 +62,11 @@ async function run(g: Game, seconds: number, step = 1) {
   assert(amb.status === 'dispatched', 'ambulance dispatched (turnout)');
   await run(g, 50);
   assert(amb.status === 'enroute' && amb.route && amb.route.coords.length === 3, 'en route on road geometry after turnout');
+  const expect = amb.route!.distanceM / (55 * 0.44704);
+  assert(Math.abs(amb.route!.durationS - expect) < 1, `Mission Chief-style fixed speed: ambulance at 55 mph (${Math.round(amb.route!.durationS)}s for ${Math.round(amb.route!.distanceM)}m)`);
+  g.state.settings.travelModel = 'roads';
+  assert(Math.abs(g.travelSeconds(vehicleType('bls'), 1000, 120) - 120 / 1.3) < 0.01, 'realistic option uses road time with lights & sirens factor');
+  g.state.settings.travelModel = 'fixed';
   const p0 = amb.pos;
   await run(g, 5);
   assert(distanceM(p0, amb.pos) > 1, 'vehicle position advances along route');

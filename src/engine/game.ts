@@ -3,7 +3,7 @@
 // state directly.
 
 import type {
-  CityDef, CityState, Employee, Facility, IncidentTypeDef, FinanceBucket, GameEvent, GameState, Incident, LatLng, Outcome,
+  CityDef, CityState, Employee, Facility, IncidentTypeDef, Route, RouteData, VehicleTypeDef, FinanceBucket, GameEvent, GameState, Incident, LatLng, Outcome,
   Requirement, RoutingProvider, Station, Vehicle,
 } from './types';
 import {
@@ -50,7 +50,7 @@ export function newGameState(def: CityDef = CITIES[0]): GameState {
     cities: { [cityId]: newCityState(cityId) },
     cityDefs: CITIES.some(c => c.id === cityId) ? {} : { [cityId]: def },
     seq: 1,
-    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter, sound: true, autoDispatch: 'off', shifts: false },
+    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter, sound: true, autoDispatch: 'off', shifts: false, travelModel: 'fixed' },
     research: { active: null, done: [] },
   };
 }
@@ -64,6 +64,7 @@ export function migrate(raw: unknown): GameState {
   if (s.schema > SCHEMA) throw new Error('This save was made by a newer version of the game.');
   s.cityDefs ||= {};
   s.research ||= { active: null, done: [] };
+  if (s.settings && !s.settings.travelModel) s.settings.travelModel = 'fixed';
   if (!s.cityDefs[s.activeCity] && !CITIES.some(c => c.id === s.activeCity)) throw new Error('This save references an unknown city.');
   const fresh = newGameState();
   s.settings = { ...fresh.settings, ...(s.settings || {}) };
@@ -626,9 +627,18 @@ export class Game {
     return { ids: chosen, unfilled };
   }
 
+  /** Seconds to drive a route: fixed per-vehicle speed (Mission Chief style) or road speed limits. */
+  travelSeconds(t: VehicleTypeDef, distanceM: number, roadDurationS: number) {
+    const fixed = this.state.settings.travelModel !== 'roads' || t.air;
+    const secs = fixed ? distanceM / ((t.mph ?? 45) * 0.44704) : roadDurationS / t.speedFactor;
+    return Math.max(15, secs / this.mod('speed'));
+  }
+
   etaEstimate(v: Vehicle, to: LatLng) {
     const t = vehicleType(v.typeId);
-    return (v.status === 'returning' ? 0 : t.turnoutSec) + estimateEtaS(v.pos, to, t.speedFactor);
+    const d = distanceM(v.pos, to) * (t.air ? 1 : 1.35);
+    const turnout = v.status === 'returning' ? 0 : t.turnoutSec * this.mod('turnout');
+    return turnout + (this.state.settings.travelModel !== 'roads' || t.air ? this.travelSeconds(t, d, 0) : estimateEtaS(v.pos, to, t.speedFactor) / this.mod('speed'));
   }
 
   /** Remaining game seconds until arrival for a vehicle heading to a scene. */
@@ -686,11 +696,15 @@ export class Game {
     const from: LatLng = [...v.pos] as LatLng;
     const stateRef = this.state;
     const vt = vehicleType(v.typeId);
-    const speed = vt.speedFactor * this.mod('speed');
+    const build = (data: RouteData): Route => {
+      const r = makeRoute(data, 1);
+      r.durationS = this.travelSeconds(vt, data.distanceM, data.durationS);
+      return r;
+    };
     if (vt.air) {
       // Helicopters fly straight to the destination.
       const d = distanceM(from, to);
-      v.route = makeRoute({ coords: [from, to], distanceM: d, durationS: d / 11, approximate: false }, speed);
+      v.route = build({ coords: [from, to], distanceM: d, durationS: d / 11, approximate: false });
       this.changed();
       return;
     }
@@ -698,7 +712,7 @@ export class Game {
       .catch(() => directRoute(from, to))
       .then(data => {
         if (this.state !== stateRef || v.routeReq !== req) return; // stale (state reloaded or re-routed)
-        v.route = makeRoute(data, speed);
+        v.route = build(data);
         if (data.approximate) this.emit({ type: 'routing_fallback' });
         this.changed();
       });

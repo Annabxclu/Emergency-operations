@@ -49,6 +49,7 @@ export interface VehicleTypeDef {
   turnoutSec: number;
   unlockLevel: number;
   air?: boolean;                                   // flies direct (helicopters)
+  mph?: number;                                    // fixed driving speed (Mission Chief-style travel)
   transport?: { kind: 'patient' | 'prisoner'; capacity: number };
 }
 
@@ -226,6 +227,7 @@ export interface Settings {
   autoDispatch: 'off' | 'low' | 'all';
   shifts: boolean;
   showReal?: boolean;
+  travelModel?: 'fixed' | 'roads';
 }
 
 export interface GameState {
