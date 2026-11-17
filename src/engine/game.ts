@@ -339,7 +339,7 @@ export class Game {
   }
 
   // ------------------------------------------------------------ actions: stations
-  placeStation(typeId: string, pos: LatLng, name?: string): Station {
+  placeStation(typeId: string, pos: LatLng, name?: string, address?: string): Station {
     const c = this.city;
     const t = stationType(typeId);
     if (dept(t.dept).unlockLevel > this.state.level) throw new ActionError('Department not unlocked yet.');
@@ -347,7 +347,7 @@ export class Game {
     if (setup && SETUP_ORDER[c.setupStep] !== t.dept) throw new ActionError(`Place your ${stationTypeForDept(SETUP_ORDER[c.setupStep]).name} first.`);
     if (!setup) this.spend(t.cost, 'construction', t.dept, `Built ${t.name}`);
     const n = c.stations.filter(s => s.typeId === typeId).length + 1;
-    const st: Station = { id: this.id('s'), typeId, dept: t.dept, name: name?.trim() || `${t.name} ${n}`, pos, level: 0 };
+    const st: Station = { id: this.id('s'), typeId, dept: t.dept, name: name?.trim() || `${t.name} ${n}`, pos, level: 0, address: address || undefined };
     c.stations.push(st);
     if (setup) {
       const kit = STARTER_KITS[t.dept];

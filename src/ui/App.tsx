@@ -4,7 +4,7 @@ import type { GameEvent, LatLng } from '../engine/types';
 import { DEPARTMENTS, dept, qualification, stationType, stationTypeForDept } from '../data/departments';
 import type { OsrmRouting } from '../services/routing';
 import { clearSave, importJson, saveGame } from '../services/storage';
-import { fetchHospitals } from '../services/geocode';
+import { fetchHospitals, reverseAddress, searchAddress, type AddressResult } from '../services/geocode';
 import { GameCtx, type Ctx, type Route } from './common';
 import { MapView, type MapApi, type Selection } from './MapView';
 import { OUTCOME, clock, money, moneyShort } from './format';
@@ -43,6 +43,11 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const [buildType, setBuildType] = useState(null as string | null);
   const [pending, setPending] = useState(null as LatLng | null);
   const [buildName, setBuildName] = useState('');
+  const [addrQuery, setAddrQuery] = useState('');
+  const [addrResults, setAddrResults] = useState([] as AddressResult[]);
+  const [addrBusy, setAddrBusy] = useState(false);
+  const [addrError, setAddrError] = useState('');
+  const [pendingAddr, setPendingAddr] = useState(null as string | null);
   const [tileTrouble, setTileTrouble] = useState(false);
   const [routingOk, setRoutingOk] = useState(null as boolean | null);
   const [picker, setPicker] = useState(null as null | 'new' | 'add');
@@ -72,7 +77,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     try { fn(); if (okText) toast(okText, 'ok'); return true; }
     catch (e) { toast(e instanceof ActionError ? e.message : `Something went wrong: ${(e as Error).message}`, 'bad'); if (!(e instanceof ActionError)) console.error(e); return false; }
   };
-  const startBuild = (typeId: string) => { setBuildType(typeId); setPending(null); setBuildName(''); setStack([]); };
+  const startBuild = (typeId: string) => { setBuildType(typeId); setPending(null); setBuildName(''); setAddrQuery(''); setAddrResults([]); setAddrError(''); setPendingAddr(null); setStack([]); };
 
   // ---------------------------------------------------------- game loop
   useEffect(() => {
@@ -221,15 +226,31 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
 
   const ctx: Ctx = { game, push, back, toast, act, focus, startBuild };
 
+  const placeAt = (p: LatLng, label: string | null) => {
+    setPending(p); setPendingAddr(label); setAddrResults([]);
+    focus(p, 16);
+    if (!label) reverseAddress(p).then(a => setPendingAddr(a || 'Address not available'));
+  };
+  const resetAddr = () => { setAddrQuery(''); setAddrResults([]); setAddrError(''); setPendingAddr(null); };
+  const findAddress = async () => {
+    setAddrBusy(true); setAddrError(''); setAddrResults([]);
+    try {
+      const r = await searchAddress(addrQuery, game.cityDef.bounds, `${game.cityDef.name}, ${game.cityDef.state}`);
+      if (r.length === 1) placeAt(r[0].pos, r[0].label);
+      else if (r.length) setAddrResults(r);
+      else setAddrError(`No match in ${game.cityDef.name}. Try a street address like "123 Main St".`);
+    } catch { setAddrError('Address search is unavailable right now — tap the map instead.'); }
+    setAddrBusy(false);
+  };
   const onMapClick = (p: LatLng) => {
-    if (activeBuild) { setPending(p); return; }
+    if (activeBuild) placeAt(p, null);
   };
   const confirmBuild = () => {
     if (!activeBuild || !pending) return;
     let id = '';
-    const ok = act(() => { id = game.placeStation(activeBuild, pending, buildName).id; }, setup ? undefined : `${stationType(activeBuild).name} built`);
+    const ok = act(() => { id = game.placeStation(activeBuild, pending, buildName, pendingAddr && pendingAddr !== 'Address not available' ? pendingAddr : undefined).id; }, setup ? undefined : `${stationType(activeBuild).name} built`);
     if (ok) {
-      setPending(null); setBuildName('');
+      setPending(null); setBuildName(''); resetAddr();
       if (!setup) { setBuildType(null); openRoot({ kind: 'station', id }); }
     }
   };
@@ -308,29 +329,43 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
 
         {activeBuild && (
           <div className="buildbar">
-            {!pending ? (
-              <>
-                <div className="grow">
-                  {setup && c.setupStep === 0 && <div className="welcome">Welcome, Director. Set up your first three stations — they come staffed and equipped.</div>}
-                  <b>{setup ? `Step ${c.setupStep + 1} of 3: ` : ''}Tap the map to place your {stationType(activeBuild).name}</b>
-                  <div className="muted small">{setup ? 'Free starter station' : `Cost ${money(stationType(activeBuild).cost)}`} · pick a spot with good road access</div>
-                </div>
-                {!setup && <button className="btn ghost small" onClick={() => setBuildType(null)}>Cancel</button>}
-              </>
-            ) : (
-              <div className="grow">
-                <div className="build-row"><span className="dot" style={{ background: dept(buildDept!).color }} /><b>{stationType(activeBuild).name}</b>
-                  <span className="muted small">{game.districtFor(pending)}</span></div>
-                <input className="text" placeholder={`${stationType(activeBuild).name} ${c.stations.filter(s => s.typeId === activeBuild).length + 1}`} value={buildName}
-                  onChange={(e: any) => setBuildName(e.target.value)} />
-                <div className="actions">
-                  <button className="btn primary" onClick={confirmBuild} data-testid="build-confirm">{setup ? 'Place station' : `Build · ${money(stationType(activeBuild).cost)}`}</button>
-                  <button className="btn ghost" onClick={() => setPending(null)}>Move</button>
-                  {!setup && <button className="btn ghost" onClick={() => { setBuildType(null); setPending(null); }}>Cancel</button>}
-                </div>
-                <div className="muted small">Tap elsewhere on the map to move it.</div>
-              </div>
-            )}
+            <div className="grow">
+              {!pending && setup && c.setupStep === 0 && <div className="welcome">Welcome, Director. Set up your first three stations — they come staffed and equipped.</div>}
+              <div className="build-row"><span className="dot" style={{ background: dept(buildDept!).color }} />
+                <b>{setup ? `Step ${c.setupStep + 1} of 3: ` : ''}{stationType(activeBuild).name}</b>
+                <span className="muted small">{setup ? 'Free starter station' : money(stationType(activeBuild).cost)}</span></div>
+              {!pending ? (
+                <>
+                  <form className="addr-form" onSubmit={(e: Event) => { e.preventDefault(); findAddress(); }}>
+                    <input className="text" placeholder="Enter an address or place" value={addrQuery} onChange={(e: any) => setAddrQuery(e.target.value)}
+                      autoCorrect="off" enterKeyHint="search" disabled={addrBusy} data-testid="addr-input" />
+                    <button className="btn primary" disabled={addrBusy || !addrQuery.trim()} data-testid="addr-find">{addrBusy ? '…' : 'Find'}</button>
+                  </form>
+                  {addrError && <div className="muted small">{addrError}</div>}
+                  {addrResults.length > 0 && (
+                    <div className="addr-results">
+                      {addrResults.map((r: AddressResult, i: number) => (
+                        <button key={i} className="addr-result" onClick={() => placeAt(r.pos, r.label)} data-testid="addr-result">{r.label}</button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="muted small">…or tap anywhere on the map.</div>
+                  {!setup && <div className="actions"><button className="btn ghost small" onClick={() => { setBuildType(null); resetAddr(); }}>Cancel</button></div>}
+                </>
+              ) : (
+                <>
+                  <div className="addr-picked" data-testid="addr-picked">📍 {pendingAddr ?? 'Looking up address…'} <span className="muted">· {game.districtFor(pending)}</span></div>
+                  <input className="text" placeholder={`${stationType(activeBuild).name} ${c.stations.filter(st => st.typeId === activeBuild).length + 1}`} value={buildName}
+                    onChange={(e: any) => setBuildName(e.target.value)} />
+                  <div className="actions">
+                    <button className="btn primary" onClick={confirmBuild} data-testid="build-confirm">{setup ? 'Place station' : `Build · ${money(stationType(activeBuild).cost)}`}</button>
+                    <button className="btn ghost" onClick={() => { setPending(null); setPendingAddr(null); }}>Change</button>
+                    {!setup && <button className="btn ghost" onClick={() => { setBuildType(null); setPending(null); resetAddr(); }}>Cancel</button>}
+                  </div>
+                  <div className="muted small">Tap elsewhere on the map to adjust the spot.</div>
+                </>
+              )}
+            </div>
           </div>
         )}
 

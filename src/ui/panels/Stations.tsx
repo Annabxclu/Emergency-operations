@@ -89,7 +89,7 @@ export function StationDetail({ id }: { id: string }) {
         <form onSubmit={(e: Event) => { e.preventDefault(); game.renameStation(s.id, name); setRenaming(false); }}>
           <input className="inline-input" value={name} autoFocus onChange={(e: any) => setName(e.target.value)} onBlur={() => { game.renameStation(s.id, name); setRenaming(false); }} />
         </form>) : <span onClick={() => { setName(s.name); setRenaming(true); }}>{s.name} <span className="muted small">✎</span></span>}
-        sub={`${d.name} · Level ${s.level + 1}`} />
+        sub={`${d.name} · Level ${s.level + 1}${s.address ? ` · ${s.address}` : ''}`} />
       <div className="stats">
         <Stat label="Vehicles" value={`${vehicles.length}/${cap.bays}`} />
         <Stat label="Staff" value={`${staff.length}/${cap.staff}`} />

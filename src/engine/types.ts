@@ -132,6 +132,7 @@ export interface Station {
   pos: LatLng;
   level: number;          // index into StationTypeDef.levels
   extensions?: string[];
+  address?: string;
 }
 
 export interface Goal { id: string; metric: string; label: string; target: number; progress: number; reward: number; xp: number; done: boolean }

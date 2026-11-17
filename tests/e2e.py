@@ -43,6 +43,14 @@ def osrm(route):
     route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
 
 def nominatim(route):
+    url = route.request.url
+    if '/reverse' in url:
+        body = {'address': {'house_number': '101', 'road': 'S Boston Ave', 'neighbourhood': 'Downtown'}, 'display_name': '101 S Boston Ave'}
+        return route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
+    if 'viewbox=' in url:
+        body = [{'lat': '36.1525', 'lon': '-95.9900', 'display_name': '320 S Boston Ave, Tulsa',
+                 'address': {'house_number': '320', 'road': 'S Boston Ave', 'neighbourhood': 'Downtown', 'city': 'Tulsa'}}]
+        return route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
     body = [{'lat': '36.1540', 'lon': '-95.9928', 'boundingbox': ['36.00', '36.30', '-96.10', '-95.75'], 'name': 'Tulsa',
              'address': {'city': 'Tulsa', 'state': 'Oklahoma', 'ISO3166-2-lvl4': 'US-OK'}}]
     route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
@@ -100,11 +108,16 @@ def main():
             page.click('[data-testid=tab-stations]')
             page.click('[data-testid=build-open]')
             page.click('[data-testid=build-fire_station]')
-            page.mouse.click(110, 250)
+            page.fill('[data-testid=addr-input]', '320 S Boston Ave')
+            page.click('[data-testid=addr-find]')
+            page.wait_for_selector('[data-testid=addr-picked]')
+            check('320 S Boston Ave' in page.inner_text('[data-testid=addr-picked]'), 'station location found by typing an address')
             shot('03-placing-station')
             page.click('[data-testid=build-confirm]')
             page.wait_for_selector('[data-testid=buy-engine]')
             check(game('g.city.money') == 40000, 'fire station built for $60,000')
+            check(game('g.city.stations[3].address').startswith('320 S Boston Ave'), 'station stores its street address')
+            check(game('g.city.stations[0].address') == '101 S Boston Ave, Downtown', 'tapped station got its address by reverse lookup')
             page.click('[data-testid=buy-engine]')
             check(game('g.city.money') == 15000, 'engine purchased for $25,000')
             page.click('[data-testid=hire-open]')

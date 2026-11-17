@@ -133,3 +133,28 @@ export async function buildCity(r: CityResult, existingIds: string[]): Promise<C
     center: r.center, zoom: span < 0.1 ? 14 : span < 0.2 ? 13 : 12, bounds, districts, hospitals, unlockLevel: 1, population: 0, playable: true,
   };
 }
+
+export interface AddressResult { label: string; pos: LatLng }
+
+const shortAddress = (a: any, fallback: string) => {
+  const street = [a.house_number, a.road].filter(Boolean).join(' ');
+  const place = a.neighbourhood || a.suburb || a.city || a.town || a.village || '';
+  return [street || a.amenity || a.building || fallback.split(',')[0], place].filter(Boolean).join(', ');
+};
+
+/** Find an address or place inside the city's play area. */
+export async function searchAddress(query: string, bounds: [LatLng, LatLng], cityLabel: string): Promise<AddressResult[]> {
+  const [[s, w], [n, e]] = bounds;
+  const base = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=us&viewbox=${w},${n},${e},${s}&bounded=1`;
+  let rows: any[] = await getJson(`${base}&q=${encodeURIComponent(query.trim())}`, { headers: { 'Accept-Language': 'en' } });
+  if (!rows.length) rows = await getJson(`${base}&q=${encodeURIComponent(`${query.trim()}, ${cityLabel}`)}`, { headers: { 'Accept-Language': 'en' } });
+  return rows.map(r => ({ label: shortAddress(r.address || {}, r.display_name || query), pos: [Number(r.lat), Number(r.lon)] as LatLng }));
+}
+
+/** Street address for a point (used when a station is placed by tapping the map). */
+export async function reverseAddress(p: LatLng): Promise<string | null> {
+  try {
+    const r = await getJson(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${p[0]}&lon=${p[1]}`, { headers: { 'Accept-Language': 'en' } });
+    return r && r.address ? shortAddress(r.address, r.display_name || '') : null;
+  } catch { return null; }
+}
