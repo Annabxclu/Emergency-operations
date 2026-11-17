@@ -255,3 +255,4 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .buildbar .text { margin-bottom: 2px; }
 .mk.real { width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,.92); color: var(--c); border: 2px dashed var(--c); box-shadow: 0 1px 3px rgba(0,0,0,.25); opacity: .9; }
 .st-ico.inline { display: inline-grid; width: 22px; height: 22px; vertical-align: -4px; margin-right: 4px; }
+.clock { align-items: flex-end; }

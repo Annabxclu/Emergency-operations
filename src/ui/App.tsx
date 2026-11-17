@@ -32,7 +32,6 @@ const TAB_OF: Record<string, string> = {
   dispatch: 'dispatch', incident: 'dispatch', stations: 'stations', station: 'stations', build: 'stations', hire: 'stations',
   vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'personnel', employee: 'personnel', finances: 'finances', settings: 'settings', missions: 'settings', research: 'settings', real: 'stations',
 };
-const SPEEDS = [0, 1, 4, 8];
 
 interface Toast { id: number; text: string; tone: string; action?: () => void }
 
@@ -228,7 +227,6 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const setupType = setup ? stationTypeForDept(SETUP_ORDER[c.setupStep]).id : null;
   const activeBuild = picker || menu ? null : setup ? setupType : buildType;
   const t = clock(game.state.time);
-  const speed = game.state.settings.speed;
   const lvl = game.state.level;
   const xpFrac = Math.min(1, (game.state.xp - xpForLevel(lvl)) / Math.max(1, xpForLevel(lvl + 1) - xpForLevel(lvl)));
   const pendingCount = c.incidents.filter(i => i.status === 'pending').length;
@@ -313,15 +311,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
             <span className={c.money < 0 ? 'bad' : ''}>{moneyShort(c.money)}</span>
             <span className="lvl">Lv {lvl}<span className="xpbar"><span style={{ width: `${xpFrac * 100}%` }} /></span></span>
           </button>
-          <div className="clock"><span className="day">{game.cityDef.name} · Day {t.day}</span><span className="hm">{t.hm}</span></div>
-          <div className="speed" role="group" aria-label="Simulation speed">
-            {SPEEDS.map(s => (
-              <button key={s} className={(setup ? 0 : speed) === s ? 'on' : ''} disabled={setup} data-testid={`speed-${s}`}
-                onClick={() => { game.state.settings.speed = s; game.changed(); }}>
-                {s === 0 ? <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="1.5" width="2.6" height="9" rx="0.6" fill="currentColor" /><rect x="7.4" y="1.5" width="2.6" height="9" rx="0.6" fill="currentColor" /></svg> : `${s}×`}
-              </button>
-            ))}
-          </div>
+          <div className="clock"><span className="day">{game.cityDef.name} · Day {t.day}{game.state.settings.speed === 0 && !setup ? ' · Paused' : game.state.settings.speed > 1 ? ` · ${game.state.settings.speed}×` : ''}</span><span className="hm">{t.hm}</span></div>
           <button className="gear" aria-label="Settings" onClick={() => openRoot({ kind: 'settings' })}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6c-.6.3-1.2.6-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" /></svg>
           </button>

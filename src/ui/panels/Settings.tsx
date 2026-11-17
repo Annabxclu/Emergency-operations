@@ -43,6 +43,12 @@ export function SettingsPanel(p: Props) {
       <div className="actions"><Btn kind="primary" onClick={p.onMenu} testid="to-menu">Main menu</Btn><span className="muted small">Game pauses while the menu is open.</span></div>
 
       <Section title="Gameplay">
+        <div className="field"><label>Game speed</label>
+          <div className="seg" role="group" aria-label="Simulation speed">
+            {[0, 1, 4, 8].map(sp => (
+              <button key={sp} className={s.speed === sp ? 'on' : ''} data-testid={`speed-${sp}`} onClick={() => { s.speed = sp; game.changed(); }}>{sp === 0 ? 'Paused' : `${sp}×`}</button>
+            ))}
+          </div></div>
         <div className="field"><label>Travel times</label>
           <select value={s.travelModel ?? 'fixed'} onChange={(e: any) => { s.travelModel = e.target.value; game.changed(); }} data-testid="travel-model">
             <option value="fixed">Fixed vehicle speeds (Mission Chief style)</option>

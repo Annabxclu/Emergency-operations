@@ -157,14 +157,14 @@ def main():
             check(game('g.city.vehicles.filter(v => v.status === "dispatched").length') == 2, 'two units dispatched')
 
             # --- Run the simulation at 8x and watch units drive along the route
-            page.click('[data-testid=speed-8]')
+            page.click('.gear'); page.click('[data-testid=speed-8]'); page.click('.close')
             page.wait_for_function('() => window.__game.city.vehicles.some(v => v.status === "enroute")', timeout=20000)
             v = game('(() => { const v = g.city.vehicles.find(v => v.status === "enroute"); return { n: v.route.coords.length, approx: v.route.approximate, pos: v.pos }; })()')
             check(v['n'] > 2 and not v['approx'], f'vehicle following road geometry ({v["n"]} points, not straight-line)')
             page.wait_for_timeout(1500)
             v2 = game('g.city.vehicles.find(v => v.status === "enroute" || v.status === "onscene").pos')
             check(v2 != v['pos'], 'vehicle marker moves over time')
-            page.click('.close')
+            if page.locator('.close').count(): page.click('.close')
             shot('06-enroute-map')
 
             # fast-forward game time (let async route requests resolve between steps)
@@ -180,7 +180,7 @@ def main():
             print('   other calls generated meanwhile:', game('g.city.resolved.map(i => i.name + ":" + i.outcome).join(", ")'))
             check(game('g.state.xp') > 0, 'player earned XP')
 
-            page.click('[data-testid=speed-0]')
+            page.click('.gear'); page.click('[data-testid=speed-0]'); page.click('.close')
             page.click('[data-testid=tab-dispatch]')
             page.wait_for_selector('[data-testid=goals]')
             shot('07-dispatch-list')
