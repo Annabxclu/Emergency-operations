@@ -21,7 +21,7 @@ Progress saves automatically on the device (IndexedDB). Use Settings → Export 
 
 ## How to play
 
-1. Pick any US city (search "City, ST"; Atlanta is a preset). Then tap the map to place your first Fire Station, Police Precinct and EMS Station (free, already staffed and equipped).
+1. The game opens on a start menu: Continue your game, or New game → enter a city and choose its state. Then tap the map to place your first Fire Station, Police Precinct and EMS Station (free, already staffed and equipped).
 2. Calls appear on the map and in **Dispatch**. Open one: recommended units are pre-checked; adjust and press **Dispatch**.
 3. Units turn out, then drive along real roads. When all required units are on scene the crew works the call, then you get paid and earn XP.
 4. Spend money in **Stations**: build more stations anywhere, buy vehicles, hire staff, upgrade buildings.

@@ -33,9 +33,21 @@ async function getJson(url: string, init?: RequestInit, timeoutMs = 12000): Prom
   } finally { clearTimeout(t); }
 }
 
+export const US_STATES = Object.entries(STATE_CODES).map(([name, code]) => ({ name, code })).sort((a, b) => a.name.localeCompare(b.name));
+
+/** Structured search: a city name within a specific state. */
+export async function searchCityState(city: string, state: string): Promise<CityResult[]> {
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&country=USA&city=${encodeURIComponent(city.trim())}&state=${encodeURIComponent(state)}`;
+  const structured = await searchUrl(url);
+  return structured.length ? structured : searchCities(`${city}, ${state}`);
+}
+
 export async function searchCities(query: string): Promise<CityResult[]> {
   const q = encodeURIComponent(query.trim());
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&countrycodes=us&q=${q}`;
+  return searchUrl(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&countrycodes=us&q=${q}`);
+}
+
+async function searchUrl(url: string): Promise<CityResult[]> {
   const rows: any[] = await getJson(url, { headers: { 'Accept-Language': 'en' } });
   const out: CityResult[] = [];
   for (const r of rows) {

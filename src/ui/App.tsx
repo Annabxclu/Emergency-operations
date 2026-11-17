@@ -20,6 +20,7 @@ import { ResearchPanel } from './panels/Research';
 import { RESEARCH } from '../data/progression';
 import { playAlert, unlockAudio } from './sound';
 import { CityPicker } from './CityPicker';
+import { StartMenu } from './StartMenu';
 import type { CityDef } from '../engine/types';
 
 const TABS = [
@@ -44,7 +45,11 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const [buildName, setBuildName] = useState('');
   const [tileTrouble, setTileTrouble] = useState(false);
   const [routingOk, setRoutingOk] = useState(null as boolean | null);
-  const [picker, setPicker] = useState((firstRun ? 'first' : null) as null | 'first' | 'new' | 'add');
+  const [picker, setPicker] = useState(null as null | 'new' | 'add');
+  const [menu, setMenu] = useState(true);
+  const [hasSave, setHasSave] = useState(!firstRun);
+  const blocked = useRef(true);
+  blocked.current = menu || !!picker;
   const mapApi = useRef(null as MapApi | null);
   const toastId = useRef(0);
   const lastFallbackToast = useRef(0);
@@ -75,7 +80,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     const loop = (now: number) => {
       const dtReal = Math.min(0.25, (now - last) / 1000);
       last = now;
-      const speed = game.setupDone ? game.state.settings.speed : 0;
+      const speed = game.setupDone && !blocked.current ? game.state.settings.speed : 0;
       if (speed > 0) game.tick(dtReal * speed);
       if (now - lastUi > 250) { lastUi = now; if (speed > 0) rerender(); }
       raf = requestAnimationFrame(loop);
@@ -173,6 +178,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       routing.setBaseUrl(st.settings.routingUrl);
       saveGame(st);
       openRoot(null);
+      setHasSave(true); setMenu(false);
       toast('Save loaded', 'ok');
     } catch (e) { toast((e as Error).message, 'bad'); }
   };
@@ -185,6 +191,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     game.load(newGameState(def));
     routing.setBaseUrl(game.state.settings.routingUrl);
     saveGame(game.state);
+    setHasSave(true); setMenu(false);
     setPicker(null); openRoot(null); setBuildType(null); setPending(null);
   };
   const onSwitchCity = (id: string) => {
@@ -202,7 +209,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const c = game.city;
   const setup = !game.setupDone;
   const setupType = setup ? stationTypeForDept(SETUP_ORDER[c.setupStep]).id : null;
-  const activeBuild = picker ? null : setup ? setupType : buildType;
+  const activeBuild = picker || menu ? null : setup ? setupType : buildType;
   const t = clock(game.state.time);
   const speed = game.state.settings.speed;
   const lvl = game.state.level;
@@ -240,7 +247,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'personnel': return <PersonnelList />;
       case 'employee': return <EmployeeDetail key={r.id} id={r.id} />;
       case 'finances': return <FinancesPanel />;
-      case 'settings': return <SettingsPanel onImport={onImport} onNewGame={() => setPicker('new')} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
+      case 'settings': return <SettingsPanel onImport={onImport} onNewGame={() => setPicker('new')} onMenu={() => { saveGame(game.state); openRoot(null); setMenu(true); }} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
       case 'missions': return <MissionsPanel />;
       case 'research': return <ResearchPanel />;
     }
@@ -335,15 +342,17 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
           </div>
         )}
 
+        {menu && !picker && (
+          <StartMenu game={game} hasSave={hasSave} onContinue={() => setMenu(false)} onNewGame={() => setPicker('new')} onImport={onImport} />
+        )}
         {picker && (
           <CityPicker
-            title={picker === 'add' ? 'Expand to a new city' : picker === 'new' ? 'Start a new game' : 'Choose your city'}
+            title={picker === 'add' ? 'Expand to a new city' : 'Where do you want to start?'}
             subtitle={picker === 'add' ? 'Your new city has its own stations, staff, calls and budget. You keep your level.'
-              : picker === 'new' ? 'This replaces your current game. Export a backup first if you want to keep it.'
-              : 'Build an emergency services network on real streets. Pick any US city to begin.'}
+              : 'Enter a city and state. You will build your network on its real streets.'}
             existingIds={picker === 'add' ? Object.keys(game.state.cities) : []}
             onPick={onPickCity}
-            onCancel={picker === 'first' ? undefined : () => setPicker(null)} />
+            onCancel={() => setPicker(null)} />
         )}
 
         <nav className="tabbar">

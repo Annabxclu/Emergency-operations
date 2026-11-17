@@ -7,7 +7,7 @@ import { money } from '../format';
 import { TILE_STYLES } from '../MapView';
 import { exportJson } from '../../services/storage';
 
-interface Props { onImport(text: string): void; onNewGame(): void; onAddCity(): void; onSwitchCity(id: string): void; onRoutingUrl(url: string): void; routingOk: boolean | null }
+interface Props { onImport(text: string): void; onNewGame(): void; onMenu(): void; onAddCity(): void; onSwitchCity(id: string): void; onRoutingUrl(url: string): void; routingOk: boolean | null }
 
 export function SettingsPanel(p: Props) {
   const { game, toast, act, push } = useCtx();
@@ -40,6 +40,7 @@ export function SettingsPanel(p: Props) {
   return (
     <div>
       <Header title="Settings" sub={`Level ${lvl} · ${game.state.xp}/${xpForLevel(lvl + 1)} XP`} />
+      <div className="actions"><Btn kind="primary" onClick={p.onMenu} testid="to-menu">Main menu</Btn><span className="muted small">Game pauses while the menu is open.</span></div>
 
       <Section title="Gameplay">
         <label className="check"><input type="checkbox" checked={s.sound} onChange={(e: any) => { s.sound = e.target.checked; game.changed(); }} /> Alert sounds for new calls</label>

@@ -234,3 +234,15 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .goal-top { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; }
 .goal.done .goal-top span:first-child { color: var(--ok); }
 .goal.done .xpbar span { background: var(--ok); }
+
+.picker-form { display: flex; flex-direction: column; gap: 2px; }
+.picker-form .btn { margin-top: 12px; }
+.btn.big { padding: 14px 18px; font-size: 16px; border-radius: 13px; width: 100%; }
+.menu .picker-card { gap: 12px; padding-top: 6vh; }
+.menu-logo { display: flex; gap: 6px; margin-bottom: 4px; }
+.menu-logo span { width: 14px; height: 34px; border-radius: 5px; }
+.menu-logo span:nth-child(2) { height: 44px; margin-top: -5px; }
+.menu-continue { text-align: left; width: 100%; padding: 16px; border-radius: 14px; background: linear-gradient(135deg, #1f3554, #18212b); border: 1px solid #2c4568; margin-top: 8px; }
+.mc-label { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: var(--info); }
+.mc-title { font-size: 21px; font-weight: 700; margin-top: 2px; }
+.mc-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
