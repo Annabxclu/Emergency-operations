@@ -3,7 +3,7 @@
 // state directly.
 
 import type {
-  CityDef, CityState, Employee, FinanceBucket, GameEvent, GameState, Incident, LatLng, Outcome,
+  CityDef, CityState, Employee, Facility, IncidentTypeDef, FinanceBucket, GameEvent, GameState, Incident, LatLng, Outcome,
   Requirement, RoutingProvider, Station, Vehicle,
 } from './types';
 import {
@@ -65,6 +65,7 @@ export function migrate(raw: unknown): GameState {
   const fresh = newGameState();
   s.settings = { ...fresh.settings, ...(s.settings || {}) };
   s.settings.deptFilter = { ...fresh.settings.deptFilter, ...(s.settings.deptFilter || {}) };
+  for (const c of Object.values(s.cities)) for (const i of [...c.incidents, ...c.resolved]) { i.patients ??= 0; i.prisoners ??= 0; }
   if (!['osm', 'hot'].includes(s.settings.tileStyle)) s.settings.tileStyle = 'osm'; // CARTO styles retired (need a key)
   s.schema = SCHEMA;
   return s;
@@ -162,6 +163,9 @@ export class Game {
         if (inc) this.requestRoute(v, inc.pos); else this.sendHome(v);
       } else if (v.status === 'returning' && !v.route) {
         this.sendHome(v);
+      } else if (v.status === 'transporting' && !v.route) {
+        const dest = v.cargo && [...this.hospitals(), ...this.jails()].find(f => f.id === v.cargo!.dest);
+        if (dest) this.requestRoute(v, dest.pos); else { v.cargo = null; this.sendHome(v); }
       }
     }
   }
@@ -194,7 +198,7 @@ export class Game {
   /** Null if the vehicle can be dispatched right now, else the reason. */
   dispatchProblem(v: Vehicle): string | null {
     if (v.status !== 'available' && v.status !== 'returning') {
-      return { dispatched: 'Already dispatched', enroute: 'En route', onscene: 'On scene', out_of_service: 'Out of service', maintenance: 'In maintenance' }[v.status as string] || 'Unavailable';
+      return { dispatched: 'Already dispatched', enroute: 'En route', onscene: 'On scene', transporting: 'Transporting', handover: 'At hospital / jail', out_of_service: 'Out of service', maintenance: 'In maintenance' }[v.status as string] || 'Unavailable';
     }
     if (v.condition < MIN_CONDITION) return 'Needs maintenance';
     return this.staffingProblem(v);
@@ -522,7 +526,7 @@ export class Game {
 
   /** Remaining game seconds until arrival for a vehicle heading to a scene. */
   etaRemaining(v: Vehicle): number | null {
-    if (v.status === 'enroute' && v.route) return Math.max(0, v.route.startAt + v.route.durationS - this.state.time);
+    if ((v.status === 'enroute' || v.status === 'transporting') && v.route && v.route.startAt >= 0) return Math.max(0, v.route.startAt + v.route.durationS - this.state.time);
     if (v.status === 'dispatched') {
       const inc = v.incidentId ? this.incident(v.incidentId) : null;
       const turnout = Math.max(0, v.turnoutUntil - this.state.time);
@@ -574,7 +578,15 @@ export class Game {
     const req = ++v.routeReq;
     const from: LatLng = [...v.pos] as LatLng;
     const stateRef = this.state;
-    const speed = vehicleType(v.typeId).speedFactor;
+    const vt = vehicleType(v.typeId);
+    const speed = vt.speedFactor;
+    if (vt.air) {
+      // Helicopters fly straight to the destination.
+      const d = distanceM(from, to);
+      v.route = makeRoute({ coords: [from, to], distanceM: d, durationS: d / 11, approximate: false }, speed);
+      this.changed();
+      return;
+    }
     this.routing.route(from, to)
       .catch(() => directRoute(from, to))
       .then(data => {
@@ -714,6 +726,7 @@ export class Game {
           }
           break;
         case 'returning':
+        case 'transporting':
           if (v.route && v.route.startAt < 0) v.route.startAt = now;
         // falls through
         case 'enroute': {
@@ -727,6 +740,9 @@ export class Game {
         case 'maintenance':
           if (now >= v.maintenanceUntil) { v.condition = 100; v.status = 'available'; this.changed(); }
           break;
+        case 'handover':
+          if (now >= (v.busyUntil ?? 0)) { v.cargo = null; this.sendHome(v); this.changed(); }
+          break;
       }
     }
   }
@@ -736,7 +752,15 @@ export class Game {
     v.pos = r.coords[r.coords.length - 1];
     this.chargeTravel(v, r.distanceM);
     v.route = null;
-    if (v.status === 'returning') {
+    if (v.status === 'transporting' && v.cargo) {
+      const cg = v.cargo;
+      const km = r.distanceM / 1000;
+      cg.fee = Math.round(cg.kind === 'patient' ? (250 + 120 * km) * cg.count : (200 + 80 * km) * cg.count);
+      this.post(cg.fee, cg.kind === 'patient' ? 'patient transport' : 'prisoner transport', vehicleType(v.typeId).dept, `${v.name} → ${cg.destName}`);
+      v.status = 'handover';
+      v.busyUntil = this.state.time + (cg.kind === 'patient' ? rand(5, 10) : rand(4, 8)) * 60;
+      this.emit({ type: 'transport_done', id: v.id, kind: cg.kind, count: cg.count, fee: cg.fee, dest: cg.destName });
+    } else if (v.status === 'returning') {
       const st = this.station(v.stationId);
       if (st) v.pos = [...st.pos] as LatLng;
       v.status = 'available';
@@ -844,6 +868,7 @@ export class Game {
     inc.outcome = outcome;
     inc.resolvedAt = this.state.time;
     inc.payout = payout;
+    if (outcome !== 'failed') this.assignTransports(inc);
     for (const v of this.incidentVehicles(inc.id)) {
       if (v.status === 'enroute') this.chargeTravel(v, this.travelledM(v));
       this.sendHome(v);
@@ -895,44 +920,102 @@ export class Game {
     const t = typeId ? incidentType(typeId) : this.weightedPick(types);
     if (!t || !this.city.stations.length) return null;
     this.spawning = true;
-    const stateRef = this.state;
     const c = this.city, def = this.cityDef;
     try {
-      const primary = CAPABILITIES.find(c => c.id === t.requirements[0].cap)!.dept;
+      const primary = CAPABILITIES.find(x => x.id === t.requirements[0].cap)!.dept;
       const anchors = c.stations.filter(s => s.dept === primary);
       const anchor = pick(anchors.length ? anchors : c.stations);
-      const radius = stationType(anchor.typeId).coverageKm * 1000;
-      const [[s, w], [n, e]] = def.bounds;
-      let pos: LatLng | null = null, street = '';
-      for (let attempt = 0; attempt < 3; attempt++) {
-        let p = destination(anchor.pos, rand(0, 360), Math.sqrt(Math.random()) * radius * 0.95 + 150);
-        p = [Math.min(n, Math.max(s, p[0])), Math.min(e, Math.max(w, p[1]))];
-        let snapped: { pos: LatLng; name: string } | null = null;
-        try { snapped = await this.routing.nearest(p); } catch { snapped = null; }
-        if (!snapped) { pos = pos || p; break; }          // routing service down: use the raw point
-        pos = snapped.pos;
-        if (snapped.name) { street = snapped.name; break; } // prefer named streets
+      const parent = await this.createIncident(t, c, def, anchor.pos, stationType(anchor.typeId).coverageKm * 1000, null);
+      if (parent && t.children) {
+        // Major event: related calls appear around the main scene.
+        const allowed = t.children.types.map(incidentType).filter(ct => ct.requirements.every(r => this.hasDeptIn(c, CAPABILITIES.find(x => x.id === r.cap)!.dept)));
+        const n = Math.round(rand(t.children.count[0], t.children.count[1]));
+        let made = 0;
+        for (let i = 0; i < n && allowed.length; i++) {
+          const child = await this.createIncident(pick(allowed), c, def, parent.pos, t.children.radiusKm * 1000, parent.id);
+          if (child) made++;
+        }
+        this.emit({ type: 'major_event', id: parent.id, children: made }, c.cityId);
       }
-      if (this.state !== stateRef || !pos) return null;
-      const district = this.districtFor(pos, def);
-      const num = (Math.floor(rand(1, 60)) * 2 + (Math.random() < 0.5 ? 1 : 0)) * 10 + Math.floor(rand(0, 9));
-      const address = street ? `${num} ${street}` : `Near ${district}`;
-      c.incidentCounter++;
-      const inc: Incident = {
-        id: this.id('i'), number: `${def.prefix}-${String(c.incidentCounter).padStart(5, '0')}`,
-        typeId: t.id, name: t.name, category: t.category, pos, address, district, severity: t.severity,
-        description: pick(t.descriptions), requirements: t.requirements.map(r => ({ ...r })),
-        createdAt: this.state.time, deadline: this.state.time + t.deadlineMin * 60,
-        escalated: false, late: false, partial: false, status: 'pending', workUntil: null, workStartedAt: null,
-        reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
-      };
-      c.incidents.push(inc);
-      this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
-      this.changed();
-      return inc;
+      return parent;
     } finally {
       this.spawning = false;
     }
+  }
+
+  private hasDeptIn(c: CityState, d: string) { return c.stations.some(s => s.dept === d); }
+
+  private async createIncident(t: IncidentTypeDef, c: CityState, def: CityDef, around: LatLng, radius: number, parentId: string | null): Promise<Incident | null> {
+    const stateRef = this.state;
+    const [[s, w], [n, e]] = def.bounds;
+    let pos: LatLng | null = null, street = '';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let p = destination(around, rand(0, 360), Math.sqrt(Math.random()) * radius * 0.95 + 150);
+      p = [Math.min(n, Math.max(s, p[0])), Math.min(e, Math.max(w, p[1]))];
+      let snapped: { pos: LatLng; name: string } | null = null;
+      try { snapped = await this.routing.nearest(p); } catch { snapped = null; }
+      if (!snapped) { pos = pos || p; break; }          // routing service down: use the raw point
+      pos = snapped.pos;
+      if (snapped.name) { street = snapped.name; break; } // prefer named streets
+    }
+    if (this.state !== stateRef || !pos || !this.state.cities[c.cityId]) return null;
+    const district = this.districtFor(pos, def);
+    const num = (Math.floor(rand(1, 60)) * 2 + (Math.random() < 0.5 ? 1 : 0)) * 10 + Math.floor(rand(0, 9));
+    const address = street ? `${num} ${street}` : `Near ${district}`;
+    const range = (r?: [number, number]) => (r ? Math.round(rand(r[0], r[1])) : 0);
+    c.incidentCounter++;
+    const inc: Incident = {
+      id: this.id('i'), number: `${def.prefix}-${String(c.incidentCounter).padStart(5, '0')}`,
+      typeId: t.id, name: t.name, category: t.category, pos, address, district, severity: t.severity,
+      description: pick(t.descriptions), requirements: t.requirements.map(r => ({ ...r })),
+      createdAt: this.state.time, deadline: this.state.time + t.deadlineMin * 60,
+      escalated: false, late: false, partial: false, status: 'pending', workUntil: null, workStartedAt: null,
+      reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
+      patients: range(t.patients), prisoners: range(t.prisoners), parentId,
+    };
+    c.incidents.push(inc);
+    this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
+    this.changed();
+    return inc;
+  }
+
+  // ------------------------------------------------------------ facilities & transport
+  hospitals(def: CityDef = this.cityDef): Facility[] {
+    if (def.hospitals && def.hospitals.length) return def.hospitals;
+    return [{ id: 'h-general', kind: 'hospital', name: `${def.name} General Hospital`, pos: def.center }];
+  }
+
+  jails(): Facility[] {
+    const p = this.city.stations.filter(s => s.dept === 'police');
+    if (p.length) return p.map(s => ({ id: s.id, kind: 'jail' as const, name: s.name, pos: s.pos }));
+    return [{ id: 'jail-county', kind: 'jail', name: 'County Jail', pos: this.cityDef.center }];
+  }
+
+  private nearestFacility(list: Facility[], p: LatLng) {
+    return list.reduce((best, f) => (distanceM(p, f.pos) < distanceM(p, best.pos) ? f : best));
+  }
+
+  /** After a call is worked, load patients and prisoners into suitable units on scene. */
+  private assignTransports(inc: Incident) {
+    const onScene = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene');
+    const left: Record<'patient' | 'prisoner', number> = { patient: inc.patients || 0, prisoner: inc.prisoners || 0 };
+    // Largest carriers first so vans and MCI units take the bulk.
+    const carriers = onScene.filter(v => vehicleType(v.typeId).transport)
+      .sort((a, b) => vehicleType(b.typeId).transport!.capacity - vehicleType(a.typeId).transport!.capacity);
+    for (const v of carriers) {
+      const tr = vehicleType(v.typeId).transport!;
+      const n = Math.min(tr.capacity, left[tr.kind]);
+      if (n <= 0) continue;
+      left[tr.kind] -= n;
+      const dest = this.nearestFacility(tr.kind === 'patient' ? this.hospitals() : this.jails(), v.pos);
+      v.cargo = { kind: tr.kind, count: n, dest: dest.id, destName: dest.name, fee: 0 };
+      v.status = 'transporting';
+      v.incidentId = null;
+      v.route = null;
+      this.requestRoute(v, dest.pos);
+    }
+    if (left.patient > 0) this.emit({ type: 'notice', text: `${left.patient} patient${left.patient > 1 ? 's' : ''} from ${inc.name} had no ambulance for transport — fee lost.` });
+    if (left.prisoner > 0) this.emit({ type: 'notice', text: `${left.prisoner} suspect${left.prisoner > 1 ? 's' : ''} from ${inc.name} released — no unit to transport them.` });
   }
 
   private weightedPick<T extends { weight: number }>(items: T[]): T | null {

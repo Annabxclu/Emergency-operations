@@ -16,7 +16,7 @@ export function PersonnelList() {
         <div className="sub">{c.employees.length} employees · payroll {money(payroll)}/h</div></div></div>
       <div className="seg">
         <button className={d === 'all' ? 'on' : ''} onClick={() => setD('all')}>All</button>
-        {DEPARTMENTS.map(x => <button key={x.id} className={d === x.id ? 'on' : ''} onClick={() => setD(x.id)}>{x.short} {c.employees.filter(e => e.dept === x.id).length}</button>)}
+        {DEPARTMENTS.filter(x => c.employees.some(e => e.dept === x.id)).map(x => <button key={x.id} className={d === x.id ? 'on' : ''} onClick={() => setD(x.id)}>{x.short} {c.employees.filter(e => e.dept === x.id).length}</button>)}
       </div>
       {!list.length && <Empty>No employees.</Empty>}
       <div className="list">

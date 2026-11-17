@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { CAPABILITIES, VEHICLE_TYPES, dept, vehicleType } from '../../data/departments';
-import { CATEGORY_DEPT, INCIDENT_TYPES } from '../../data/incidents';
+import { CATEGORY_DEPT, CATEGORY_NAMES, INCIDENT_TYPES, incidentType } from '../../data/incidents';
 import { Chip, Header, Section, useCtx } from '../common';
 import { SEVERITY, money } from '../format';
 import { glyph } from '../icons';
 
-const CATEGORIES = [
-  { id: 'fire', name: 'Fire' }, { id: 'police', name: 'Police' }, { id: 'ems', name: 'EMS' },
-  { id: 'rescue', name: 'Rescue' }, { id: 'hazmat', name: 'Hazmat' },
-];
+const CATEGORIES = Object.entries(CATEGORY_NAMES).map(([id, name]) => ({ id, name }));
 
 export function MissionsPanel() {
   const { game } = useCtx();
@@ -68,6 +65,11 @@ export function MissionsPanel() {
                         return <span key={r.cap} className={`req-chip ${n >= r.count ? 'ok' : ''}`}>{r.count}× {c.name}<em>{n >= r.count ? ' ✓' : ` (have ${n})`}</em></span>;
                       })}
                     </div>
+                    {(t.patients || t.prisoners || t.children) && (
+                      <div className="mission-foot">
+                        <span>{[t.patients && t.patients[1] > 0 ? `${t.patients[0]}–${t.patients[1]} patients to hospital` : '', t.prisoners && t.prisoners[1] > 0 ? `${t.prisoners[0]}–${t.prisoners[1]} suspects to jail` : ''].filter(Boolean).join(' · ')}</span>
+                      </div>)}
+                    {t.children && <div className="mission-foot"><span className="warn">Major event: also triggers {t.children.count[0]}–{t.children.count[1]} calls ({t.children.types.map(id => incidentType(id).name).join(', ')})</span></div>}
                     <div className="mission-foot">
                       <span>If ignored, adds: {t.escalation.map(r => `${r.count}× ${CAPABILITIES.find(x => x.id === r.cap)!.name}`).join(', ')}</span>
                       <span className="ok">≈{money(t.reward)} · {t.xp} XP</span>

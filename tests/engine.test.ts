@@ -69,6 +69,7 @@ async function run(g: Game, seconds: number, step = 1) {
   const done = c().resolved.find(i => i.id === inc!.id)!;
   assert(done.outcome === 'successful', `outcome successful (${done.outcome})`);
   assert(amb.status === 'available', 'ambulance returned to station');
+  assert((c().finance.total.income['patient transport'] || 0) > 0, `patient transported to hospital (fee $${c().finance.total.income['patient transport']})`);
   assert(g.state.xp > 0, 'earned XP');
   const rewards = c().finance.total.income['incident rewards'] || 0;
   assert(rewards > 0, `earned reward $${rewards}`);
@@ -98,9 +99,40 @@ async function run(g: Game, seconds: number, step = 1) {
   assert((c().finance.total.income['city contract'] || 0) > 0, 'city contract income paid');
   assert((c().finance.total.expense['fuel'] || 0) > 0, 'fuel charged');
 
+  // Prisoner transport: burglary with a forced suspect.
+  const burg = await g.spawnIncident('impaired_driver');
+  assert(burg!.prisoners === 1, 'impaired driver call has a suspect to transport');
+  // No traffic unit at level 1: dispatch a patrol car manually.
+  const patrol = c().vehicles.find(v => v.typeId === 'patrol' && !g.dispatchProblem(v))!;
+  burg!.requirements = [{ cap: 'police', count: 1 }];
+  g.dispatch(burg!.id, [patrol.id]);
+  let sawTransport = false;
+  for (let i = 0; i < 6000; i++) { g.tick(1); if (patrol.status === 'transporting') sawTransport = true; if (i % 20 === 0) await flush(); }
+  assert(sawTransport, 'patrol car transported the suspect to jail');
+  assert((c().finance.total.income['prisoner transport'] || 0) > 0, 'prisoner transport fee paid');
+
+  // Major event spawns child calls (force-unlock levels for the test).
+  g.state.level = 12;
+  (g.city as any).money = 1e7;
+  for (const d of ['emergency', 'public_works']) g.placeStation(d === 'emergency' ? 'eoc' : 'public_works_yard', [33.75, -84.38]);
+  (g.city as any).money = 1e7;
+  const before = c().incidents.length;
+  const storm = await g.spawnIncident('severe_storm');
+  assert(storm && c().incidents.length - before >= 3, `major event created ${c().incidents.length - before - 1} related calls`);
+  assert(c().incidents.filter(i => i.parentId === storm!.id).length >= 2, 'child calls linked to the event');
+
+  // Helicopters fly straight.
+  const air = g.placeStation('air_base', [33.80, -84.40]);
+  for (let i = 0; i < 3; i++) g.hire(air.id, { ...g.candidates(air.id)[0], quals: ['pilot', 'flight_medic'] });
+  const heli = g.buyVehicle('med_heli', air.id);
+  assert(!g.staffingProblem(heli), 'medical helicopter crewed with pilot + flight medic');
+  const trauma = await g.spawnIncident('remote_trauma');
+  g.dispatch(trauma!.id, [heli.id]);
+  assert(heli.route && heli.route.coords.length === 2 && !heli.route.approximate, 'helicopter flies a direct line, not a road route');
+
   // Save round trip.
   const json = JSON.stringify(g.state);
   const g2 = new Game(JSON.parse(json), fake);
-  assert(g2.city.stations.length === 4, 'state serializes and reloads');
+  assert(g2.city.stations.length === c().stations.length, 'state serializes and reloads');
   console.log(`\nAll engine tests passed. Route requests: ${routeCalls}. Money: $${c().money}. Level ${g.state.level}, XP ${g.state.xp}`);
 })();

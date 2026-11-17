@@ -1,4 +1,4 @@
-import type { CityDef, DistrictDef, LatLng } from '../engine/types';
+import type { CityDef, DistrictDef, Facility, LatLng } from '../engine/types';
 
 // City search uses OpenStreetMap's Nominatim; neighborhoods come from the
 // Overpass API. Both are free and keyless, with light-use policies (about one
@@ -72,6 +72,24 @@ async function fetchNeighborhoods(bounds: [LatLng, LatLng]): Promise<DistrictDef
   return list;
 }
 
+/** Real hospitals with emergency care inside the play area (OpenStreetMap). */
+export async function fetchHospitals(bounds: [LatLng, LatLng]): Promise<Facility[]> {
+  const [[s, w], [n, e]] = bounds;
+  const query = `[out:json][timeout:20];nwr["amenity"="hospital"]["name"](${s},${w},${n},${e});out center 60;`;
+  const json = await getJson('https://overpass-api.de/api/interpreter', {
+    method: 'POST', body: 'data=' + encodeURIComponent(query), headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  }, 25000);
+  const out: Facility[] = [];
+  for (const el of json.elements || []) {
+    const lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon;
+    const name = el.tags?.name;
+    if (lat == null || !name || out.some(h => h.name === name)) continue;
+    if (el.tags?.amenity !== 'hospital' || el.tags?.emergency === 'no') continue;
+    out.push({ id: `h-${el.type}${el.id}`, kind: 'hospital', name, pos: [lat, lon] });
+  }
+  return out.slice(0, 25);
+}
+
 function compassDistricts(name: string, center: LatLng, bounds: [LatLng, LatLng]): DistrictDef[] {
   const dLat = (bounds[1][0] - bounds[0][0]) * 0.3, dLng = (bounds[1][1] - bounds[0][1]) * 0.3;
   const dirs: [string, number, number][] = [['Downtown', 0, 0], ['North', 1, 0], ['Northeast', 1, 1], ['East', 0, 1], ['Southeast', -1, 1],
@@ -93,11 +111,13 @@ export async function buildCity(r: CityResult, existingIds: string[]): Promise<C
   let districts: DistrictDef[] = [];
   try { districts = await fetchNeighborhoods(bounds); } catch { districts = []; }
   if (districts.length < 4) districts = compassDistricts(r.name, r.center, bounds);
+  let hospitals: Facility[] = [];
+  try { hospitals = await fetchHospitals(bounds); } catch { hospitals = []; }
   const base = `${r.name}-${r.state}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   let id = base, i = 2;
   while (existingIds.includes(id)) id = `${base}-${i++}`;
   return {
     id, name: r.name, state: r.state, prefix: r.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'CTY',
-    center: r.center, zoom: span < 0.1 ? 14 : span < 0.2 ? 13 : 12, bounds, districts, unlockLevel: 1, population: 0, playable: true,
+    center: r.center, zoom: span < 0.1 ? 14 : span < 0.2 ? 13 : 12, bounds, districts, hospitals, unlockLevel: 1, population: 0, playable: true,
   };
 }

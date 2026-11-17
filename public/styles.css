@@ -221,3 +221,8 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .req-chip.ok { background: rgba(63,185,80,.14); color: #8be09a; }
 .req-chip em { font-style: normal; opacity: .75; }
 .mission-foot { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); }
+.mk.hosp { width: 20px; height: 20px; border-radius: 5px; background: #fff; color: #d63030; border: 1.5px solid #d63030; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.filters { flex-wrap: nowrap; overflow-x: auto; max-width: calc(100vw - 20px); scrollbar-width: none; }
+.filters::-webkit-scrollbar { display: none; }
+.fchip { flex: none; }
+.parent-link { font-size: 12.5px; color: #f2bd3d; margin-top: 4px; }

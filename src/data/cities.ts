@@ -37,6 +37,15 @@ export const CITIES: CityDef[] = [
       { name: 'Lindbergh', center: [33.8230, -84.3690] },
       { name: 'Druid Hills', center: [33.7800, -84.3270] },
     ],
+    hospitals: [
+      { id: 'h-grady', kind: 'hospital', name: 'Grady Memorial Hospital', pos: [33.7518, -84.3820] },
+      { id: 'h-emory-midtown', kind: 'hospital', name: 'Emory University Hospital Midtown', pos: [33.7688, -84.3868] },
+      { id: 'h-piedmont', kind: 'hospital', name: 'Piedmont Atlanta Hospital', pos: [33.8090, -84.3942] },
+      { id: 'h-emory', kind: 'hospital', name: 'Emory University Hospital', pos: [33.7925, -84.3215] },
+      { id: 'h-choa-egleston', kind: 'hospital', name: "Children's Healthcare of Atlanta at Arthur M. Blank", pos: [33.8170, -84.3310] },
+      { id: 'h-st-josephs', kind: 'hospital', name: "Emory Saint Joseph's Hospital", pos: [33.9075, -84.3520] },
+      { id: 'h-northside', kind: 'hospital', name: 'Northside Hospital Atlanta', pos: [33.9105, -84.3555] },
+    ],
   },
 ];
 

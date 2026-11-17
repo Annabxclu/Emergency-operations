@@ -48,6 +48,8 @@ export interface VehicleTypeDef {
   fuelPerKm: number;
   turnoutSec: number;
   unlockLevel: number;
+  air?: boolean;                                   // flies direct (helicopters)
+  transport?: { kind: 'patient' | 'prisoner'; capacity: number };
 }
 
 export interface QualificationDef { id: string; name: string; dept: string; cost: number; hours: number; unlockLevel: number }
@@ -56,7 +58,7 @@ export interface CapabilityDef { id: string; name: string; dept: string }
 export interface IncidentTypeDef {
   id: string;
   name: string;
-  category: 'fire' | 'police' | 'ems' | 'rescue' | 'hazmat';
+  category: 'fire' | 'police' | 'ems' | 'rescue' | 'hazmat' | 'water' | 'public_works' | 'disaster';
   severity: 1 | 2 | 3;
   descriptions: string[];
   requirements: Requirement[];
@@ -67,7 +69,12 @@ export interface IncidentTypeDef {
   xp: number;
   weight: number;
   unlockLevel: number;
+  patients?: [number, number];   // patients needing hospital transport
+  prisoners?: [number, number];  // suspects needing transport to jail
+  children?: { types: string[]; count: [number, number]; radiusKm: number }; // major events spawn related calls
 }
+
+export interface Facility { id: string; kind: 'hospital' | 'jail'; name: string; pos: LatLng }
 
 export interface DistrictDef { name: string; center: LatLng }
 
@@ -80,12 +87,13 @@ export interface CityDef {
   zoom: number;
   bounds: [LatLng, LatLng];
   districts: DistrictDef[];
+  hospitals?: Facility[];
   unlockLevel: number;
   population: number;
   playable: boolean;
 }
 
-export type VehicleStatus = 'available' | 'dispatched' | 'enroute' | 'onscene' | 'returning' | 'out_of_service' | 'maintenance';
+export type VehicleStatus = 'available' | 'dispatched' | 'enroute' | 'onscene' | 'transporting' | 'handover' | 'returning' | 'out_of_service' | 'maintenance';
 
 export interface Route {
   coords: LatLng[];
@@ -112,6 +120,8 @@ export interface Vehicle {
   odometerKm: number;
   costs: { purchase: number; fuel: number; maintenance: number };
   calls: number;
+  cargo?: { kind: 'patient' | 'prisoner'; count: number; dest: string; destName: string; fee: number } | null;
+  busyUntil?: number;
 }
 
 export interface Station {
@@ -167,6 +177,9 @@ export interface Incident {
   outcome: Outcome | null;
   resolvedAt: number | null;
   payout: number;
+  patients: number;
+  prisoners: number;
+  parentId?: string | null;
 }
 
 export interface LedgerEntry { t: number; amount: number; cat: string; note: string }
@@ -230,6 +243,8 @@ export type GameEvent = { cityId?: string } & (
   | { type: 'incident_resolved'; id: string; outcome: Outcome; payout: number }
   | { type: 'vehicle_arrived'; id: string; incidentId: string }
   | { type: 'level_up'; level: number }
+  | { type: 'transport_done'; id: string; kind: 'patient' | 'prisoner'; count: number; fee: number; dest: string }
+  | { type: 'major_event'; id: string; children: number }
   | { type: 'training_done'; empId: string; qual: string }
   | { type: 'routing_fallback' }
   | { type: 'notice'; text: string });

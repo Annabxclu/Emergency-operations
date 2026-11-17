@@ -4,6 +4,7 @@ import type { GameEvent, LatLng } from '../engine/types';
 import { DEPARTMENTS, dept, qualification, stationType, stationTypeForDept } from '../data/departments';
 import type { OsrmRouting } from '../services/routing';
 import { clearSave, importJson, saveGame } from '../services/storage';
+import { fetchHospitals } from '../services/geocode';
 import { GameCtx, type Ctx, type Route } from './common';
 import { MapView, type MapApi, type Selection } from './MapView';
 import { OUTCOME, clock, money, moneyShort } from './format';
@@ -113,6 +114,16 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
         toast(`${inc?.name ?? 'Call'}: ${o.label} ${e.payout >= 0 ? '+' : ''}${money(e.payout)}`, o.tone === 'ok' ? 'ok' : o.tone === 'bad' ? 'bad' : 'warn');
         break;
       }
+      case 'transport_done': {
+        const v = game.vehicle(e.id);
+        toast(`${v?.name ?? 'Unit'} delivered ${e.count} ${e.kind}${e.count > 1 ? 's' : ''} to ${e.dest} +${money(e.fee)}`, 'ok');
+        break;
+      }
+      case 'major_event': {
+        const inc = game.incident(e.id);
+        if (inc) toast(`MAJOR EVENT: ${inc.name} — ${e.children} related calls`, 'bad', () => openRoot({ kind: 'dispatch' }));
+        break;
+      }
       case 'level_up': toast(`Level ${e.level} reached — new vehicles and call types may be unlocked`, 'ok'); break;
       case 'training_done': {
         const emp = game.employee(e.empId);
@@ -128,6 +139,14 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'notice': toast(e.text, 'info'); break;
     }
   }), [game]);
+
+  // ---------------------------------------------------------- hospitals for generated cities saved before they existed
+  useEffect(() => {
+    const def = game.state.cityDefs[game.state.activeCity];
+    if (!def || def.hospitals) return;
+    def.hospitals = [];
+    fetchHospitals(def.bounds).then(h => { def.hospitals = h; game.changed(); }).catch(() => { def.hospitals = undefined; });
+  }, [game, game.state.activeCity, game.state]);
 
   // ---------------------------------------------------------- persistence
   useEffect(() => {
@@ -251,8 +270,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
         </header>
 
         <div className="filters">
-          {DEPARTMENTS.map(d => {
-            const on = game.state.settings.deptFilter[d.id];
+          {DEPARTMENTS.filter(d => c.stations.some(st => st.dept === d.id) || ['fire', 'police', 'ems'].includes(d.id)).map(d => {
+            const on = game.state.settings.deptFilter[d.id] !== false;
             return (
               <button key={d.id} className={`fchip ${on ? 'on' : ''}`} style={{ '--c': d.color } as any}
                 onClick={() => { game.state.settings.deptFilter[d.id] = !on; game.changed(); }}>{d.short}</button>

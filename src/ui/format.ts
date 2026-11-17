@@ -29,6 +29,8 @@ export const VEHICLE_STATUS: Record<VehicleStatus, { label: string; tone: string
   dispatched: { label: 'Dispatched', tone: 'warn' },
   enroute: { label: 'En route', tone: 'warn' },
   onscene: { label: 'On scene', tone: 'info' },
+  transporting: { label: 'Transporting', tone: 'info' },
+  handover: { label: 'At hospital / jail', tone: 'info' },
   returning: { label: 'Returning', tone: 'muted' },
   out_of_service: { label: 'Out of service', tone: 'bad' },
   maintenance: { label: 'Maintenance', tone: 'bad' },

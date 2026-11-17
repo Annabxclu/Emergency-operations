@@ -174,7 +174,7 @@ def main():
             shot('10-settings')
             page.click('[data-testid=missions-open]')
             page.wait_for_selector('[data-testid=mission]')
-            check(page.locator('[data-testid=mission]').count() == 24, 'missions catalogue lists all 24 call types')
+            n_m = page.locator('[data-testid=mission]').count(); check(n_m == game('0') + 73, f'missions catalogue lists all {n_m} call types')
             shot('12-missions')
             # --- Multi-city: unlock a second city at level 5 and add Atlanta
             game('(g.state.level = 5, g.changed(), 0)')

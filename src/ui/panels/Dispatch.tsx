@@ -120,7 +120,12 @@ export function IncidentDetail({ id }: { id: string }) {
           {!closed && <span className={inc.late ? 'bad' : ''}>{timerText(game, inc)}</span>}
           {closed ? <span className={inc.payout < 0 ? 'bad' : 'ok'}>{money(inc.payout)}</span> : <span>Reward {money(inc.reward)} · {inc.xp} XP</span>}
           {inc.escalated && <span className="bad">Escalated</span>}
+          {inc.patients > 0 && <span>🚑 {inc.patients} patient{inc.patients > 1 ? 's' : ''} to transport</span>}
+          {inc.prisoners > 0 && <span>🚓 {inc.prisoners} suspect{inc.prisoners > 1 ? 's' : ''} to jail</span>}
         </div>
+        {inc.parentId && game.incident(inc.parentId) && (
+          <button className="linkish parent-link" onClick={() => push({ kind: 'incident', id: inc.parentId! })}>Part of major event: {game.incident(inc.parentId)!.name} ›</button>
+        )}
       </div>
 
       <Section title="Required">

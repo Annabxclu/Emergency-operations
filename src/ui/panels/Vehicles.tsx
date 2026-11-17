@@ -17,7 +17,7 @@ export function VehiclesList() {
   const c = game.city;
   const match = (v: (typeof c.vehicles)[0]) => {
     if (filter === 'available') return v.status === 'available' && !game.dispatchProblem(v);
-    if (filter === 'busy') return ['dispatched', 'enroute', 'onscene', 'returning'].includes(v.status);
+    if (filter === 'busy') return ['dispatched', 'enroute', 'onscene', 'transporting', 'handover', 'returning'].includes(v.status);
     if (filter === 'problem') return (v.status === 'available' && !!game.dispatchProblem(v)) || v.status === 'out_of_service' || v.condition < 50;
     return true;
   };
@@ -79,6 +79,7 @@ export function VehicleDetail({ id }: { id: string }) {
           Assigned to <b>{inc.name}</b> · {inc.address}{eta != null ? ` · ETA ${dur(eta)}` : ''}
         </button>
       )}
+      {v.cargo && <div className="callout">{v.status === 'handover' ? 'Handing over' : 'Transporting'} {v.cargo.count} {v.cargo.kind}{v.cargo.count > 1 ? 's' : ''} → {v.cargo.destName}{eta != null ? ` · ${dur(eta)}` : ''}</div>}
       {v.status === 'maintenance' && <div className="callout">In the shop · back in {dur(v.maintenanceUntil - game.state.time)}</div>}
       <div className="stats">
         <Stat label="Condition" value={`${Math.round(v.condition)}%`} tone={v.condition < MIN_CONDITION ? 'bad' : v.condition < 50 ? 'warn' : ''} />

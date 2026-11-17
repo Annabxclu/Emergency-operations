@@ -35,7 +35,7 @@ interface Props {
   onTileTrouble(bad: boolean): void;
 }
 
-const MOVING = new Set(['enroute', 'returning']);
+const MOVING = new Set(['enroute', 'returning', 'transporting']);
 
 export function MapView(props: Props) {
   const el = useRef(null as HTMLDivElement | null);
@@ -75,8 +75,9 @@ export function MapView(props: Props) {
       incidents: L.layerGroup().addTo(map),
       vehicles: L.layerGroup().addTo(map),
       preview: L.layerGroup().addTo(map),
+      facilities: L.layerGroup().addTo(map),
     };
-    const markers = { stations: new Map<string, any>(), incidents: new Map<string, any>(), vehicles: new Map<string, any>(), routes: new Map<string, any>(), coverage: new Map<string, any>() };
+    const markers = { facilities: new Map<string, any>(), stations: new Map<string, any>(), incidents: new Map<string, any>(), vehicles: new Map<string, any>(), routes: new Map<string, any>(), coverage: new Map<string, any>() };
     const keys = new Map<any, string>(); // marker -> last icon key, to avoid needless DOM work
     let previewMarker: any = null;
 
@@ -107,8 +108,21 @@ export function MapView(props: Props) {
         lastState = g.state;
       }
       const c = g.city;
-      const filt = g.state.settings.deptFilter;
+      const rawFilt = g.state.settings.deptFilter;
+      const filt = new Proxy(rawFilt, { get: (o, k: string) => o[k] !== false });
       setTiles(g.state.settings.tileStyle);
+
+      // Hospitals
+      const hIds = new Set<string>();
+      for (const h of g.hospitals()) {
+        hIds.add(h.id);
+        if (!markers.facilities.has(h.id)) {
+          const m = L.marker(h.pos, { zIndexOffset: 50, interactive: false, title: h.name });
+          m.setIcon(L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [10, 10], html: `<div class="mk hosp" title="${h.name.replace(/"/g, '')}">${glyph('hospital', 13)}</div>` }));
+          layers.facilities.addLayer(m); markers.facilities.set(h.id, m);
+        }
+      }
+      sync(markers.facilities, layers.facilities, hIds);
 
       // Stations
       const sIds = new Set<string>();
@@ -158,7 +172,7 @@ export function MapView(props: Props) {
       for (const v of c.vehicles) {
         const t = vehicleType(v.typeId);
         if (!filt[t.dept]) continue;
-        const away = v.status === 'enroute' || v.status === 'onscene' || v.status === 'returning';
+        const away = ['enroute', 'onscene', 'returning', 'transporting', 'handover'].includes(v.status);
         if (away) {
           vIds.add(v.id);
           let m = markers.vehicles.get(v.id);
@@ -170,7 +184,7 @@ export function MapView(props: Props) {
             html: `<div class="mk veh ${v.status}${isSel ? ' sel' : ''}" data-id="${v.id}" style="--c:${dept(t.dept).color}">${t.short}</div>`,
           }));
         }
-        if (v.route && (v.status === 'enroute' || v.status === 'returning' || v.status === 'dispatched')) {
+        if (v.route && ['enroute', 'returning', 'dispatched', 'transporting'].includes(v.status)) {
           rIds.add(v.id);
           let line = markers.routes.get(v.id);
           const key = `${v.route.coords.length}:${v.route.coords[0]}:${v.status}`;

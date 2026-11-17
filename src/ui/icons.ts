@@ -9,6 +9,13 @@ const GLYPHS: Record<string, string> = {
   ems: '<path d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z"/>',
   rescue: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.1-.6-.6-2.1z"/>',
   hazmat: '<path d="M12 2l10 18H2L12 2zm-1 7v5h2V9h-2zm0 7v2h2v-2h-2z"/>',
+  water: '<path d="M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2v3c-2.5 0-2.5-2-5-2s-2.5 2-5 2-2.5-2-5-2-2.5 2-5 2v-3zm10-12c2.5 3 4 5.2 4 7a4 4 0 0 1-8 0c0-1.8 1.5-4 4-7z"/>',
+  air: '<path d="M3 5h18v2h-8v2h3l3 3v3h-2l-1 2h-2l-1-2H8a4 4 0 0 1-4-4V9h7V7H3V5zm3 6v.5A1.5 1.5 0 0 0 7.5 13H9v-2H6z"/>',
+  special: '<path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17l-6.1 3.4 1.5-6.8L2.2 9l6.9-.7z"/>',
+  emergency: '<path d="M3 10h3l9-5v14l-9-5H5l1 5H4l-1-5V10zm14-1a4 4 0 0 1 0 6V9z"/>',
+  public_works: '<path d="M10.5 3h3l1.6 6h-6.2l1.6-6zM8.4 11h7.2l1.1 4H7.3l1.1-4zM6.8 17h10.4l.8 3H4v-3h2.8z"/>',
+  disaster: '<path d="M4 4h16l-3 3h-9l-1 2h9l-2 3H9l-1 2h5l-2 3h-1l-1 3H7l1-3H6l2-4H5l2-4H5l-1-6z"/>',
+  hospital: '<path d="M6 4h3v6h6V4h3v16h-3v-7H9v7H6z"/>',
 };
 
 export function glyph(kind: string, size = 16) {
