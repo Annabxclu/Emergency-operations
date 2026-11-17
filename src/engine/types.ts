@@ -211,6 +211,7 @@ export interface CityState {
   setupStep: number; // 0..2 placing starter stations, 3 = running
   goals?: { day: number; list: Goal[] };
   agreements?: string[];
+  realStations?: { id: string; dept: 'fire' | 'police' | 'ems'; name: string; pos: LatLng; address?: string }[];
   lastAutoCheck?: number;
   stats: { calls: number; successful: number; failed: number };
 }
@@ -224,6 +225,7 @@ export interface Settings {
   sound: boolean;
   autoDispatch: 'off' | 'low' | 'all';
   shifts: boolean;
+  showReal?: boolean;
 }
 
 export interface GameState {

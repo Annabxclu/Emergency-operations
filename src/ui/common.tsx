@@ -7,7 +7,7 @@ export type Route =
   | { kind: 'stations' } | { kind: 'station'; id: string } | { kind: 'build' }
   | { kind: 'vehicles' } | { kind: 'vehicle'; id: string }
   | { kind: 'personnel' } | { kind: 'employee'; id: string } | { kind: 'hire'; stationId: string }
-  | { kind: 'finances' } | { kind: 'settings' } | { kind: 'missions' } | { kind: 'research' };
+  | { kind: 'finances' } | { kind: 'settings' } | { kind: 'missions' } | { kind: 'research' } | { kind: 'real'; id: string };
 
 export interface Ctx {
   game: Game;
@@ -16,7 +16,7 @@ export interface Ctx {
   toast(text: string, tone?: 'info' | 'ok' | 'warn' | 'bad', action?: () => void): void;
   act(fn: () => void, okText?: string): boolean;
   focus(p: LatLng, zoom?: number): void;
-  startBuild(stationTypeId: string): void;
+  startBuild(stationTypeId: string, at?: { pos: LatLng; name: string; address?: string }): void;
 }
 
 export const GameCtx = createContext(null as unknown as Ctx);

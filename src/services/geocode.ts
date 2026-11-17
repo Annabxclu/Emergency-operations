@@ -158,3 +158,28 @@ export async function reverseAddress(p: LatLng): Promise<string | null> {
     return r && r.address ? shortAddress(r.address, r.display_name || '') : null;
   } catch { return null; }
 }
+
+export interface RealStation { id: string; dept: 'fire' | 'police' | 'ems'; name: string; pos: LatLng; address?: string }
+
+/** Real-world fire, police and ambulance stations from OpenStreetMap. */
+export async function fetchRealStations(bounds: [LatLng, LatLng]): Promise<RealStation[]> {
+  const [[s, w], [n, e]] = bounds;
+  const bb = `${s},${w},${n},${e}`;
+  const query = `[out:json][timeout:25];(nwr["amenity"="fire_station"](${bb});nwr["amenity"="police"](${bb});nwr["emergency"="ambulance_station"](${bb}););out center tags 400;`;
+  const json = await getJson('https://overpass-api.de/api/interpreter', {
+    method: 'POST', body: 'data=' + encodeURIComponent(query), headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  }, 30000);
+  const out: RealStation[] = [];
+  for (const el of json.elements || []) {
+    const t = el.tags || {};
+    const lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon;
+    if (lat == null) continue;
+    const dept = t.amenity === 'fire_station' ? 'fire' : t.amenity === 'police' ? 'police' : t.emergency === 'ambulance_station' ? 'ems' : null;
+    if (!dept) continue;
+    const fallback = dept === 'fire' ? 'Fire Station' : dept === 'police' ? 'Police Station' : 'Ambulance Station';
+    const name = t.name || (t.ref ? `${fallback} ${t.ref}` : fallback);
+    const address = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ') || undefined;
+    out.push({ id: `r-${el.type}${el.id}`, dept, name, pos: [lat, lon], address });
+  }
+  return out;
+}

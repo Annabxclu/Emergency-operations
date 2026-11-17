@@ -23,7 +23,7 @@ export const TILE_STYLES: Record<string, { name: string; url: string; attributio
 export const DEFAULT_TILE_STYLE = 'osm';
 
 export interface MapApi { focus(p: LatLng, zoom?: number): void }
-export type Selection = { kind: 'incident' | 'station' | 'vehicle'; id: string } | null;
+export type Selection = { kind: 'incident' | 'station' | 'vehicle' | 'real'; id: string } | null;
 
 interface Props {
   game: Game;
@@ -76,8 +76,9 @@ export function MapView(props: Props) {
       vehicles: L.layerGroup().addTo(map),
       preview: L.layerGroup().addTo(map),
       facilities: L.layerGroup().addTo(map),
+      real: L.layerGroup().addTo(map),
     };
-    const markers = { facilities: new Map<string, any>(), stations: new Map<string, any>(), incidents: new Map<string, any>(), vehicles: new Map<string, any>(), routes: new Map<string, any>(), coverage: new Map<string, any>() };
+    const markers = { real: new Map<string, any>(), facilities: new Map<string, any>(), stations: new Map<string, any>(), incidents: new Map<string, any>(), vehicles: new Map<string, any>(), routes: new Map<string, any>(), coverage: new Map<string, any>() };
     const keys = new Map<any, string>(); // marker -> last icon key, to avoid needless DOM work
     let previewMarker: any = null;
 
@@ -123,6 +124,22 @@ export function MapView(props: Props) {
         }
       }
       sync(markers.facilities, layers.facilities, hIds);
+
+      // Real-world stations (OpenStreetMap), hidden where the player already built
+      const rIdsReal = new Set<string>();
+      if (g.state.settings.showReal !== false) for (const r of c.realStations || []) {
+        if (!filt[r.dept]) continue;
+        if (c.stations.some((st: { pos: LatLng }) => Math.abs(st.pos[0] - r.pos[0]) < 0.0006 && Math.abs(st.pos[1] - r.pos[1]) < 0.0006)) continue;
+        rIdsReal.add(r.id);
+        let m = markers.real.get(r.id);
+        if (!m) { m = clickable(L.marker(r.pos, { zIndexOffset: 60 }), { kind: 'real', id: r.id }); layers.real.addLayer(m); markers.real.set(r.id, m); }
+        const isSel = selected?.kind === 'real' && selected.id === r.id;
+        setIcon(m, `${r.dept}${isSel}`, () => L.divIcon({
+          className: '', iconSize: [22, 22], iconAnchor: [11, 11],
+          html: `<div class="mk real${isSel ? ' sel' : ''}" style="--c:${dept(r.dept).color}" data-testid="real-station">${glyph(r.dept, 12)}</div>`,
+        }));
+      }
+      sync(markers.real, layers.real, rIdsReal);
 
       // Stations
       const sIds = new Set<string>();

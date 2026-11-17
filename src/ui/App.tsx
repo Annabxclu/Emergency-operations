@@ -4,7 +4,7 @@ import type { GameEvent, LatLng } from '../engine/types';
 import { DEPARTMENTS, dept, qualification, stationType, stationTypeForDept } from '../data/departments';
 import type { OsrmRouting } from '../services/routing';
 import { clearSave, importJson, saveGame } from '../services/storage';
-import { fetchHospitals, reverseAddress, searchAddress, type AddressResult } from '../services/geocode';
+import { fetchHospitals, fetchRealStations, reverseAddress, searchAddress, type AddressResult } from '../services/geocode';
 import { GameCtx, type Ctx, type Route } from './common';
 import { MapView, type MapApi, type Selection } from './MapView';
 import { OUTCOME, clock, money, moneyShort } from './format';
@@ -17,6 +17,7 @@ import { FinancesPanel } from './panels/Finances';
 import { SettingsPanel } from './panels/Settings';
 import { MissionsPanel } from './panels/Missions';
 import { ResearchPanel } from './panels/Research';
+import { RealStationPanel } from './panels/RealStation';
 import { RESEARCH } from '../data/progression';
 import { playAlert, unlockAudio } from './sound';
 import { CityPicker } from './CityPicker';
@@ -29,7 +30,7 @@ const TABS = [
 ];
 const TAB_OF: Record<string, string> = {
   dispatch: 'dispatch', incident: 'dispatch', stations: 'stations', station: 'stations', build: 'stations', hire: 'stations',
-  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'personnel', employee: 'personnel', finances: 'finances', settings: 'settings', missions: 'settings', research: 'settings',
+  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'personnel', employee: 'personnel', finances: 'finances', settings: 'settings', missions: 'settings', research: 'settings', real: 'stations',
 };
 const SPEEDS = [0, 1, 4, 8];
 
@@ -77,7 +78,10 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     try { fn(); if (okText) toast(okText, 'ok'); return true; }
     catch (e) { toast(e instanceof ActionError ? e.message : `Something went wrong: ${(e as Error).message}`, 'bad'); if (!(e instanceof ActionError)) console.error(e); return false; }
   };
-  const startBuild = (typeId: string) => { setBuildType(typeId); setPending(null); setBuildName(''); setAddrQuery(''); setAddrResults([]); setAddrError(''); setPendingAddr(null); setStack([]); };
+  const startBuild = (typeId: string, at?: { pos: LatLng; name: string; address?: string }) => {
+    setBuildType(typeId); setPending(null); setBuildName(''); setAddrQuery(''); setAddrResults([]); setAddrError(''); setPendingAddr(null); setStack([]);
+    if (at) { setBuildName(at.name); placeAt(at.pos, at.address || at.name); }
+  };
 
   // ---------------------------------------------------------- game loop
   useEffect(() => {
@@ -163,6 +167,14 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     if (!def || def.hospitals) return;
     def.hospitals = [];
     fetchHospitals(def.bounds).then(h => { def.hospitals = h; game.changed(); }).catch(() => { def.hospitals = undefined; });
+  }, [game, game.state.activeCity, game.state]);
+
+  // ---------------------------------------------------------- real-world stations (OpenStreetMap)
+  useEffect(() => {
+    const cs = game.city;
+    if (cs.realStations) return;
+    cs.realStations = [];
+    fetchRealStations(game.cityDef.bounds).then(list => { cs.realStations = list; game.changed(); }).catch(() => { cs.realStations = undefined; });
   }, [game, game.state.activeCity, game.state]);
 
   // ---------------------------------------------------------- persistence
@@ -271,6 +283,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'settings': return <SettingsPanel onImport={onImport} onNewGame={() => setPicker('new')} onMenu={() => { saveGame(game.state); openRoot(null); setMenu(true); }} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
       case 'missions': return <MissionsPanel />;
       case 'research': return <ResearchPanel />;
+      case 'real': return <RealStationPanel key={r.id} id={r.id} />;
     }
   };
 
@@ -281,7 +294,16 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       <div className="app" onPointerDown={unlockAudio}>
         <MapView game={game} selected={selected}
           preview={pending && buildDept ? { pos: pending, dept: buildDept } : null}
-          onSelect={(sel: Selection) => { if (!activeBuild && sel) openRoot({ kind: sel.kind, id: sel.id } as Route); }}
+          onSelect={(sel: Selection) => {
+            if (!sel) return;
+            if (activeBuild) {
+              // While placing a station, tapping a real station uses its exact spot.
+              const real = sel.kind === 'real' ? c.realStations?.find(x => x.id === sel.id) : null;
+              if (real) { placeAt(real.pos, real.address || real.name); if (real.dept === buildDept) setBuildName(real.name); }
+              return;
+            }
+            openRoot({ kind: sel.kind, id: sel.id } as Route);
+          }}
           onMapClick={onMapClick}
           onReady={(api: MapApi) => (mapApi.current = api)}
           onTileTrouble={setTileTrouble} />
@@ -313,6 +335,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
                 onClick={() => { game.state.settings.deptFilter[d.id] = !on; game.changed(); }}>{d.short}</button>
             );
           })}
+          <button className={`fchip ${game.state.settings.showReal !== false ? 'on' : ''}`} style={{ '--c': '#475569' } as any} data-testid="real-toggle"
+            onClick={() => { game.state.settings.showReal = game.state.settings.showReal === false; game.changed(); }}>Real stations</button>
           <button className={`fchip ${game.state.settings.showCoverage ? 'on' : ''}`} style={{ '--c': '#64748b' } as any}
             onClick={() => { game.state.settings.showCoverage = !game.state.settings.showCoverage; game.changed(); }}>Coverage</button>
         </div>

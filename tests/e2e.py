@@ -56,6 +56,12 @@ def nominatim(route):
     route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps(body))
 
 def overpass(route):
+    q = route.request.post_data or ''
+    if 'fire_station' in q:
+        els = [{'type': 'node', 'id': 1, 'lat': 36.1560, 'lon': -95.9950, 'tags': {'amenity': 'fire_station', 'name': 'Tulsa Fire Station 1', 'addr:housenumber': '411', 'addr:street': 'S Frankfort Ave'}},
+               {'type': 'way', 'id': 2, 'center': {'lat': 36.1480, 'lon': -95.9800}, 'tags': {'amenity': 'police', 'name': 'Tulsa Police Downtown Division'}},
+               {'type': 'node', 'id': 3, 'lat': 36.1600, 'lon': -95.9700, 'tags': {'emergency': 'ambulance_station', 'name': 'EMSA Station'}}]
+        return route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps({'elements': els}))
     names = ['Brady Arts District', 'Cherry Street', 'Brookside', 'Kendall-Whittier', 'Pearl District', 'Riverview', 'Maple Ridge']
     els = [{'type': 'node', 'lat': 36.154 + random.uniform(-0.05, 0.05), 'lon': -95.99 + random.uniform(-0.05, 0.05), 'tags': {'name': n, 'place': 'neighbourhood'}} for n in names]
     route.fulfill(status=200, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'}, body=json.dumps({'elements': els}))
@@ -95,6 +101,9 @@ def main():
             check(game('g.cityDef.name') == 'Tulsa' and game('g.cityDef.state') == 'OK', 'started a new game in Tulsa, OK via city search')
             check(game('g.cityDef.districts.length') >= 4, 'neighborhoods loaded for districts')
             shot('01-welcome')
+            page.wait_for_selector('[data-testid=real-station]', timeout=10000)
+            check(game('g.city.realStations.length') == 3, 'real fire/police/EMS stations loaded from OpenStreetMap')
+            shot('01b-real-stations')
             # --- Setup: place fire, police, EMS by tapping the map
             for (x, y) in [(170, 360), (250, 300), (215, 470)]:
                 page.mouse.click(x, y)
@@ -104,6 +113,12 @@ def main():
             check(game('g.city.vehicles.length') == 4, 'starter fleet created (engine, 2 patrol, ambulance)')
             shot('02-after-setup')
 
+            # --- Build at a real station's location
+            page.locator('[data-testid=real-station]').first.click()
+            page.wait_for_selector('[data-testid=build-real]')
+            shot('03b-real-panel')
+            check(page.locator('[data-testid=build-real]').count() == 1, 'tapping a real station offers to build there')
+            page.click('.close')
             # --- Build a second fire station
             page.click('[data-testid=tab-stations]')
             page.click('[data-testid=build-open]')
