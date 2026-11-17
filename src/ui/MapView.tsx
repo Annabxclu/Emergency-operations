@@ -7,23 +7,20 @@ import { glyph } from './icons';
 
 declare const L: any; // Leaflet, loaded from CDN in index.html
 
+// Keyless tile sources only. (CARTO basemaps now require an API key.)
 export const TILE_STYLES: Record<string, { name: string; url: string; attribution: string; maxZoom: number; subdomains?: string }> = {
-  voyager: {
-    name: 'Standard (CARTO Voyager)',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', subdomains: 'abcd', maxZoom: 20,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
-  positron: {
-    name: 'Minimal (CARTO Positron)',
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', subdomains: 'abcd', maxZoom: 20,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
   osm: {
-    name: 'OpenStreetMap',
+    name: 'Standard (OpenStreetMap)',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   },
+  hot: {
+    name: 'Light (Humanitarian OSM)',
+    url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', subdomains: 'abc', maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, tiles by <a href="https://www.hotosm.org/">HOT</a> / <a href="https://openstreetmap.fr/">OSM France</a>',
+  },
 };
+export const DEFAULT_TILE_STYLE = 'osm';
 
 export interface MapApi { focus(p: LatLng, zoom?: number): void }
 export type Selection = { kind: 'incident' | 'station' | 'vehicle'; id: string } | null;
@@ -58,10 +55,10 @@ export function MapView(props: Props) {
     const setTiles = (style: string) => {
       if (style === tileStyle) return;
       tileStyle = style;
-      const def = TILE_STYLES[style] || TILE_STYLES.voyager;
+      const def = TILE_STYLES[style] || TILE_STYLES.osm;
       if (tiles) tiles.remove();
       errors = 0; loaded = 0;
-      tiles = L.tileLayer(def.url, { attribution: def.attribution, maxZoom: def.maxZoom, subdomains: def.subdomains || 'abc', detectRetina: false });
+      tiles = L.tileLayer(def.url, { attribution: def.attribution, maxZoom: def.maxZoom, subdomains: def.subdomains || 'abc', detectRetina: false, referrerPolicy: 'strict-origin-when-cross-origin' });
       tiles.on('tileerror', () => { errors++; if (errors >= 4 && loaded === 0) propsRef.current.onTileTrouble(true); });
       tiles.on('tileload', () => { loaded++; if (loaded === 1) propsRef.current.onTileTrouble(false); });
       tiles.addTo(map);

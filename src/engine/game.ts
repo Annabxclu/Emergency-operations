@@ -47,7 +47,7 @@ export function newGameState(cityId = 'atlanta'): GameState {
     xp: 0, level: 1, activeCity: cityId,
     cities: { [cityId]: newCityState(cityId) },
     seq: 1,
-    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'voyager', showCoverage: false, deptFilter },
+    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter },
   };
 }
 
@@ -61,6 +61,7 @@ export function migrate(raw: unknown): GameState {
   const fresh = newGameState(s.activeCity);
   s.settings = { ...fresh.settings, ...(s.settings || {}) };
   s.settings.deptFilter = { ...fresh.settings.deptFilter, ...(s.settings.deptFilter || {}) };
+  if (!['osm', 'hot'].includes(s.settings.tileStyle)) s.settings.tileStyle = 'osm'; // CARTO styles retired (need a key)
   s.schema = SCHEMA;
   return s;
 }

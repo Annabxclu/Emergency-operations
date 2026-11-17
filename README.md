@@ -52,7 +52,7 @@ stations, vehicles, staff, incidents and finances; `src/data/cities.ts` lists th
 
 ## Services and limits
 
-- **Map tiles**: CARTO Voyager (default), CARTO Positron, or OpenStreetMap — switch in Settings. Attribution is shown on the map.
+- **Map tiles**: OpenStreetMap standard (default) or Humanitarian OSM (lighter) — both keyless; switch in Settings. Attribution is shown on the map.
 - **Routing**: the public OSRM demo server, limited to ~1 request/second and meant for light use. The game queues and caches
   requests. If routing fails it falls back to an approximate direct path (drawn dashed) and tells you. For heavy play,
   set your own OSRM server URL in Settings.

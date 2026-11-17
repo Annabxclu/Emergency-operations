@@ -95,7 +95,7 @@ export function SettingsPanel(p: Props) {
       </Section>
 
       <Section title="About">
-        <p className="hint">Emergency Operations prototype. All calls are fictional. Map data © OpenStreetMap contributors; tiles © CARTO (or OSM); routing by OSRM.</p>
+        <p className="hint">Emergency Operations prototype. All calls are fictional. Map data and tiles © OpenStreetMap contributors (Humanitarian style by HOT / OSM France); routing by OSRM. No API keys are used.</p>
       </Section>
     </div>
   );
