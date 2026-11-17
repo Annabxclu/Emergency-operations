@@ -27,6 +27,17 @@ export function DispatchList() {
       <div className="sheet-head"><div className="grow"><div className="title">Dispatch</div>
         <div className="sub">{active.length} active · {c.stats.calls} handled · {c.stats.successful} successful</div></div></div>
       {!game.setupDone && <Empty>Place your three starter stations to begin receiving calls.</Empty>}
+      {game.city.goals && game.setupDone && (
+        <div className="goals" data-testid="goals">
+          <div className="goals-head">Today's goals</div>
+          {game.city.goals.list.map(g => (
+            <div key={g.id} className={`goal ${g.done ? 'done' : ''}`}>
+              <div className="goal-top"><span>{g.done ? '✓ ' : ''}{g.label}</span><span className="muted small">{g.progress}/{g.target} · {money(g.reward)}</span></div>
+              <div className="xpbar wide"><span style={{ width: `${(g.progress / g.target) * 100}%` }} /></div>
+            </div>
+          ))}
+        </div>
+      )}
       {game.setupDone && !active.length && <Empty>No active calls. New calls will appear here and on the map.</Empty>}
       <div className="list">
         {active.map(inc => {

@@ -10,7 +10,8 @@ import {
   CAPABILITIES, DEPARTMENTS, QUALIFICATIONS, STARTER_KITS, STARTING_MONEY, STATION_TYPES, VEHICLE_TYPES,
   dept, qualification, stationType, stationTypeForDept, vehicleType,
 } from '../data/departments';
-import { INCIDENT_TYPES, incidentType } from '../data/incidents';
+import { INCIDENT_TYPES, incidentType, CATEGORY_DEPT } from '../data/incidents';
+import { AGREEMENTS, GOAL_TEMPLATES, RESEARCH, extensionsFor, type ModKey } from '../data/progression';
 import { CITIES, CITY_SLOT_LEVELS } from '../data/cities';
 import { FIRST_NAMES, LAST_NAMES } from '../data/names';
 import { destination, directRoute, distanceM, estimateEtaS, makeRoute, pointAlong } from './geo';
@@ -49,7 +50,8 @@ export function newGameState(def: CityDef = CITIES[0]): GameState {
     cities: { [cityId]: newCityState(cityId) },
     cityDefs: CITIES.some(c => c.id === cityId) ? {} : { [cityId]: def },
     seq: 1,
-    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter },
+    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter, sound: true, autoDispatch: 'off', shifts: false },
+    research: { active: null, done: [] },
   };
 }
 
@@ -61,6 +63,7 @@ export function migrate(raw: unknown): GameState {
   }
   if (s.schema > SCHEMA) throw new Error('This save was made by a newer version of the game.');
   s.cityDefs ||= {};
+  s.research ||= { active: null, done: [] };
   if (!s.cityDefs[s.activeCity] && !CITIES.some(c => c.id === s.activeCity)) throw new Error('This save references an unknown city.');
   const fresh = newGameState();
   s.settings = { ...fresh.settings, ...(s.settings || {}) };
@@ -181,13 +184,113 @@ export class Game {
   incidentVehicles(incId: string) { return this.city.vehicles.filter(v => v.incidentId === incId); }
   hasDept(d: string) { return this.city.stations.some(s => s.dept === d); }
 
-  stationCapacity(s: Station) { return stationType(s.typeId).levels[s.level]; }
+  stationCapacity(s: Station) {
+    const base = stationType(s.typeId).levels[s.level];
+    let bays = base.bays, staff = base.staff;
+    for (const ext of extensionsFor(s.typeId)) if (s.extensions?.includes(ext.id)) { bays += ext.bays || 0; staff += ext.staff || 0; }
+    return { bays, staff: staff * (this.state.settings.shifts ? 3 : 1), upgradeCost: base.upgradeCost };
+  }
+
+  hasFeature(s: Station | undefined, feature: string) {
+    return !!s && extensionsFor(s.typeId).some(e => e.feature === feature && s.extensions?.includes(e.id));
+  }
+
+  buildExtension(stationId: string, extId: string) {
+    const s = this.station(stationId);
+    const ext = s && extensionsFor(s.typeId).find(e => e.id === extId);
+    if (!s || !ext) throw new ActionError('Not found.');
+    if (s.extensions?.includes(extId)) throw new ActionError('Already built.');
+    this.spend(ext.cost, 'construction', s.dept, `${ext.name} at ${s.name}`);
+    (s.extensions ||= []).push(extId);
+    this.changed();
+  }
+
+  // ------------------------------------------------------------ research & modifiers
+  mod(k: ModKey): number {
+    let m = 1;
+    for (const id of this.state.research.done) m *= RESEARCH.find(r => r.id === id)?.effects[k] ?? 1;
+    return m;
+  }
+
+  startResearch(id: string) {
+    const r = RESEARCH.find(x => x.id === id);
+    if (!r) throw new ActionError('Not found.');
+    const rs = this.state.research;
+    if (rs.done.includes(id)) throw new ActionError('Already researched.');
+    if (rs.active) throw new ActionError('Another project is in progress.');
+    if (r.unlockLevel > this.state.level) throw new ActionError(`Unlocks at level ${r.unlockLevel}.`);
+    if (r.requires && !rs.done.includes(r.requires)) throw new ActionError(`Requires ${RESEARCH.find(x => x.id === r.requires)!.name}.`);
+    this.spend(r.cost, 'research', null, `Research: ${r.name}`);
+    rs.active = { id, until: this.state.time + r.hours * 3600 };
+    this.changed();
+  }
+
+  // ------------------------------------------------------------ shifts
+  currentShift(): 'A' | 'B' | 'C' { return (['A', 'B', 'C'] as const)[Math.floor(this.state.time / (8 * 3600)) % 3]; }
+  onDuty(e: Employee) { return e.status === 'on_duty' && (!this.state.settings.shifts || e.shift === this.currentShift()); }
+  crewCap(maxCrew: number) { return maxCrew * (this.state.settings.shifts ? 3 : 1); }
+
+  // ------------------------------------------------------------ regional agreements
+  agreementActive(id: string) {
+    const a = AGREEMENTS.find(x => x.id === id)!;
+    const n = this.city.stations.filter(s => s.dept === a.dept).length;
+    return n >= a.stations && (!a.extraDept || this.hasDept(a.extraDept));
+  }
+
+  signAgreement(id: string) {
+    const a = AGREEMENTS.find(x => x.id === id);
+    if (!a) throw new ActionError('Not found.');
+    const list = (this.city.agreements ||= []);
+    if (list.includes(id)) throw new ActionError('Already signed.');
+    if (a.unlockLevel > this.state.level) throw new ActionError(`Unlocks at level ${a.unlockLevel}.`);
+    if (!this.agreementActive(id)) throw new ActionError('Requirements not met yet.');
+    this.spend(a.signCost, 'contracts', a.dept, `Signed: ${a.name}`);
+    list.push(id);
+    this.changed();
+  }
+
+  cancelAgreement(id: string) {
+    this.city.agreements = (this.city.agreements || []).filter(x => x !== id);
+    this.changed();
+  }
+
+  // ------------------------------------------------------------ daily goals
+  private ensureGoals() {
+    const c = this.city;
+    const day = Math.floor(this.state.time / DAY);
+    if (c.goals && c.goals.day === day) return;
+    const lvl = this.state.level;
+    const pool = GOAL_TEMPLATES.filter(t => t.minLevel <= lvl).sort(() => Math.random() - 0.5).slice(0, 3);
+    c.goals = {
+      day,
+      list: pool.map((t, i) => {
+        const target = Math.max(1, Math.round(t.base + t.perLevel * (lvl - 1)));
+        return { id: `g${day}-${i}`, metric: t.metric, label: t.label(target), target, progress: 0, reward: Math.round((1500 + lvl * 600) * (target / t.base) ** 0.5), xp: 25 + lvl * 6, done: false };
+      }),
+    };
+    this.changed();
+  }
+
+  private progressGoal(metric: string, n = 1) {
+    const g = this.city.goals;
+    if (!g) return;
+    for (const goal of g.list) {
+      if (goal.done || goal.metric !== metric) continue;
+      goal.progress = Math.min(goal.target, goal.progress + n);
+      if (goal.progress >= goal.target) {
+        goal.done = true;
+        this.post(goal.reward, 'daily goals', null, `Goal: ${goal.label}`);
+        this.addXp(goal.xp);
+        this.emit({ type: 'goal_done', label: goal.label, reward: goal.reward });
+      }
+    }
+  }
 
   /** Returns null if the vehicle has enough qualified, on-duty crew; otherwise a reason. */
   staffingProblem(v: Vehicle): string | null {
     const t = vehicleType(v.typeId);
-    const crew = this.crew(v.id).filter(e => e.status === 'on_duty');
-    if (crew.length < t.minCrew) return `Needs ${t.minCrew} crew (has ${crew.length})`;
+    const crew = this.crew(v.id).filter(e => this.onDuty(e));
+    if (crew.length < t.minCrew) return `Needs ${t.minCrew} crew on duty${this.state.settings.shifts ? ` (shift ${this.currentShift()})` : ''} (has ${crew.length})`;
     for (const q of t.quals) {
       const n = crew.filter(e => e.quals.includes(q.qual)).length;
       if (n < q.count) return `Needs ${q.count} × ${qualification(q.qual).name}`;
@@ -335,7 +438,7 @@ export class Game {
     this.changed();
   }
 
-  maintenanceCost(v: Vehicle) { return Math.round((100 - v.condition) * vehicleType(v.typeId).price * 0.002); }
+  maintenanceCost(v: Vehicle) { return Math.round((100 - v.condition) * vehicleType(v.typeId).price * 0.002 * this.mod('maintenance')); }
 
   sendToMaintenance(vehicleId: string) {
     const v = this.vehicle(vehicleId);
@@ -412,7 +515,7 @@ export class Game {
       if (t.dept !== e.dept) throw new ActionError('Wrong department.');
       if (v.stationId !== e.stationId) throw new ActionError('Employee must be at the same station.');
       if (!this.vehicleAtStation(v)) throw new ActionError(`${v.name} is out on a call.`);
-      if (this.crew(v.id).length >= t.maxCrew) throw new ActionError(`${v.name} is fully crewed.`);
+      if (this.crew(v.id).length >= this.crewCap(t.maxCrew)) throw new ActionError(`${v.name} is fully crewed.`);
     }
     e.vehicleId = vehicleId;
     this.changed();
@@ -431,29 +534,33 @@ export class Game {
     this.changed();
   }
 
-  /** Fill empty crew seats at a station with unassigned staff, specialists first where needed. */
+  /** Fill empty crew seats at a station with unassigned staff, specialists first where needed.
+   *  With shifts on, each vehicle is crewed separately for shifts A, B and C. */
   autoStaff(stationId: string) {
     const vehicles = this.stationVehicles(stationId).filter(v => this.vehicleAtStation(v));
-    const free = () => this.stationStaff(stationId).filter(e => !e.vehicleId);
-    // Pass 1: satisfy qualification requirements.
-    for (const v of vehicles) {
-      const t = vehicleType(v.typeId);
-      for (const q of t.quals) {
-        let have = this.crew(v.id).filter(e => e.quals.includes(q.qual)).length;
-        while (have < q.count && this.crew(v.id).length < t.maxCrew) {
-          const cand = free().find(e => e.quals.includes(q.qual));
-          if (!cand) break;
-          cand.vehicleId = v.id; have++;
+    const shifts: (string | null)[] = this.state.settings.shifts ? ['A', 'B', 'C'] : [null];
+    for (const sh of shifts) {
+      const inShift = (e: Employee) => sh == null || e.shift === sh;
+      const free = () => this.stationStaff(stationId).filter(e => !e.vehicleId && inShift(e));
+      const crewOf = (v: Vehicle) => this.crew(v.id).filter(inShift);
+      for (const v of vehicles) {
+        const t = vehicleType(v.typeId);
+        for (const q of t.quals) {
+          let have = crewOf(v).filter(e => e.quals.includes(q.qual)).length;
+          while (have < q.count && crewOf(v).length < t.maxCrew) {
+            const cand = free().find(e => e.quals.includes(q.qual));
+            if (!cand) break;
+            cand.vehicleId = v.id; have++;
+          }
         }
       }
-    }
-    // Pass 2: reach minimum crew, preferring staff without specialist quals.
-    for (const v of vehicles) {
-      const t = vehicleType(v.typeId);
-      while (this.crew(v.id).length < t.minCrew) {
-        const f = free().sort((a, b) => a.quals.length - b.quals.length)[0];
-        if (!f) break;
-        f.vehicleId = v.id;
+      for (const v of vehicles) {
+        const t = vehicleType(v.typeId);
+        while (crewOf(v).length < t.minCrew) {
+          const f = free().sort((a, b) => a.quals.length - b.quals.length)[0];
+          if (!f) break;
+          f.vehicleId = v.id;
+        }
       }
     }
     this.changed();
@@ -471,7 +578,7 @@ export class Game {
     if (cur && !this.vehicleAtStation(cur)) throw new ActionError(`${cur.name} is out on a call.`);
     this.spend(q.cost, 'training', e.dept, `${q.name} training: ${e.name}`);
     e.status = 'training';
-    e.training = { qual: qualId, until: this.state.time + q.hours * 3600 };
+    e.training = { qual: qualId, until: this.state.time + q.hours * 3600 * this.mod('training') * (this.hasFeature(this.station(e.stationId), 'academy') ? 0.7 : 1) };
     this.changed();
   }
 
@@ -550,7 +657,7 @@ export class Game {
     if (!sent.length) throw new ActionError('Select at least one vehicle.');
     for (const v of sent) {
       const t = vehicleType(v.typeId);
-      v.turnoutUntil = this.state.time + (v.status === 'returning' ? 5 : t.turnoutSec);
+      v.turnoutUntil = this.state.time + (v.status === 'returning' ? 5 : t.turnoutSec * this.mod('turnout'));
       v.status = 'dispatched';
       v.incidentId = inc.id;
       v.route = null;
@@ -579,7 +686,7 @@ export class Game {
     const from: LatLng = [...v.pos] as LatLng;
     const stateRef = this.state;
     const vt = vehicleType(v.typeId);
-    const speed = vt.speedFactor;
+    const speed = vt.speedFactor * this.mod('speed');
     if (vt.air) {
       // Helicopters fly straight to the destination.
       const d = distanceM(from, to);
@@ -620,7 +727,7 @@ export class Game {
     const t = vehicleType(v.typeId);
     const km = meters / 1000;
     v.odometerKm += km;
-    v.condition = Math.max(0, v.condition - km * 0.35);
+    v.condition = Math.max(0, v.condition - km * 0.35 * this.mod('wear'));
     const fuel = km * t.fuelPerKm;
     v.costs.fuel += fuel;
     this.city.accrual[`fuel|${t.dept}`] = (this.city.accrual[`fuel|${t.dept}`] || 0) + fuel;
@@ -631,16 +738,38 @@ export class Game {
     if (dt <= 0) return;
     this.state.time += dt;
     for (const id of Object.keys(this.state.cities)) this.inCity(id, () => this.tickCity(dt, id === this.state.activeCity));
+    const rs = this.state.research;
+    if (rs.active && this.state.time >= rs.active.until) {
+      rs.done.push(rs.active.id);
+      this.emit({ type: 'research_done', id: rs.active.id });
+      rs.active = null;
+      this.changed();
+    }
+  }
+
+  /** Send the recommended units to calls nobody is handling yet, when they can be fully covered. */
+  autoDispatch() {
+    const mode = this.state.settings.autoDispatch;
+    for (const inc of this.city.incidents) {
+      if (inc.status !== 'pending') continue;
+      if (mode === 'low' && inc.severity > 1) continue;
+      const rec = this.recommend(inc.id);
+      if (rec.ids.length && !rec.unfilled.length) {
+        try { this.dispatch(inc.id, rec.ids); } catch { /* unit became unavailable */ }
+      }
+    }
   }
 
   private tickCity(dt: number, active: boolean) {
     const c = this.city;
     if (c.setupStep < SETUP_ORDER.length) return; // city not set up yet: nothing runs
+    this.ensureGoals();
     this.accrue(dt);
     this.updateTraining();
     this.updateVehicles();
     this.updateIncidents();
     if (active) this.maybeSpawn();
+    if (this.state.settings.autoDispatch !== 'off' && this.state.time - (c.lastAutoCheck || 0) >= 20) { c.lastAutoCheck = this.state.time; this.autoDispatch(); }
     const day = Math.floor(this.state.time / DAY);
     if (day !== c.finance.day) {
       c.finance.yesterday = c.finance.today;
@@ -680,15 +809,20 @@ export class Game {
     const c = this.city;
     const h = dt / 3600;
     const add = (k: string, n: number) => (c.accrual[k] = (c.accrual[k] || 0) + n);
-    for (const e of c.employees) add(`payroll|${e.dept}`, e.salaryPerHour * h);
+    const salary = this.mod('salary'), contract = this.mod('contract'), maintM = this.mod('maintenance');
+    for (const e of c.employees) add(`payroll|${e.dept}`, e.salaryPerHour * salary * h);
     for (const s of c.stations) {
       const t = stationType(s.typeId);
       add(`station upkeep|${s.dept}`, t.upkeepPerHour * (1 + s.level * 0.35) * h);
-      if (this.setupDone) add(`city contract|${s.dept}`, -t.contractPerHour * h);
+      if (this.setupDone) add(`city contract|${s.dept}`, -t.contractPerHour * contract * h);
+    }
+    for (const id of c.agreements || []) {
+      const a = AGREEMENTS.find(x => x.id === id);
+      if (a && this.agreementActive(id)) add(`regional agreements|${a.dept}`, -a.incomePerHour * contract * h);
     }
     for (const v of c.vehicles) {
       const t = vehicleType(v.typeId);
-      const m = t.maintenancePerHour * h;
+      const m = t.maintenancePerHour * maintM * h;
       v.costs.maintenance += m;
       add(`maintenance|${t.dept}`, m);
     }
@@ -697,7 +831,7 @@ export class Game {
       c.lastHour = hour;
       for (const [k, amt] of Object.entries(c.accrual)) {
         const [cat, d] = k.split('|');
-        if (Math.abs(amt) >= 1) this.post(-amt, cat, d, cat === 'city contract' ? 'City service contract' : `Hourly ${cat}`);
+        if (Math.abs(amt) >= 1) this.post(-amt, cat, d, cat === 'city contract' ? 'City service contract' : cat === 'regional agreements' ? 'Regional agreements' : `Hourly ${cat}`);
       }
       c.accrual = {};
       this.changed();
@@ -755,7 +889,9 @@ export class Game {
     if (v.status === 'transporting' && v.cargo) {
       const cg = v.cargo;
       const km = r.distanceM / 1000;
-      cg.fee = Math.round(cg.kind === 'patient' ? (250 + 120 * km) * cg.count : (200 + 80 * km) * cg.count);
+      const cells = cg.kind === 'prisoner' && this.hasFeature(this.station(cg.dest), 'cells') ? 1.5 : 1;
+      cg.fee = Math.round((cg.kind === 'patient' ? (250 + 120 * km) * cg.count : (200 + 80 * km) * cg.count) * this.mod('transport') * cells);
+      this.progressGoal(cg.kind === 'patient' ? 'patients' : 'prisoners', cg.count);
       this.post(cg.fee, cg.kind === 'patient' ? 'patient transport' : 'prisoner transport', vehicleType(v.typeId).dept, `${v.name} → ${cg.destName}`);
       v.status = 'handover';
       v.busyUntil = this.state.time + (cg.kind === 'patient' ? rand(5, 10) : rand(4, 8)) * 60;
@@ -843,12 +979,17 @@ export class Game {
       payout = -fine;
       c.stats.failed++;
     } else {
-      const base = Math.round(inc.reward * mult[outcome]);
+      const base = Math.round(inc.reward * mult[outcome] * this.mod('reward'));
       this.post(base, 'incident rewards', primary, `${inc.name} ${inc.number}`);
       payout = base;
       if (outcome === 'successful') {
         c.stats.successful++;
+        this.progressGoal('success');
+        const catDept = CATEGORY_DEPT[inc.category];
+        if (['fire', 'police', 'ems'].includes(catDept)) this.progressGoal(`success_${catDept}`);
+        if (inc.severity >= 3) this.progressGoal('major');
         if (this.fastResponse(inc)) {
+          this.progressGoal('fast');
           const bonus = Math.round(inc.reward * 0.2);
           this.post(bonus, 'performance bonuses', primary, `Fast response ${inc.number}`);
           payout += bonus;
@@ -859,7 +1000,7 @@ export class Game {
         this.post(bonus, 'major incident bonuses', primary, `Major incident ${inc.number}`);
         payout += bonus;
       }
-      this.addXp(inc.xp * mult[outcome]);
+      this.addXp(inc.xp * mult[outcome] * this.mod('xp'));
       const onScene = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene');
       for (const v of onScene) for (const e of this.crew(v.id)) e.xp += 5 * inc.severity;
     }
@@ -1035,13 +1176,14 @@ export class Game {
   hourlyCosts() {
     const c = this.city;
     let payroll = 0, upkeep = 0, maint = 0, contract = 0;
-    c.employees.forEach(e => (payroll += e.salaryPerHour));
+    c.employees.forEach(e => (payroll += e.salaryPerHour * this.mod('salary')));
     c.stations.forEach(s => {
       const t = stationType(s.typeId);
       upkeep += t.upkeepPerHour * (1 + s.level * 0.35);
-      contract += t.contractPerHour;
+      contract += t.contractPerHour * this.mod('contract');
     });
-    c.vehicles.forEach(v => (maint += vehicleType(v.typeId).maintenancePerHour));
+    for (const id of c.agreements || []) { const a = AGREEMENTS.find(x => x.id === id); if (a && this.agreementActive(id)) contract += a.incomePerHour * this.mod('contract'); }
+    c.vehicles.forEach(v => (maint += vehicleType(v.typeId).maintenancePerHour * this.mod('maintenance')));
     return { payroll, upkeep, maint, contract, net: contract - payroll - upkeep - maint };
   }
 }

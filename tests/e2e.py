@@ -151,6 +151,7 @@ def main():
 
             page.click('[data-testid=speed-0]')
             page.click('[data-testid=tab-dispatch]')
+            page.wait_for_selector('[data-testid=goals]')
             shot('07-dispatch-list')
             page.click('[data-testid=tab-finances]')
             shot('08-finances')
@@ -176,9 +177,13 @@ def main():
             page.wait_for_selector('[data-testid=mission]')
             n_m = page.locator('[data-testid=mission]').count(); check(n_m == game('0') + 73, f'missions catalogue lists all {n_m} call types')
             shot('12-missions')
+            page.click('.back')
+            page.click('[data-testid=research-open]')
+            page.wait_for_selector('[data-testid=research-item]')
+            shot('13-research')
+            page.click('.back')
             # --- Multi-city: unlock a second city at level 5 and add Atlanta
             game('(g.state.level = 5, g.changed(), 0)')
-            page.click('.back')
             page.click('[data-testid=add-city]')
             page.click('[data-testid=city-atlanta]')
             page.wait_for_selector('.buildbar')

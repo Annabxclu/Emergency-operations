@@ -131,7 +131,10 @@ export interface Station {
   name: string;
   pos: LatLng;
   level: number;          // index into StationTypeDef.levels
+  extensions?: string[];
 }
+
+export interface Goal { id: string; metric: string; label: string; target: number; progress: number; reward: number; xp: number; done: boolean }
 
 export interface Employee {
   id: string;
@@ -205,6 +208,9 @@ export interface CityState {
   nextIncidentAt: number;
   incidentCounter: number;
   setupStep: number; // 0..2 placing starter stations, 3 = running
+  goals?: { day: number; list: Goal[] };
+  agreements?: string[];
+  lastAutoCheck?: number;
   stats: { calls: number; successful: number; failed: number };
 }
 
@@ -214,6 +220,9 @@ export interface Settings {
   tileStyle: string;
   showCoverage: boolean;
   deptFilter: Record<string, boolean>;
+  sound: boolean;
+  autoDispatch: 'off' | 'low' | 'all';
+  shifts: boolean;
 }
 
 export interface GameState {
@@ -227,6 +236,7 @@ export interface GameState {
   cityDefs: Record<string, CityDef>;   // generated cities (presets live in data/cities)
   seq: number;
   settings: Settings;
+  research: { active: { id: string; until: number } | null; done: string[] };
 }
 
 export interface RouteData { coords: LatLng[]; distanceM: number; durationS: number; approximate: boolean }
@@ -245,6 +255,8 @@ export type GameEvent = { cityId?: string } & (
   | { type: 'level_up'; level: number }
   | { type: 'transport_done'; id: string; kind: 'patient' | 'prisoner'; count: number; fee: number; dest: string }
   | { type: 'major_event'; id: string; children: number }
+  | { type: 'research_done'; id: string }
+  | { type: 'goal_done'; label: string; reward: number }
   | { type: 'training_done'; empId: string; qual: string }
   | { type: 'routing_fallback' }
   | { type: 'notice'; text: string });

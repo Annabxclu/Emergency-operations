@@ -41,6 +41,27 @@ export function SettingsPanel(p: Props) {
     <div>
       <Header title="Settings" sub={`Level ${lvl} · ${game.state.xp}/${xpForLevel(lvl + 1)} XP`} />
 
+      <Section title="Gameplay">
+        <label className="check"><input type="checkbox" checked={s.sound} onChange={(e: any) => { s.sound = e.target.checked; game.changed(); }} /> Alert sounds for new calls</label>
+        <div className="field"><label>Auto-dispatch</label>
+          <select value={s.autoDispatch} onChange={(e: any) => { s.autoDispatch = e.target.value; game.changed(); }} data-testid="auto-dispatch">
+            <option value="off">Off — I dispatch everything</option>
+            <option value="low">Routine calls only (low severity)</option>
+            <option value="all">All calls when fully covered</option>
+          </select></div>
+        <p className="hint">Auto-dispatch sends the recommended units only when every requirement can be covered.</p>
+        <label className="check"><input type="checkbox" checked={s.shifts} onChange={(e: any) => { s.shifts = e.target.checked; Object.values(game.state.cities).length && game.city.stations.forEach(st => game.autoStaff(st.id)); game.changed(); }} /> Realistic shifts (A/B/C, 8 hours each)</label>
+        <p className="hint">With shifts on, each vehicle needs a crew for every shift, so you need about three times the staff. Station staff capacity is tripled to match. Currently shift {game.currentShift()}.</p>
+      </Section>
+
+      <Section title="Research">
+        <button className="row" onClick={() => push({ kind: 'research' })} data-testid="research-open">
+          <div className="grow"><div className="row-title">Research projects</div>
+            <div className="row-sub">{game.state.research.done.length} completed{game.state.research.active ? ' · 1 in progress' : ''}</div></div>
+          <span className="muted">›</span>
+        </button>
+      </Section>
+
       <Section title="Missions">
         <button className="row" onClick={() => push({ kind: 'missions' })} data-testid="missions-open">
           <div className="grow"><div className="row-title">All missions & requirements</div>

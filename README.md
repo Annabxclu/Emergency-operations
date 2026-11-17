@@ -30,6 +30,12 @@ Progress saves automatically on the device (IndexedDB). Use Settings → Export 
 Call outcomes: **Successful** (all units before the deadline, bonus if fast), **Delayed** (late),
 **Escalated** (ignored → bigger, then handled), **Partial** (worked with missing units), **Failed** (small fine).
 
+More systems:
+- **Transport:** patients go to real hospitals, suspects to jail; each trip pays a fee.
+- **9 departments** (Fire, Police, EMS, Public Works, Water Rescue, Air Support, Special Ops, Emergency Management, Disaster Response), 31 vehicle types, 73 call types including major events that spawn related calls.
+- **Research** (Settings → Research), **station extensions**, **daily goals** (Dispatch tab), **regional agreements** (Finances).
+- **Options** (Settings → Gameplay): alert sounds, auto-dispatch, realistic A/B/C shifts.
+
 Extra cities: at levels 5, 10, 15 and 20 you can add another city (Settings → Cities), each with its own
 stations, staff, calls and budget. Settings → Missions lists every call type with its requirements.
 

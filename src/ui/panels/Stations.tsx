@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, dept, qualification, stationType } from '../../data/departments';
 import { Btn, Chip, Dot, Empty, Header, Section, Stat, useCtx } from '../common';
+import { extensionsFor } from '../../data/progression';
 import { VEHICLE_STATUS, money } from '../format';
 import { glyph } from '../icons';
 
@@ -144,6 +145,21 @@ export function StationDetail({ id }: { id: string }) {
         <div className="actions">
           <Btn small onClick={() => act(() => game.autoStaff(s.id), 'Crews assigned')}>Auto-assign crews</Btn>
           <Btn small kind="ghost" onClick={() => push({ kind: 'personnel' })}>View personnel</Btn>
+        </div>
+      </Section>
+
+      <Section title="Extensions">
+        <div className="list">
+          {extensionsFor(s.typeId).map(ext => {
+            const built = s.extensions?.includes(ext.id);
+            return (
+              <div key={ext.id} className="row compact">
+                <div className="grow"><div className="row-title">{ext.name}</div><div className="row-sub wrap">{ext.desc}</div></div>
+                {built ? <Chip tone="ok">Built</Chip> :
+                  <Btn small disabled={game.city.money < ext.cost} onClick={() => act(() => game.buildExtension(s.id, ext.id), `${ext.name} built`)}>{money(ext.cost)}</Btn>}
+              </div>
+            );
+          })}
         </div>
       </Section>
 

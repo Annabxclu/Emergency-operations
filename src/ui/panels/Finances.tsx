@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import type { FinanceBucket } from '../../engine/types';
 import { DEPARTMENTS, vehicleType } from '../../data/departments';
-import { Dot, Section, Stat, useCtx } from '../common';
+import { Btn, Chip, ConfirmBtn, Dot, Section, Stat, useCtx } from '../common';
+import { AGREEMENTS } from '../../data/progression';
+import { dept } from '../../data/departments';
 import { cap1, clock, money, moneyShort } from '../format';
 
 function sum(o: Record<string, number>) { return Object.values(o).reduce((a, b) => a + b, 0); }
@@ -27,7 +29,7 @@ function Breakdown({ b }: { b: FinanceBucket }) {
 }
 
 export function FinancesPanel() {
-  const { game } = useCtx();
+  const { game, act } = useCtx();
   const c = game.city;
   const [period, setPeriod] = useState('today');
   const b = period === 'today' ? c.finance.today : period === 'yesterday' ? c.finance.yesterday : c.finance.total;
@@ -71,6 +73,27 @@ export function FinancesPanel() {
         </div>
         <p className="hint">Fixed costs net {money(h.net)}/h before call rewards and fuel. Costs only accrue while the game is open and unpaused.</p>
       </Section>
+      <Section title="Regional service agreements">
+        <div className="list">
+          {AGREEMENTS.map(a => {
+            const signed = (c.agreements || []).includes(a.id);
+            const met = game.agreementActive(a.id);
+            const locked = a.unlockLevel > game.state.level;
+            const req = `${a.stations} ${dept(a.dept).short} station${a.stations > 1 ? 's' : ''}${a.extraDept ? ` + ${dept(a.extraDept).short}` : ''}`;
+            return (
+              <div key={a.id} className={`row compact ${locked ? 'disabled' : ''}`}>
+                <div className="grow"><div className="row-title">{a.name}</div>
+                  <div className="row-sub wrap">{a.desc} Needs {req}. +{money(a.incomePerHour)}/h</div></div>
+                {signed ? (met ? <ConfirmBtn small onConfirm={() => game.cancelAgreement(a.id)} confirmText="Cancel?">Active</ConfirmBtn> : <Chip tone="warn">Paused</Chip>)
+                  : locked ? <Chip tone="muted">Level {a.unlockLevel}</Chip>
+                  : <Btn small kind="primary" disabled={!met || c.money < a.signCost} onClick={() => act(() => game.signAgreement(a.id), `Signed ${a.name}`)}>Sign · {money(a.signCost)}</Btn>}
+              </div>
+            );
+          })}
+        </div>
+        <p className="hint">Agreements pay every hour while you keep the required stations. They pause if you fall below.</p>
+      </Section>
+
       <Section title="Vehicle costs (lifetime)">
         <div className="list">
           {topVehicles.map(({ v, total }) => (

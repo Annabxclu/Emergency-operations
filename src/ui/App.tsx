@@ -16,6 +16,9 @@ import { EmployeeDetail, HirePanel, PersonnelList } from './panels/Personnel';
 import { FinancesPanel } from './panels/Finances';
 import { SettingsPanel } from './panels/Settings';
 import { MissionsPanel } from './panels/Missions';
+import { ResearchPanel } from './panels/Research';
+import { RESEARCH } from '../data/progression';
+import { playAlert, unlockAudio } from './sound';
 import { CityPicker } from './CityPicker';
 import type { CityDef } from '../engine/types';
 
@@ -25,7 +28,7 @@ const TABS = [
 ];
 const TAB_OF: Record<string, string> = {
   dispatch: 'dispatch', incident: 'dispatch', stations: 'stations', station: 'stations', build: 'stations', hire: 'stations',
-  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'personnel', employee: 'personnel', finances: 'finances', settings: 'settings', missions: 'settings',
+  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'personnel', employee: 'personnel', finances: 'finances', settings: 'settings', missions: 'settings', research: 'settings',
 };
 const SPEEDS = [0, 1, 4, 8];
 
@@ -95,6 +98,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     switch (e.type) {
       case 'incident_new': {
         const inc = c.incidents.find(i => i.id === e.id);
+        if (inc && game.state.settings.sound && !inc.parentId) playAlert(inc.severity >= 3 ? 'major' : 'call');
+        if (inc && inc.parentId) break; // major event children are summarized by the event toast
         if (inc) toast(`New call: ${inc.name} · ${inc.district}`, inc.severity >= 3 ? 'bad' : 'warn', () => openRoot({ kind: 'incident', id: inc.id }));
         break;
       }
@@ -124,6 +129,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
         if (inc) toast(`MAJOR EVENT: ${inc.name} — ${e.children} related calls`, 'bad', () => openRoot({ kind: 'dispatch' }));
         break;
       }
+      case 'research_done': toast(`Research complete: ${RESEARCH.find(r => r.id === e.id)?.name}`, 'ok'); if (game.state.settings.sound) playAlert('good'); break;
+      case 'goal_done': toast(`Daily goal done: ${e.label} +${money(e.reward)}`, 'ok'); if (game.state.settings.sound) playAlert('good'); break;
       case 'level_up': toast(`Level ${e.level} reached — new vehicles and call types may be unlocked`, 'ok'); break;
       case 'training_done': {
         const emp = game.employee(e.empId);
@@ -235,6 +242,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'finances': return <FinancesPanel />;
       case 'settings': return <SettingsPanel onImport={onImport} onNewGame={() => setPicker('new')} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
       case 'missions': return <MissionsPanel />;
+      case 'research': return <ResearchPanel />;
     }
   };
 
@@ -242,7 +250,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
 
   return (
     <GameCtx.Provider value={ctx}>
-      <div className="app">
+      <div className="app" onPointerDown={unlockAudio}>
         <MapView game={game} selected={selected}
           preview={pending && buildDept ? { pos: pending, dept: buildDept } : null}
           onSelect={(sel: Selection) => { if (!activeBuild && sel) openRoot({ kind: sel.kind, id: sel.id } as Route); }}

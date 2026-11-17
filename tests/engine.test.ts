@@ -130,6 +130,33 @@ async function run(g: Game, seconds: number, step = 1) {
   g.dispatch(trauma!.id, [heli.id]);
   assert(heli.route && heli.route.coords.length === 2 && !heli.route.approximate, 'helicopter flies a direct line, not a road route');
 
+  // Batch 2: research, extensions, goals, agreements, auto-dispatch, shifts
+  g.startResearch('cad');
+  await run(g, 13 * 3600, 30);
+  assert(g.state.research.done.includes('cad') && Math.abs(g.mod('turnout') - 0.85) < 1e-9, 'research completes and applies its modifier');
+  const fs = c().stations.find(x => x.dept === 'fire')!;
+  const bays0 = g.stationCapacity(fs).bays;
+  g.buildExtension(fs.id, 'bays');
+  assert(g.stationCapacity(fs).bays === bays0 + 2, 'bay extension adds 2 bays');
+  assert(c().goals && c().goals!.list.length === 3, `3 daily goals: ${c().goals!.list.map(x => x.label).join('; ')}`);
+  g.placeStation('fire_station', [33.70, -84.42]); g.placeStation('fire_station', [33.82, -84.36]);
+  g.state.level = Math.max(g.state.level, 3);
+  g.signAgreement('county_fire');
+  const agBefore = c().finance.total.income['regional agreements'] || 0;
+  await run(g, 2 * 3600, 30);
+  assert((c().finance.total.income['regional agreements'] || 0) > agBefore, 'regional agreement pays hourly');
+  g.state.settings.autoDispatch = 'all';
+  c().incidents.length = 0;
+  c().vehicles.forEach(v => { if (v.status !== 'available') { v.status = 'available'; v.incidentId = null; v.route = null; v.pos = g.station(v.stationId)!.pos; } });
+  const auto = await g.spawnIncident('fire_alarm');
+  for (let i = 0; i < 30; i++) g.tick(1);
+  assert(g.incidentVehicles(auto!.id).length > 0, 'auto-dispatch sent units to a routine call');
+  g.state.settings.autoDispatch = 'off';
+  g.state.settings.shifts = true;
+  const someEngine = c().vehicles.find(v => v.typeId === 'engine' && v.status === 'available')!;
+  assert(g.staffingProblem(someEngine) !== null, 'with shifts on, a single-shift crew is not enough');
+  g.state.settings.shifts = false;
+
   // Save round trip.
   const json = JSON.stringify(g.state);
   const g2 = new Game(JSON.parse(json), fake);

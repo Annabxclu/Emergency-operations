@@ -13,7 +13,7 @@ export function PersonnelList() {
   return (
     <div>
       <div className="sheet-head"><div className="grow"><div className="title">Personnel</div>
-        <div className="sub">{c.employees.length} employees · payroll {money(payroll)}/h</div></div></div>
+        <div className="sub">{c.employees.length} employees · payroll {money(payroll)}/h{game.state.settings.shifts ? ` · shift ${game.currentShift()} on duty` : ''}</div></div></div>
       <div className="seg">
         <button className={d === 'all' ? 'on' : ''} onClick={() => setD('all')}>All</button>
         {DEPARTMENTS.filter(x => c.employees.some(e => e.dept === x.id)).map(x => <button key={x.id} className={d === x.id ? 'on' : ''} onClick={() => setD(x.id)}>{x.short} {c.employees.filter(e => e.dept === x.id).length}</button>)}
