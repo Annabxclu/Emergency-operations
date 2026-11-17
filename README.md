@@ -5,7 +5,7 @@ Atlanta map, real road routing, fire / police / EMS, dispatch, finances, saves.
 
 ## Play it on your iPhone
 
-**Live:** https://annabxclu.github.io/emergency-operations/ (GitHub Pages serves the `docs/` folder on `main`). After changing code, run `npm run build:pages` and commit `docs/`.
+**Live:** https://annabxclu.github.io/Emergency-operations/ (GitHub Pages serves the `docs/` folder on `main`). After changing code, run `npm run build:pages` and commit `docs/`.
 
 The `dist/` folder is the finished app. It needs to be served over HTTPS (any static host):
 
