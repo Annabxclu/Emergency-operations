@@ -1,0 +1,106 @@
+// Headless test of the full gameplay loop with a fake road network.
+import { Game, newGameState, missingRequirements, xpForLevel } from '../src/engine/game';
+import type { LatLng, RoutingProvider } from '../src/engine/types';
+import { distanceM } from '../src/engine/geo';
+
+let routeCalls = 0;
+const fake: RoutingProvider = {
+  async route(a: LatLng, b: LatLng) {
+    routeCalls++;
+    const mid: LatLng = [a[0], b[1]]; // L-shaped "road" path, never a straight line
+    const d = distanceM(a, mid) + distanceM(mid, b);
+    return { coords: [a, mid, b], distanceM: d, durationS: d / 13, approximate: false };
+  },
+  async nearest(p: LatLng) { return { pos: p, name: 'Peachtree St NE' }; },
+};
+
+const assert = (c: unknown, m: string) => { if (!c) { console.error('FAIL:', m); process.exit(1); } else console.log('ok -', m); };
+const flush = () => new Promise(r => setTimeout(r, 0));
+async function run(g: Game, seconds: number, step = 1) {
+  for (let t = 0; t < seconds; t += step) { g.tick(step); if (t % 20 === 0) await flush(); }
+  await flush();
+}
+
+(async () => {
+  const g = new Game(newGameState(), fake);
+  const c = () => g.city;
+  // Setup: place starter stations in required order.
+  let threw = false;
+  try { g.placeStation('police_precinct', [33.76, -84.39]); } catch { threw = true; }
+  assert(threw, 'setup enforces fire station first');
+  g.placeStation('fire_station', [33.755, -84.39]);
+  g.placeStation('police_precinct', [33.77, -84.385]);
+  g.placeStation('ems_station', [33.76, -84.37]);
+  assert(g.setupDone, 'setup complete after three stations');
+  assert(c().money === 100000, 'starter stations are free; $100,000 remains');
+  assert(c().vehicles.length === 4 && c().employees.length === 12, 'starter kit: 4 vehicles, 12 personnel');
+  assert(c().vehicles.every(v => g.staffingProblem(v) === null), 'all starter vehicles staffed');
+
+  // Build a second fire station and buy an engine.
+  const st = g.placeStation('fire_station', [33.78, -84.40]);
+  assert(c().money === 40000, 'fire station costs $60,000');
+  const eng = g.buyVehicle('engine', st.id);
+  assert(c().money === 15000, 'engine costs $25,000');
+  assert(g.staffingProblem(eng) !== null, 'new engine with no staff is unstaffed');
+  threw = false;
+  try { g.buyVehicle('ladder', st.id); } catch { threw = true; }
+  assert(threw, 'ladder locked at level 1');
+
+  // Hire crew for it.
+  for (let i = 0; i < 3; i++) g.hire(st.id, g.candidates(st.id)[0]);
+  assert(g.staffingProblem(eng) === null, 'hired crew auto-assigned to the engine');
+
+  // Spawn a medical call and dispatch recommended units.
+  const inc = await g.spawnIncident('medical');
+  assert(inc && inc.address.includes('Peachtree'), 'incident has a street address');
+  const rec = g.recommend(inc!.id);
+  assert(rec.ids.length === 1 && g.vehicle(rec.ids[0])!.typeId === 'bls', 'recommends the ambulance');
+  const moneyBefore = c().money;
+  g.dispatch(inc!.id, rec.ids);
+  const amb = g.vehicle(rec.ids[0])!;
+  assert(amb.status === 'dispatched', 'ambulance dispatched (turnout)');
+  await run(g, 50);
+  assert(amb.status === 'enroute' && amb.route && amb.route.coords.length === 3, 'en route on road geometry after turnout');
+  const p0 = amb.pos;
+  await run(g, 5);
+  assert(distanceM(p0, amb.pos) > 1, 'vehicle position advances along route');
+  await run(g, 3000);
+  assert(c().resolved.some(i => i.id === inc!.id), 'incident resolved');
+  const done = c().resolved.find(i => i.id === inc!.id)!;
+  assert(done.outcome === 'successful', `outcome successful (${done.outcome})`);
+  assert(amb.status === 'available', 'ambulance returned to station');
+  assert(g.state.xp > 0, 'earned XP');
+  const rewards = c().finance.total.income['incident rewards'] || 0;
+  assert(rewards > 0, `earned reward $${rewards}`);
+  void moneyBefore;
+
+  // Multi-department call needing units the player can supply.
+  const big = await g.spawnIncident('mva_injuries');
+  const rec2 = g.recommend(big!.id);
+  assert(rec2.ids.length === 2 && rec2.unfilled.length === 0, 'multi-department recommendation (ambulance + police)');
+  g.dispatch(big!.id, rec2.ids);
+  await run(g, 4000);
+  assert(c().resolved.find(i => i.id === big!.id)?.outcome === 'successful', 'multi-department call successful');
+
+  // Ignored call escalates then fails, but does not bankrupt.
+  const ign = await g.spawnIncident('theft');
+  await run(g, 60 * 60);
+  const ignDone = c().resolved.find(i => i.id === ign!.id);
+  assert(ignDone && ignDone.escalated && ignDone.outcome === 'failed', 'ignored call escalated then failed');
+
+  // Missing-requirement matching.
+  const miss = missingRequirements([{ cap: 'ambulance', count: 1 }, { cap: 'als', count: 1 }], []);
+  assert(miss.length === 2, 'missingRequirements with no vehicles');
+  assert(xpForLevel(2) > 0 && xpForLevel(3) > xpForLevel(2), 'xp curve increasing');
+
+  // Hourly costs were posted.
+  assert((c().finance.total.expense['payroll'] || 0) > 0, 'payroll charged');
+  assert((c().finance.total.income['city contract'] || 0) > 0, 'city contract income paid');
+  assert((c().finance.total.expense['fuel'] || 0) > 0, 'fuel charged');
+
+  // Save round trip.
+  const json = JSON.stringify(g.state);
+  const g2 = new Game(JSON.parse(json), fake);
+  assert(g2.city.stations.length === 4, 'state serializes and reloads');
+  console.log(`\nAll engine tests passed. Route requests: ${routeCalls}. Money: $${c().money}. Level ${g.state.level}, XP ${g.state.xp}`);
+})();

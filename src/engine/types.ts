@@ -1,0 +1,234 @@
+// Core type definitions. Everything the game knows about departments, vehicles,
+// incidents and cities is described by these "Def" types and lives in src/data,
+// so new content can be added without touching engine code.
+
+export type LatLng = [number, number]; // [lat, lng]
+
+export interface Requirement { cap: string; count: number }
+export interface QualReq { qual: string; count: number }
+
+export interface DepartmentDef {
+  id: string;
+  name: string;
+  short: string;
+  color: string;
+  unlockLevel: number;
+  ranks: string[];
+  empPrefix: string;
+  baseSalaryPerHour: number;
+  hireCost: number;
+}
+
+export interface StationLevel { bays: number; staff: number; upgradeCost: number }
+
+export interface StationTypeDef {
+  id: string;
+  dept: string;
+  name: string;          // e.g. "Fire Station"
+  cost: number;
+  levels: StationLevel[];
+  upkeepPerHour: number;
+  contractPerHour: number; // city contract income earned by having this station
+  coverageKm: number;
+}
+
+export interface VehicleTypeDef {
+  id: string;
+  dept: string;
+  name: string;
+  callsign: string;      // e.g. "Engine" -> "Engine 3"
+  short: string;         // map label, e.g. "E"
+  price: number;
+  speedFactor: number;   // multiplier on normal road speed (lights & sirens)
+  minCrew: number;
+  maxCrew: number;
+  quals: QualReq[];      // specialist staffing requirements
+  caps: string[];        // capabilities this vehicle provides to incidents
+  maintenancePerHour: number;
+  fuelPerKm: number;
+  turnoutSec: number;
+  unlockLevel: number;
+}
+
+export interface QualificationDef { id: string; name: string; dept: string; cost: number; hours: number; unlockLevel: number }
+export interface CapabilityDef { id: string; name: string; dept: string }
+
+export interface IncidentTypeDef {
+  id: string;
+  name: string;
+  category: 'fire' | 'police' | 'ems' | 'rescue' | 'hazmat';
+  severity: 1 | 2 | 3;
+  descriptions: string[];
+  requirements: Requirement[];
+  escalation: Requirement[];   // added when the call escalates
+  deadlineMin: number;         // game minutes to have all units on scene
+  workMin: [number, number];   // game minutes on scene once fully staffed
+  reward: number;
+  xp: number;
+  weight: number;
+  unlockLevel: number;
+}
+
+export interface DistrictDef { name: string; center: LatLng }
+
+export interface CityDef {
+  id: string;
+  name: string;
+  state: string;
+  prefix: string;
+  center: LatLng;
+  zoom: number;
+  bounds: [LatLng, LatLng];
+  districts: DistrictDef[];
+  unlockLevel: number;
+  population: number;
+  playable: boolean;
+}
+
+export type VehicleStatus = 'available' | 'dispatched' | 'enroute' | 'onscene' | 'returning' | 'out_of_service' | 'maintenance';
+
+export interface Route {
+  coords: LatLng[];
+  cum: number[];          // cumulative distance (m) at each coord
+  distanceM: number;
+  durationS: number;      // game seconds for this vehicle
+  approximate: boolean;   // true if routing failed and a direct path was used
+  startAt: number;        // game time the vehicle started driving; -1 = not started
+}
+
+export interface Vehicle {
+  id: string;
+  typeId: string;
+  name: string;
+  stationId: string;
+  status: VehicleStatus;
+  pos: LatLng;
+  route: Route | null;
+  routeReq: number;
+  incidentId: string | null;
+  turnoutUntil: number;
+  condition: number;      // 0-100
+  maintenanceUntil: number;
+  odometerKm: number;
+  costs: { purchase: number; fuel: number; maintenance: number };
+  calls: number;
+}
+
+export interface Station {
+  id: string;
+  typeId: string;
+  dept: string;
+  name: string;
+  pos: LatLng;
+  level: number;          // index into StationTypeDef.levels
+}
+
+export interface Employee {
+  id: string;
+  empNo: string;
+  name: string;
+  dept: string;
+  rank: number;
+  quals: string[];
+  salaryPerHour: number;
+  xp: number;
+  stationId: string;
+  vehicleId: string | null;
+  shift: 'A' | 'B' | 'C';
+  status: 'on_duty' | 'training';
+  training: { qual: string; until: number } | null;
+}
+
+export type IncidentStatus = 'pending' | 'responding' | 'onscene' | 'working' | 'resolved';
+export type Outcome = 'successful' | 'delayed' | 'partial' | 'escalated' | 'failed';
+
+export interface Incident {
+  id: string;
+  number: string;
+  typeId: string;
+  name: string;
+  category: string;
+  pos: LatLng;
+  address: string;
+  district: string;
+  severity: number;
+  description: string;
+  requirements: Requirement[];
+  createdAt: number;
+  deadline: number;
+  escalated: boolean;
+  late: boolean;
+  partial: boolean;
+  status: IncidentStatus;
+  workUntil: number | null;
+  workStartedAt: number | null;
+  reward: number;
+  xp: number;
+  outcome: Outcome | null;
+  resolvedAt: number | null;
+  payout: number;
+}
+
+export interface LedgerEntry { t: number; amount: number; cat: string; note: string }
+
+export interface FinanceBucket {
+  income: Record<string, number>;
+  expense: Record<string, number>;
+  byDept: Record<string, { income: number; expense: number }>;
+}
+
+export interface CityState {
+  cityId: string;
+  money: number;
+  stations: Station[];
+  vehicles: Vehicle[];
+  employees: Employee[];
+  incidents: Incident[];
+  resolved: Incident[];
+  ledger: LedgerEntry[];
+  finance: { day: number; today: FinanceBucket; yesterday: FinanceBucket | null; total: FinanceBucket };
+  accrual: Record<string, number>;
+  lastHour: number;
+  nextIncidentAt: number;
+  incidentCounter: number;
+  setupStep: number; // 0..2 placing starter stations, 3 = running
+  stats: { calls: number; successful: number; failed: number };
+}
+
+export interface Settings {
+  speed: number;
+  routingUrl: string;
+  tileStyle: string;
+  showCoverage: boolean;
+  deptFilter: Record<string, boolean>;
+}
+
+export interface GameState {
+  schema: number;
+  createdAt: string;
+  time: number;          // game seconds since start
+  xp: number;
+  level: number;
+  activeCity: string;
+  cities: Record<string, CityState>;
+  seq: number;
+  settings: Settings;
+}
+
+export interface RouteData { coords: LatLng[]; distanceM: number; durationS: number; approximate: boolean }
+
+export interface RoutingProvider {
+  route(from: LatLng, to: LatLng): Promise<RouteData>;
+  nearest(p: LatLng): Promise<{ pos: LatLng; name: string } | null>;
+}
+
+export type GameEvent =
+  | { type: 'incident_new'; id: string }
+  | { type: 'incident_escalated'; id: string }
+  | { type: 'incident_late'; id: string }
+  | { type: 'incident_resolved'; id: string; outcome: Outcome; payout: number }
+  | { type: 'vehicle_arrived'; id: string; incidentId: string }
+  | { type: 'level_up'; level: number }
+  | { type: 'training_done'; empId: string; qual: string }
+  | { type: 'routing_fallback' }
+  | { type: 'notice'; text: string };
