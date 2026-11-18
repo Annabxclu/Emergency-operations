@@ -45,15 +45,15 @@ async function run(g: Game, seconds: number, step = 1) {
   assert(c().money === 100000, 'fire station costs $100,000');
   assert(g.stationCapacity(st).bays === 1, 'a new station starts with 1 bay');
   const eng = g.buyVehicle('engine', st.id);
-  assert(c().money === 75000, 'engine costs $25,000');
+  assert(c().money === 95000, 'Type 1 engine costs $5,000');
   assert(g.staffingProblem(eng) !== null, 'new engine with no staff is unstaffed');
   threw = false;
   try { g.buyVehicle('heavy_rescue', st.id); } catch { threw = true; }
-  assert(threw, 'heavy rescue needs 3 fire stations');
+  assert(threw, 'heavy rescue needs 4 fire stations');
   g.upgradeStation(st.id);
-  assert(c().money === 65000 && g.stationCapacity(st).bays === 2, 'level 1 costs $10,000 and adds a bay');
+  assert(c().money === 85000 && g.stationCapacity(st).bays === 2, 'level 1 costs $10,000 and adds a bay');
   g.upgradeStation(st.id);
-  assert(c().money === 15000 && g.stationCapacity(st).bays === 3, 'level 2 costs $50,000');
+  assert(c().money === 35000 && g.stationCapacity(st).bays === 3, 'level 2 costs $50,000');
   assert(g.levelCost(3) === 100000 && g.levelCost(39) === 100000, 'levels 3+ cost $100,000');
   c().money = 100000;
 

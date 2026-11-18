@@ -259,7 +259,10 @@ export class Game {
   deptRequirement(deptId: string) { return (dept(deptId).unlockLevel - 1) * 2; }
 
   /** Stations of its own department needed to buy a vehicle type / train a certification. */
-  deptItemRequirement(item: { unlockLevel: number; dept: string }) { return Math.max(1, item.unlockLevel - dept(item.dept).unlockLevel + 1); }
+  deptItemRequirement(item: { unlockLevel: number; dept: string; neededAt?: number }) {
+    if (item.neededAt != null) return Math.max(1, item.neededAt);
+    return Math.max(1, item.unlockLevel - dept(item.dept).unlockLevel + 1);
+  }
 
   /** Null when unlocked, otherwise e.g. "Needs 3 Fire stations". */
   needStations(n: number, deptId?: string): string | null {

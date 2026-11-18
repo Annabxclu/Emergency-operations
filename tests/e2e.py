@@ -142,9 +142,9 @@ def main():
             check(game('g.city.stations[3].address').startswith('320 S Boston Ave'), 'station stores its street address')
             check(game('g.city.stations[0].address') == '101 S Boston Ave, Downtown', 'tapped station got its address by reverse lookup')
             page.click('[data-testid=buy-engine]')
-            check(game('g.city.money') == 75000, 'engine purchased for $25,000')
+            check(game('g.city.money') == 95000, 'engine purchased for $5,000')
             page.click('[data-testid=station-level-up]')
-            check(game('g.city.money') == 65000 and game('g.city.stations[3].level') == 1, 'bought station level 1 (+1 bay) for $10,000')
+            check(game('g.city.money') == 85000 and game('g.city.stations[3].level') == 1, 'bought station level 1 (+1 bay) for $10,000')
             page.locator('.sheet-body').evaluate('el => el.scrollTo(0, el.scrollHeight)'); shot('03c-station-level')
             page.click('[data-testid=hire-open]')
             for i in range(3):

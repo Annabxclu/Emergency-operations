@@ -98,11 +98,14 @@ export const QUALIFICATIONS: QualificationDef[] = [
   { id: 'wildland', name: 'Wildland Firefighting', dept: 'fire', cost: 2500, hours: 8, unlockLevel: 2 },
   { id: 'tech_rescue', name: 'Technical Rescue', dept: 'fire', cost: 5000, hours: 16, unlockLevel: 3 },
   { id: 'fire_officer', name: 'Fire Officer', dept: 'fire', cost: 4500, hours: 12, unlockLevel: 4 },
-  { id: 'hazmat_tech', name: 'Hazmat Technician', dept: 'fire', cost: 6000, hours: 16, unlockLevel: 5 },
+  { id: 'hazmat_tech', name: 'HazMat', dept: 'fire', cost: 6000, hours: 16, unlockLevel: 5, neededAt: 11 },
+  { id: 'mobile_command', name: 'Mobile Command', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1, neededAt: 13 },
+  { id: 'fire_investigator', name: 'Fire Investigator', dept: 'fire', cost: 4000, hours: 12, unlockLevel: 1 },
+  { id: 'motor_officer', name: 'Motor Officer', dept: 'police', cost: 2000, hours: 6, unlockLevel: 1 },
   { id: 'traffic_enf', name: 'Traffic Enforcement', dept: 'police', cost: 2000, hours: 6, unlockLevel: 2 },
-  { id: 'k9_handler', name: 'K-9 Handler', dept: 'police', cost: 5000, hours: 16, unlockLevel: 3 },
+  { id: 'k9_handler', name: 'K-9', dept: 'police', cost: 5000, hours: 16, unlockLevel: 3, neededAt: 6 },
   { id: 'detective', name: 'Detective', dept: 'police', cost: 4000, hours: 12, unlockLevel: 3 },
-  { id: 'swat', name: 'SWAT', dept: 'police', cost: 8000, hours: 24, unlockLevel: 6 },
+  { id: 'swat', name: 'SWAT', dept: 'police', cost: 8000, hours: 24, unlockLevel: 6, neededAt: 8 },
   { id: 'paramedic', name: 'Paramedic', dept: 'ems', cost: 4000, hours: 12, unlockLevel: 2 },
   { id: 'ems_officer', name: 'EMS Officer', dept: 'ems', cost: 4000, hours: 12, unlockLevel: 4 },
   { id: 'critical_care', name: 'Critical Care', dept: 'ems', cost: 7000, hours: 20, unlockLevel: 5 },
@@ -126,26 +129,26 @@ const vt = (v: V): VehicleTypeDef => ({ quals: [], ...v });
 
 export const VEHICLE_TYPES: VehicleTypeDef[] = [
   // Fire
-  vt({ id: 'engine', dept: 'fire', name: 'Fire Engine', callsign: 'Engine', short: 'E', price: 25000, speedFactor: 1.15, minCrew: 3, maxCrew: 4, caps: ['engine'], maintenancePerHour: 8, fuelPerKm: 1.2, turnoutSec: 60, unlockLevel: 1 }),
-  vt({ id: 'ladder', dept: 'fire', name: 'Ladder Truck', callsign: 'Truck', short: 'T', price: 45000, speedFactor: 1.05, minCrew: 3, maxCrew: 4, quals: [q('aerial_operator')], caps: ['ladder'], maintenancePerHour: 12, fuelPerKm: 1.6, turnoutSec: 70, unlockLevel: 2 }),
-  vt({ id: 'brush', dept: 'fire', name: 'Brush Truck', callsign: 'Brush', short: 'BR', price: 20000, speedFactor: 1.15, minCrew: 2, maxCrew: 3, quals: [q('wildland')], caps: ['brush'], maintenancePerHour: 6, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 2 }),
-  vt({ id: 'heavy_rescue', dept: 'fire', name: 'Heavy Rescue', callsign: 'Rescue', short: 'R', price: 40000, speedFactor: 1.1, minCrew: 3, maxCrew: 5, quals: [q('tech_rescue', 2)], caps: ['rescue'], maintenancePerHour: 11, fuelPerKm: 1.4, turnoutSec: 70, unlockLevel: 3 }),
-  vt({ id: 'chief', dept: 'fire', name: 'Battalion Chief', callsign: 'Battalion', short: 'BC', price: 18000, speedFactor: 1.35, minCrew: 1, maxCrew: 2, quals: [q('fire_officer')], caps: ['chief'], maintenancePerHour: 4, fuelPerKm: 0.5, turnoutSec: 45, unlockLevel: 4 }),
-  vt({ id: 'hazmat', dept: 'fire', name: 'Hazmat Unit', callsign: 'Hazmat', short: 'HM', price: 50000, speedFactor: 1.0, minCrew: 2, maxCrew: 4, quals: [q('hazmat_tech', 2)], caps: ['hazmat'], maintenancePerHour: 12, fuelPerKm: 1.5, turnoutSec: 90, unlockLevel: 5 }),
-  vt({ id: 'tanker', dept: 'fire', name: 'Water Tanker', callsign: 'Tanker', short: 'TK', price: 35000, speedFactor: 0.95, minCrew: 1, maxCrew: 2, caps: ['water_supply'], maintenancePerHour: 8, fuelPerKm: 1.5, turnoutSec: 70, unlockLevel: 5 }),
+  vt({ id: 'engine', dept: 'fire', name: 'Type 1 Fire Engine', callsign: 'Engine', short: 'E', price: 5000, speedFactor: 1.15, minCrew: 1, maxCrew: 6, caps: ['engine'], maintenancePerHour: 8, fuelPerKm: 1.2, turnoutSec: 60, unlockLevel: 1, neededAt: 0 }),
+  vt({ id: 'ladder', dept: 'fire', name: 'Platform Truck', callsign: 'Truck', short: 'T', price: 10000, speedFactor: 1.05, minCrew: 1, maxCrew: 3, caps: ['ladder'], maintenancePerHour: 12, fuelPerKm: 1.6, turnoutSec: 70, unlockLevel: 2, neededAt: 3 }),
+  vt({ id: 'brush', dept: 'fire', name: 'Type 5 Engine (Brush)', callsign: 'Brush', short: 'BR', price: 8000, speedFactor: 1.15, minCrew: 1, maxCrew: 3, caps: ['brush'], maintenancePerHour: 6, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 2 }),
+  vt({ id: 'heavy_rescue', dept: 'fire', name: 'Heavy Rescue Vehicle', callsign: 'Rescue', short: 'R', price: 12180, speedFactor: 1.1, minCrew: 1, maxCrew: 4, caps: ['rescue'], maintenancePerHour: 11, fuelPerKm: 1.4, turnoutSec: 70, unlockLevel: 3, neededAt: 4 }),
+  vt({ id: 'chief', dept: 'fire', name: 'Battalion Chief Unit', callsign: 'Battalion', short: 'BC', price: 10000, speedFactor: 1.35, minCrew: 1, maxCrew: 3, caps: ['chief'], maintenancePerHour: 4, fuelPerKm: 0.5, turnoutSec: 45, unlockLevel: 4, neededAt: 6 }),
+  vt({ id: 'hazmat', dept: 'fire', name: 'HazMat', callsign: 'Hazmat', short: 'HM', price: 19000, speedFactor: 1.0, minCrew: 1, maxCrew: 6, quals: [q('hazmat_tech')], caps: ['hazmat'], maintenancePerHour: 12, fuelPerKm: 1.5, turnoutSec: 90, unlockLevel: 5, neededAt: 11 }),
+  vt({ id: 'tanker', dept: 'fire', name: 'Water Tanker', callsign: 'Tanker', short: 'TK', price: 17300, speedFactor: 0.95, minCrew: 1, maxCrew: 3, caps: ['water_supply'], maintenancePerHour: 8, fuelPerKm: 1.5, turnoutSec: 70, unlockLevel: 5, neededAt: 7 }),
   // Police
-  vt({ id: 'patrol', dept: 'police', name: 'Patrol Car', callsign: 'Patrol', short: 'P', price: 8000, speedFactor: 1.35, minCrew: 1, maxCrew: 2, caps: ['police'], maintenancePerHour: 3, fuelPerKm: 0.4, turnoutSec: 30, unlockLevel: 1, transport: { kind: 'prisoner', capacity: 1 } }),
+  vt({ id: 'patrol', dept: 'police', name: 'Patrol Car', callsign: 'Patrol', short: 'P', price: 5000, speedFactor: 1.35, minCrew: 1, maxCrew: 2, caps: ['police'], maintenancePerHour: 3, fuelPerKm: 0.4, turnoutSec: 30, unlockLevel: 1, transport: { kind: 'prisoner', capacity: 1 }, neededAt: 0 }),
   vt({ id: 'traffic', dept: 'police', name: 'Traffic Enforcement', callsign: 'Traffic', short: 'TE', price: 11000, speedFactor: 1.4, minCrew: 1, maxCrew: 1, quals: [q('traffic_enf')], caps: ['police', 'traffic'], maintenancePerHour: 3, fuelPerKm: 0.45, turnoutSec: 30, unlockLevel: 2, transport: { kind: 'prisoner', capacity: 1 } }),
-  vt({ id: 'k9', dept: 'police', name: 'K-9 Unit', callsign: 'K-9', short: 'K9', price: 15000, speedFactor: 1.35, minCrew: 1, maxCrew: 1, quals: [q('k9_handler')], caps: ['police', 'k9'], maintenancePerHour: 4, fuelPerKm: 0.45, turnoutSec: 40, unlockLevel: 3 }),
+  vt({ id: 'k9', dept: 'police', name: 'K-9 Unit', callsign: 'K-9', short: 'K9', price: 7000, speedFactor: 1.35, minCrew: 1, maxCrew: 2, quals: [q('k9_handler')], caps: ['police', 'k9'], maintenancePerHour: 4, fuelPerKm: 0.45, turnoutSec: 40, unlockLevel: 3, neededAt: 6 }),
   vt({ id: 'detective', dept: 'police', name: 'Detective Unit', callsign: 'Detective', short: 'D', price: 12000, speedFactor: 1.25, minCrew: 1, maxCrew: 2, quals: [q('detective')], caps: ['investigation'], maintenancePerHour: 3, fuelPerKm: 0.4, turnoutSec: 60, unlockLevel: 3 }),
   vt({ id: 'prisoner_van', dept: 'police', name: 'Prisoner Transport Van', callsign: 'Transport', short: 'PV', price: 22000, speedFactor: 1.15, minCrew: 2, maxCrew: 2, caps: ['prisoner_transport'], maintenancePerHour: 5, fuelPerKm: 0.8, turnoutSec: 45, unlockLevel: 4, transport: { kind: 'prisoner', capacity: 4 } }),
-  vt({ id: 'swat', dept: 'police', name: 'SWAT Vehicle', callsign: 'SWAT', short: 'SW', price: 40000, speedFactor: 1.1, minCrew: 4, maxCrew: 6, quals: [q('swat', 4)], caps: ['swat'], maintenancePerHour: 9, fuelPerKm: 1.0, turnoutSec: 120, unlockLevel: 6 }),
+  vt({ id: 'swat', dept: 'police', name: 'SWAT Armored Vehicle', callsign: 'SWAT', short: 'SW', price: 10000, speedFactor: 1.1, minCrew: 6, maxCrew: 6, quals: [q('swat', 6)], caps: ['swat'], maintenancePerHour: 9, fuelPerKm: 1.0, turnoutSec: 120, unlockLevel: 6, neededAt: 8 }),
   // EMS
-  vt({ id: 'bls', dept: 'ems', name: 'BLS Ambulance', callsign: 'Medic', short: 'M', price: 12000, speedFactor: 1.3, minCrew: 2, maxCrew: 2, caps: ['ambulance'], maintenancePerHour: 4, fuelPerKm: 0.6, turnoutSec: 45, unlockLevel: 1, transport: { kind: 'patient', capacity: 1 } }),
-  vt({ id: 'als', dept: 'ems', name: 'ALS Ambulance', callsign: 'ALS', short: 'A', price: 18000, speedFactor: 1.3, minCrew: 2, maxCrew: 2, quals: [q('paramedic')], caps: ['ambulance', 'als'], maintenancePerHour: 5, fuelPerKm: 0.6, turnoutSec: 45, unlockLevel: 2, transport: { kind: 'patient', capacity: 1 } }),
-  vt({ id: 'ems_supervisor', dept: 'ems', name: 'EMS Supervisor', callsign: 'EMS Sup', short: 'ES', price: 15000, speedFactor: 1.35, minCrew: 1, maxCrew: 1, quals: [q('ems_officer')], caps: ['ems_supervisor'], maintenancePerHour: 3, fuelPerKm: 0.45, turnoutSec: 40, unlockLevel: 4 }),
+  vt({ id: 'bls', dept: 'ems', name: 'BLS Ambulance', callsign: 'Medic', short: 'M', price: 5000, speedFactor: 1.3, minCrew: 1, maxCrew: 2, caps: ['ambulance'], maintenancePerHour: 4, fuelPerKm: 0.6, turnoutSec: 45, unlockLevel: 1, transport: { kind: 'patient', capacity: 1 }, neededAt: 0 }),
+  vt({ id: 'als', dept: 'ems', name: 'ALS Ambulance', callsign: 'ALS', short: 'A', price: 5000, speedFactor: 1.3, minCrew: 1, maxCrew: 2, quals: [q('paramedic')], caps: ['ambulance', 'als'], maintenancePerHour: 5, fuelPerKm: 0.6, turnoutSec: 45, unlockLevel: 2, transport: { kind: 'patient', capacity: 1 }, neededAt: 0 }),
+  vt({ id: 'ems_supervisor', dept: 'ems', name: 'EMS Chief', callsign: 'EMS Chief', short: 'ES', price: 10000, speedFactor: 1.35, minCrew: 1, maxCrew: 2, caps: ['ems_supervisor'], maintenancePerHour: 3, fuelPerKm: 0.45, turnoutSec: 40, unlockLevel: 4, neededAt: 10 }),
   vt({ id: 'ccu', dept: 'ems', name: 'Critical Care Unit', callsign: 'CCU', short: 'CC', price: 30000, speedFactor: 1.25, minCrew: 2, maxCrew: 3, quals: [q('critical_care'), q('paramedic')], caps: ['ambulance', 'als', 'ccu'], maintenancePerHour: 7, fuelPerKm: 0.7, turnoutSec: 60, unlockLevel: 5, transport: { kind: 'patient', capacity: 1 } }),
-  vt({ id: 'mci_unit', dept: 'ems', name: 'Mass Casualty Unit', callsign: 'MCI', short: 'MCI', price: 60000, speedFactor: 1.0, minCrew: 2, maxCrew: 4, quals: [q('mci_ops')], caps: ['mci'], maintenancePerHour: 12, fuelPerKm: 1.3, turnoutSec: 120, unlockLevel: 7, transport: { kind: 'patient', capacity: 4 } }),
+  vt({ id: 'mci_unit', dept: 'ems', name: 'Mass Casualty Unit', callsign: 'MCI', short: 'MCI', price: 25000, speedFactor: 1.0, minCrew: 6, maxCrew: 6, caps: ['mci'], maintenancePerHour: 12, fuelPerKm: 1.3, turnoutSec: 120, unlockLevel: 7, transport: { kind: 'patient', capacity: 7 }, neededAt: 20 }),
   // Public Works
   vt({ id: 'road_crew', dept: 'public_works', name: 'Road Crew Truck', callsign: 'Roads', short: 'RC', price: 28000, speedFactor: 0.95, minCrew: 2, maxCrew: 3, quals: [q('cdl')], caps: ['road_crew'], maintenancePerHour: 7, fuelPerKm: 1.2, turnoutSec: 120, unlockLevel: 3 }),
   vt({ id: 'tree_crew', dept: 'public_works', name: 'Tree Crew', callsign: 'Tree', short: 'TC', price: 32000, speedFactor: 0.95, minCrew: 2, maxCrew: 3, quals: [q('arborist')], caps: ['tree_crew'], maintenancePerHour: 7, fuelPerKm: 1.2, turnoutSec: 120, unlockLevel: 3 }),
@@ -171,8 +174,8 @@ export const VEHICLE_TYPES: VehicleTypeDef[] = [
 // station that has the matching extension (see EXTENSIONS in progression.ts).
 VEHICLE_TYPES.push(
   vt({ id: 'arff', dept: 'fire', name: 'Airport Crash Tender', callsign: 'Crash', short: 'AR', price: 120000, speedFactor: 1.1, minCrew: 2, maxCrew: 3, caps: ['arff'], maintenancePerHour: 15, fuelPerKm: 2, turnoutSec: 45, unlockLevel: 1, needsExt: true }),
-  vt({ id: 'foam_tender', dept: 'fire', name: 'Foam Tender', callsign: 'Foam', short: 'FT', price: 60000, speedFactor: 1.0, minCrew: 2, maxCrew: 3, caps: ['foam'], maintenancePerHour: 9, fuelPerKm: 1.5, turnoutSec: 70, unlockLevel: 1, needsExt: true }),
-  vt({ id: 'fire_investigator', dept: 'fire', name: 'Fire Investigation Unit', callsign: 'Marshal', short: 'FI', price: 20000, speedFactor: 1.3, minCrew: 1, maxCrew: 2, caps: ['investigator'], maintenancePerHour: 3, fuelPerKm: 0.5, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'foam_tender', dept: 'fire', name: 'Foam Tender', callsign: 'Foam', short: 'FT', price: 35000, speedFactor: 1.0, minCrew: 2, maxCrew: 3, caps: ['foam'], maintenancePerHour: 9, fuelPerKm: 1.5, turnoutSec: 70, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'fire_investigator', dept: 'fire', name: 'Fire Investigator Unit', callsign: 'Marshal', short: 'FI', price: 25000, speedFactor: 1.3, minCrew: 1, maxCrew: 2, quals: [q('fire_investigator')], caps: ['investigator'], maintenancePerHour: 3, fuelPerKm: 0.5, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
   vt({ id: 'fire_crane', dept: 'fire', name: 'Fire Crane', callsign: 'Crane', short: 'CR', price: 90000, speedFactor: 0.9, minCrew: 2, maxCrew: 2, caps: ['crane'], maintenancePerHour: 14, fuelPerKm: 2.2, turnoutSec: 90, unlockLevel: 1, needsExt: true }),
   vt({ id: 'riot_unit', dept: 'police', name: 'Riot Control Unit', callsign: 'Riot', short: 'RT', price: 35000, speedFactor: 1.1, minCrew: 4, maxCrew: 8, caps: ['riot'], maintenancePerHour: 6, fuelPerKm: 0.9, turnoutSec: 90, unlockLevel: 1, needsExt: true }),
   vt({ id: 'police_drone', dept: 'police', name: 'Police Drone Unit', callsign: 'Drone', short: 'DR', price: 15000, speedFactor: 1.3, minCrew: 1, maxCrew: 2, caps: ['drone'], maintenancePerHour: 3, fuelPerKm: 0.4, turnoutSec: 45, unlockLevel: 3 }),
@@ -184,8 +187,15 @@ VEHICLE_TYPES.push(
   vt({ id: 'fireboat', dept: 'water', name: 'Fireboat', callsign: 'Fireboat', short: 'FB', price: 150000, speedFactor: 1.0, minCrew: 3, maxCrew: 4, caps: ['fireboat'], maintenancePerHour: 18, fuelPerKm: 3, turnoutSec: 100, unlockLevel: 5 }),
   vt({ id: 'coastal_boat', dept: 'water', name: 'Coastal Rescue Boat', callsign: 'Coastal', short: 'CB', price: 120000, speedFactor: 1.1, minCrew: 3, maxCrew: 4, caps: ['coastal'], maintenancePerHour: 15, fuelPerKm: 2.5, turnoutSec: 90, unlockLevel: 4, transport: { kind: 'patient', capacity: 2 } }),
   vt({ id: 'coast_heli', dept: 'air', name: 'Coastal Rescue Helicopter', callsign: 'Coast Air', short: 'CH', price: 400000, speedFactor: 5.5, minCrew: 3, maxCrew: 4, quals: [q('pilot')], caps: ['coast_heli'], maintenancePerHour: 60, fuelPerKm: 6, turnoutSec: 240, unlockLevel: 6, air: true, transport: { kind: 'patient', capacity: 1 } }),
-  vt({ id: 'fire_command', dept: 'fire', name: 'Mobile Command Vehicle', callsign: 'Command', short: 'MCV', price: 30000, speedFactor: 1.0, minCrew: 1, maxCrew: 3, caps: ['command'], maintenancePerHour: 8, fuelPerKm: 1.2, turnoutSec: 90, unlockLevel: 6 }),
-  vt({ id: 'air_unit', dept: 'fire', name: 'Mobile Air Unit', callsign: 'Air Unit', short: 'MA', price: 25000, speedFactor: 1.0, minCrew: 1, maxCrew: 2, caps: ['air_unit'], maintenancePerHour: 6, fuelPerKm: 1.1, turnoutSec: 80, unlockLevel: 5 }),
+  vt({ id: 'fire_command', dept: 'fire', name: 'Mobile Command Vehicle', callsign: 'Command', short: 'MCV', price: 25500, speedFactor: 1.0, minCrew: 1, maxCrew: 6, quals: [q('mobile_command')], caps: ['command'], maintenancePerHour: 8, fuelPerKm: 1.2, turnoutSec: 90, unlockLevel: 6, neededAt: 13 }),
+  vt({ id: 'air_unit', dept: 'fire', name: 'Mobile Air', callsign: 'Air Unit', short: 'MA', price: 11680, speedFactor: 1.0, minCrew: 1, maxCrew: 3, caps: ['air_unit'], maintenancePerHour: 6, fuelPerKm: 1.1, turnoutSec: 80, unlockLevel: 5, neededAt: 5 }),
+  // MissionChief additions
+  vt({ id: 'type2_engine', dept: 'fire', name: 'Type 2 Fire Engine', callsign: 'Engine', short: 'E2', price: 5000, speedFactor: 1.15, minCrew: 1, maxCrew: 3, caps: ['engine'], maintenancePerHour: 6, fuelPerKm: 1.0, turnoutSec: 60, unlockLevel: 1, neededAt: 0 }),
+  vt({ id: 'quint', dept: 'fire', name: 'Quint', callsign: 'Quint', short: 'Q', price: 19000, speedFactor: 1.05, minCrew: 1, maxCrew: 6, caps: ['engine', 'ladder'], maintenancePerHour: 12, fuelPerKm: 1.6, turnoutSec: 70, unlockLevel: 1, neededAt: 3 }),
+  vt({ id: 'rescue_engine', dept: 'fire', name: 'Rescue Engine', callsign: 'Rescue Engine', short: 'RE', price: 19000, speedFactor: 1.1, minCrew: 1, maxCrew: 6, caps: ['engine', 'rescue'], maintenancePerHour: 11, fuelPerKm: 1.4, turnoutSec: 65, unlockLevel: 1, neededAt: 4 }),
+  vt({ id: 'utility_unit', dept: 'fire', name: 'Utility Unit', callsign: 'Utility', short: 'U', price: 12180, speedFactor: 1.15, minCrew: 1, maxCrew: 4, caps: ['rescue'], maintenancePerHour: 6, fuelPerKm: 1.0, turnoutSec: 60, unlockLevel: 1, neededAt: 4 }),
+  vt({ id: 'motorcycle', dept: 'police', name: 'Police Motorcycle', callsign: 'Motor', short: 'MO', price: 2500, speedFactor: 1.45, minCrew: 1, maxCrew: 1, quals: [q('motor_officer')], caps: ['police'], maintenancePerHour: 2, fuelPerKm: 0.2, turnoutSec: 25, unlockLevel: 1, neededAt: 0 }),
+  vt({ id: 'swat_suv', dept: 'police', name: 'SWAT SUV', callsign: 'SWAT', short: 'SS', price: 7000, speedFactor: 1.2, minCrew: 2, maxCrew: 4, quals: [q('swat', 2)], caps: ['swat'], maintenancePerHour: 5, fuelPerKm: 0.6, turnoutSec: 90, unlockLevel: 1, neededAt: 8 }),
   vt({ id: 'federal_unit', dept: 'special', name: 'Federal Agents', callsign: 'Federal', short: 'FA', price: 30000, speedFactor: 1.3, minCrew: 2, maxCrew: 4, caps: ['federal'], maintenancePerHour: 5, fuelPerKm: 0.6, turnoutSec: 90, unlockLevel: 7 }),
 );
 
@@ -198,6 +208,7 @@ const MPH: Record<string, number> = {
   med_heli: 150, police_heli: 160, bomb_squad: 50, usar: 40, mobile_command: 40, logistics: 45, heavy_equipment: 30, relief_unit: 45,
   arff: 55, foam_tender: 40, fire_investigator: 60, fire_crane: 35, riot_unit: 55, police_drone: 60, game_warden: 55, police_boat: 45,
   tow_truck: 50, rotator: 40, flood_unit: 40, fireboat: 40, coastal_boat: 45, coast_heli: 150, federal_unit: 60, fire_command: 45, air_unit: 45,
+  type2_engine: 50, quint: 40, rescue_engine: 45, utility_unit: 50, motorcycle: 75, swat_suv: 60,
 };
 VEHICLE_TYPES.forEach(v => { v.mph = MPH[v.id] ?? 45; });
 

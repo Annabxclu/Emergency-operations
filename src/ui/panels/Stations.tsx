@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, dept, qualification, stationType } from '../../data/departments';
+import { DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, capability, dept, qualification, stationType } from '../../data/departments';
 import { Btn, Chip, Dot, Empty, Header, Section, Stat, StatusCode, useCtx } from '../common';
 import { extensionsFor } from '../../data/progression';
 import { money } from '../format';
@@ -139,7 +139,8 @@ export function StationDetail({ id }: { id: string }) {
               <div key={vt.id} className={`row compact ${locked ? 'disabled' : ''}`}>
                 <span className="veh-badge" style={{ borderColor: dept(vt.dept).color }}>{vt.short}</span>
                 <div className="grow"><div className="row-title">{vt.name}</div>
-                  <div className="row-sub wrap">{vt.mph} mph · crew {vt.minCrew}–{vt.maxCrew}{quals ? ` · ${quals}` : ''} · {money(vt.maintenancePerHour)}/h</div></div>
+                  <div className="row-sub wrap">Counts as {vt.caps.map(c => capability(c).name).join(' + ')}</div>
+                  <div className="row-sub wrap">Crew {vt.minCrew === vt.maxCrew ? vt.maxCrew : `${vt.minCrew}–${vt.maxCrew}`} · {quals ? `Training: ${quals}` : 'No training needed'}{game.deptItemRequirement(vt) > 1 ? ` · Needed at ${game.deptItemRequirement(vt)} ${dept(vt.dept).short} stations` : ''}</div></div>
                 <div className="row-right">
                   {locked ? <span className="muted small">{need}</span> :
                     <Btn small kind="primary" disabled={full || game.city.money < vt.price} testid={`buy-${vt.id}`}

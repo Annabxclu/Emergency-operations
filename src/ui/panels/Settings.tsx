@@ -114,7 +114,7 @@ export function SettingsPanel(p: Props) {
       <Section title="Missions">
         <button className="row" onClick={() => push({ kind: 'missions' })} data-testid="missions-open">
           <div className="grow"><div className="row-title">All missions & requirements</div>
-            <div className="row-sub">{INCIDENT_TYPES.length} call types · {INCIDENT_TYPES.filter(t => game.stationCount() >= t.unlockLevel).length} unlocked</div></div>
+            <div className="row-sub">{INCIDENT_TYPES.length} call types · {game.eligibleTypes().length} unlocked</div></div>
           <span className="muted">›</span>
         </button>
       </Section>

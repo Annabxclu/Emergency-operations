@@ -48,13 +48,14 @@ export interface VehicleTypeDef {
   fuelPerKm: number;
   turnoutSec: number;
   unlockLevel: number;
+  neededAt?: number;     // own-department stations needed before it can be bought (MissionChief "needed at")
   air?: boolean;                                   // flies direct (helicopters)
   mph?: number;                                    // fixed driving speed (fixed-speed travel model)
   needsExt?: boolean;                              // only stations with the matching extension can house it
   transport?: { kind: 'patient' | 'prisoner'; capacity: number };
 }
 
-export interface QualificationDef { id: string; name: string; dept: string; cost: number; hours: number; unlockLevel: number }
+export interface QualificationDef { id: string; name: string; dept: string; cost: number; hours: number; unlockLevel: number; neededAt?: number }
 export interface CapabilityDef { id: string; name: string; dept: string }
 
 export interface IncidentTypeDef {
