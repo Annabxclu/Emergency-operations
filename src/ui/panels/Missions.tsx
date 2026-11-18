@@ -21,12 +21,14 @@ export function MissionsPanel() {
   const have = (cap: string) => fleet.filter(v => vehicleType(v.typeId).caps.includes(cap)).length;
 
   const ql = q.trim().toLowerCase();
-  const list = INCIDENT_TYPES.filter(t => (filter === 'all' || (filter === 'unlocked' ? t.unlockLevel <= owned : t.unlockLevel > owned))
+  // A mission is unlocked (can come in) only with enough stations AND every vehicle it needs.
+  const isUnlocked = (t: typeof INCIDENT_TYPES[number]) => t.unlockLevel <= owned && game.fleetCovers(t.requirements);
+  const list = INCIDENT_TYPES.filter(t => (filter === 'all' || (filter === 'unlocked' ? isUnlocked(t) : !isUnlocked(t)))
     && (!ql || t.name.toLowerCase().includes(ql) || t.requirements.some(r => CAPABILITIES.find(c => c.id === r.cap)!.name.toLowerCase().includes(ql))));
 
   return (
     <div>
-      <Header title="Missions" sub={`${INCIDENT_TYPES.length} call types · new ones unlock as you own more stations (you have ${owned})`} />
+      <Header title="Missions" sub={`${INCIDENT_TYPES.length} call types · a mission unlocks when you have enough stations (you have ${owned}) and own every vehicle it needs`} />
       <div className="seg">
         {[['all', 'All'], ['unlocked', 'Unlocked'], ['locked', 'Locked']].map(([k, l]) =>
           <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>)}
@@ -67,15 +69,16 @@ export function MissionsPanel() {
             </button>
             {(open.has(cat.id) || ql) && <div className="list">
               {items.map(t => {
-                const locked = t.unlockLevel > owned;
-                const ready = t.requirements.every(r => have(r.cap) >= r.count);
+                const needStations = t.unlockLevel > owned;
+                const ready = game.fleetCovers(t.requirements);
+                const locked = needStations || !ready;
                 return (
                   <div key={t.id} className={`mission ${locked ? 'locked' : ''}`} data-testid="mission">
                     <div className="mission-head">
                       <span className={`inc-ico sev${t.severity}`} dangerouslySetInnerHTML={{ __html: glyph(t.category, 14) }} />
                       <div className="grow"><div className="row-title">{t.name}</div>
                         <div className="row-sub">{SEVERITY[t.severity]} severity · {fmtWork(t.workMin[0])}–{fmtWork(t.workMin[1])} on scene</div></div>
-                      {locked ? <Chip tone="muted">{t.unlockLevel} stations</Chip> : ready ? <Chip tone="ok">Ready</Chip> : <Chip tone="warn">Need units</Chip>}
+                      {needStations ? <Chip tone="muted">{t.unlockLevel} stations</Chip> : ready ? <Chip tone="ok">Unlocked</Chip> : <Chip tone="warn">Need units</Chip>}
                     </div>
                     <div className="mission-reqs">
                       {t.requirements.map(r => {
