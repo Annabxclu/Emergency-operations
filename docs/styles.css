@@ -257,7 +257,7 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .st-ico.inline { display: inline-grid; width: 22px; height: 22px; vertical-align: -4px; margin-right: 4px; }
 .clock { align-items: flex-end; }
 
-/* ---------- Mission Chief-style mission colors */
+/* ---------- mission colors */
 .mk.inc { background: #dc2626; }
 .mk.inc.pending { background: #dc2626; }
 .mk.inc.responding { background: #e3a008; }

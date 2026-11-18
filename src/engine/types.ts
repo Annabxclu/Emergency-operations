@@ -49,7 +49,7 @@ export interface VehicleTypeDef {
   turnoutSec: number;
   unlockLevel: number;
   air?: boolean;                                   // flies direct (helicopters)
-  mph?: number;                                    // fixed driving speed (Mission Chief-style travel)
+  mph?: number;                                    // fixed driving speed (fixed-speed travel model)
   transport?: { kind: 'patient' | 'prisoner'; capacity: number };
 }
 

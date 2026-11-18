@@ -3,7 +3,7 @@
 > **This page is the game's source code. To play, open: https://annabxclu.github.io/Emergency-operations/**
 > (First time only: Settings → Pages → Branch `main`, folder `/docs` → Save, then wait 1–2 minutes.)
 
-A map-based emergency services management game in the spirit of Mission Chief.
+A map-based emergency services management game.
 Atlanta map, real road routing, fire / police / EMS, dispatch, finances, saves.
 
 ## Play it on your iPhone

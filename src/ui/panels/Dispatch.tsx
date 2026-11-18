@@ -123,7 +123,7 @@ export function IncidentDetail({ id }: { id: string }) {
   };
   const selCount = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem)).length;
   const addVehicle = (v: Vehicle) => { setTouched(true); setSel(new Set([...sel, v.id])); };
-  // Mission Chief-style quick buttons: add the nearest available unit of a type.
+  // Quick buttons: add the nearest available unit of a type.
   const capsInFleet = [...new Set(candidates.filter(c => !c.problem).flatMap(c => vehicleType(c.v.typeId).caps))];
   const quick = capsInFleet.map(cap => {
     const pool = candidates.filter(c => !c.problem && vehicleType(c.v.typeId).caps.includes(cap));

@@ -651,7 +651,7 @@ export class Game {
     return { ids: chosen, unfilled };
   }
 
-  /** Seconds to drive a route: fixed per-vehicle speed (Mission Chief style) or road speed limits. */
+  /** Seconds to drive a route: fixed per-vehicle speed or road speed limits. */
   travelSeconds(t: VehicleTypeDef, distanceM: number, roadDurationS: number) {
     const fixed = this.state.settings.travelModel !== 'roads' || t.air;
     const secs = fixed ? distanceM / ((t.mph ?? 45) * 0.44704) : roadDurationS / t.speedFactor;

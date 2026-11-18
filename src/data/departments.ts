@@ -156,7 +156,7 @@ export const VEHICLE_TYPES: VehicleTypeDef[] = [
   vt({ id: 'relief_unit', dept: 'disaster', name: 'Relief & Shelter Unit', callsign: 'Relief', short: 'RU', price: 40000, speedFactor: 1.0, minCrew: 2, maxCrew: 4, caps: ['relief'], maintenancePerHour: 8, fuelPerKm: 1.1, turnoutSec: 150, unlockLevel: 10 }),
 ];
 
-// Fixed driving speeds used by the Mission Chief-style travel model (mph).
+// Fixed driving speeds used by the fixed-speed travel model (mph).
 const MPH: Record<string, number> = {
   engine: 45, ladder: 40, brush: 50, heavy_rescue: 45, chief: 60, hazmat: 40, tanker: 40,
   patrol: 65, traffic: 70, k9: 65, detective: 55, prisoner_van: 50, swat: 50,

@@ -162,7 +162,7 @@ def main():
             shot('05-incident')
             checked = page.locator('[data-testid=dispatch-candidate] input:checked').count()
             check(checked == 2, f'recommended dispatch preselects ambulance + police ({checked})')
-            check('Missing' in page.inner_text('[data-testid=missing]'), 'Mission Chief-style "Missing" line shown')
+            check('Missing' in page.inner_text('[data-testid=missing]'), '"Missing" line shown')
             check(page.locator('[data-testid=aao] button').count() >= 2, 'quick-add unit buttons shown')
             first_id = game('g.city.incidents[0].id')
             page.click('[data-testid=dispatch-btn]')

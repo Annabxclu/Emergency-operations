@@ -12,7 +12,7 @@ export const TUNING = {
   callCapBonus: 1,
   defaultCallIntervalMin: 3,
 
-  /** Mission Chief has no running costs; set true to start new games with payroll/upkeep/fuel. */
+  /** Running costs are off by default; set true to start new games with payroll/upkeep/fuel. */
   runningCostsDefault: false,
 
   /** Multiplier on every call reward (also adjustable in Settings > Tuning). */

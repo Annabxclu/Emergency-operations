@@ -53,7 +53,7 @@ export function SettingsPanel(p: Props) {
         <p className="hint">Real minutes. Active calls are capped at your largest department's station count + 1 — right now that's {game.activeCap()} calls.</p>
         <div className="field"><label>Travel times</label>
           <select value={s.travelModel ?? 'fixed'} onChange={(e: any) => { s.travelModel = e.target.value; game.changed(); }} data-testid="travel-model">
-            <option value="fixed">Fixed vehicle speeds (Mission Chief style)</option>
+            <option value="fixed">Fixed vehicle speeds</option>
             <option value="roads">Road speed limits (realistic)</option>
           </select></div>
         <p className="hint">{(s.travelModel ?? 'fixed') === 'fixed'
@@ -73,7 +73,7 @@ export function SettingsPanel(p: Props) {
 
       <Section title="Tuning">
         <label className="check"><input type="checkbox" checked={s.runningCosts !== false} onChange={(e: any) => { s.runningCosts = e.target.checked; game.changed(); }} data-testid="running-costs" /> Running costs (payroll, upkeep, fuel, maintenance)</label>
-        <p className="hint">Off = Mission Chief style: you only spend money when you build, buy, hire or train.</p>
+        <p className="hint">Off: you only spend money when you build, buy, hire or train.</p>
         <div className="field"><label>Call rewards</label>
           <div className="seg">
             {[0.5, 1, 1.5, 2, 3].map(m => <button key={m} className={(s.rewardMult ?? 1) === m ? 'on' : ''} onClick={() => { s.rewardMult = m; game.changed(); }}>{m}×</button>)}

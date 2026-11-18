@@ -81,7 +81,7 @@ export function ConfirmBtn(p: { onConfirm: () => void; children: any; confirmTex
   );
 }
 
-/** Mission Chief-style numbered radio status badge. */
+/** Numbered radio status badge. */
 export function StatusCode(p: { status: string; label?: boolean }) {
   const st = (VEHICLE_STATUS as any)[p.status];
   if (!st) return null;

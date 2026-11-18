@@ -24,7 +24,7 @@ export function dur(sec: number) {
 
 export const km = (m: number) => `${(m / 1000).toFixed(1)} km`;
 
-// Mission Chief-style radio status codes.
+// Numbered radio status codes.
 export const VEHICLE_STATUS: Record<VehicleStatus, { label: string; tone: string; code: number; color: string }> = {
   available: { label: 'Available at station', tone: 'ok', code: 2, color: '#3fb950' },
   dispatched: { label: 'Alerted', tone: 'warn', code: 3, color: '#e3a008' },
@@ -37,7 +37,7 @@ export const VEHICLE_STATUS: Record<VehicleStatus, { label: string; tone: string
   maintenance: { label: 'In maintenance', tone: 'muted', code: 6, color: '#6b7280' },
 };
 
-// Mission Chief colors: red = nobody assigned, yellow = units on the way, green = units on scene.
+// Mission colors: red = nobody assigned, yellow = units on the way, green = units on scene.
 export const INCIDENT_STATUS: Record<IncidentStatus, { label: string; tone: string }> = {
   pending: { label: 'No units', tone: 'bad' },
   responding: { label: 'Units en route', tone: 'warn' },

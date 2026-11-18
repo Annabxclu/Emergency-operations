@@ -65,7 +65,7 @@ async function run(g: Game, seconds: number, step = 1) {
   await run(g, 50);
   assert(amb.status === 'enroute' && amb.route && amb.route.coords.length === 3, 'en route on road geometry after turnout');
   const expect = amb.route!.distanceM / (55 * 0.44704);
-  assert(Math.abs(amb.route!.durationS - expect) < 1, `Mission Chief-style fixed speed: ambulance at 55 mph (${Math.round(amb.route!.durationS)}s for ${Math.round(amb.route!.distanceM)}m)`);
+  assert(Math.abs(amb.route!.durationS - expect) < 1, `fixed speed: ambulance at 55 mph (${Math.round(amb.route!.durationS)}s for ${Math.round(amb.route!.distanceM)}m)`);
   g.state.settings.travelModel = 'roads';
   assert(Math.abs(g.travelSeconds(vehicleType('bls'), 1000, 120) - 120 / 1.3) < 0.01, 'realistic option uses road time with lights & sirens factor');
   g.state.settings.travelModel = 'fixed';
@@ -196,7 +196,7 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(g4.city.money === m0 + 31000, 'bonuses credited');
     let threw = false; try { g4.claimDailyBonus('2026-11-09'); } catch { threw = true; }
     assert(threw && g4.dailyBonus('2026-11-09') === null, 'only one claim per day');
-    // Mission Chief-style economy: no running costs by default.
+    // Simple economy: no running costs by default.
     g4.placeStation('fire_station', [33.755, -84.39]); g4.placeStation('police_precinct', [33.77, -84.385]); g4.placeStation('ems_station', [33.76, -84.37]);
     const m1 = g4.city.money;
     for (let i = 0; i < 3 * 3600; i += 30) { g4.tick(30); }
