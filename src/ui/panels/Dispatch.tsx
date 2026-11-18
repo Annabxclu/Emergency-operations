@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { missingRequirements } from '../../engine/game';
 import { distanceM } from '../../engine/geo';
 import type { Incident, Vehicle } from '../../engine/types';
-import { capability, dept, vehicleType } from '../../data/departments';
+import { DEPARTMENTS, capability, dept, vehicleType } from '../../data/departments';
 import { CATEGORY_DEPT } from '../../data/incidents';
 import { Btn, Chip, Dot, Empty, Header, Section, StatusCode, useCtx } from '../common';
 import { INCIDENT_STATUS, OUTCOME, SEVERITY, dur, money } from '../format';
@@ -79,6 +79,7 @@ export function IncidentDetail({ id }: { id: string }) {
   const { game, act, push, back, focus } = useCtx();
   const inc = game.incident(id);
   const [sel, setSel] = useState(() => new Set<string>());
+  const [unitTab, setUnitTab] = useState('all');
 
   useEffect(() => { if (inc) focus(inc.pos, 15); }, [id]);
   // Pre-select recommended units until the player changes the selection.
@@ -115,6 +116,11 @@ export function IncidentDetail({ id }: { id: string }) {
     .sort((a, b) => a.d - b.d).slice(0, 20);
   const queued = game.followUpsFor(inc.id);
   const selFollow = [...sel].filter(i => followCands.some(c => c.v.id === i));
+  const allUnits = [...candidates.map(c => c.v), ...followCands.map(c => c.v)];
+  const tabDepts = DEPARTMENTS.filter(d => allUnits.some(v => vehicleType(v.typeId).dept === d.id));
+  const inTab = (v: Vehicle) => unitTab === 'all' || vehicleType(v.typeId).dept === unitTab;
+  const selByDept: Record<string, number> = {};
+  for (const v of allUnits) if (sel.has(v.id)) { const d = vehicleType(v.typeId).dept; selByDept[d] = (selByDept[d] || 0) + 1; }
   const selCount = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem)).length + selFollow.length;
   const addVehicle = (v: Vehicle) => { setSel(new Set([...sel, v.id])); };
   // Quick buttons: add the nearest available unit of a type.
@@ -124,6 +130,7 @@ export function IncidentDetail({ id }: { id: string }) {
     const next = pool.find(c => !sel.has(c.v.id))?.v ?? null;
     return { cap, next, left: pool.filter(c => !sel.has(c.v.id)).length, needed: missingAll.some(m => m.cap === cap) };
   }).sort((a, b) => Number(b.needed) - Number(a.needed));
+  const quickShown = quick.filter(q => unitTab === 'all' || capability(q.cap).dept === unitTab);
   const dispatch = (andNext: boolean) => {
     const ids = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem));
     const msg = [ids.length ? `Dispatched ${ids.length} unit${ids.length === 1 ? '' : 's'}` : '', selFollow.length ? `${selFollow.length} will follow up` : ''].filter(Boolean).join(' · ');
@@ -225,17 +232,19 @@ export function IncidentDetail({ id }: { id: string }) {
             <div className="warnbox">No available unit for: {rec.unfilled.map(u => `${u.count}× ${capability(u.cap).name}`).join(', ')}</div>
           )}
           {!candidates.length && <Empty>No units at stations. Buy vehicles in Stations.</Empty>}
-          {quick.length > 0 && (
-            <div className="aao" data-testid="aao">
-              {quick.map(q => (
-                <button key={q.cap} className={`aao-btn ${q.needed ? 'needed' : ''}`} disabled={!q.next} onClick={() => q.next && addVehicle(q.next)}>
-                  + {capability(q.cap).name} <span className="muted">{q.left}</span>
+          {tabDepts.length > 1 && (
+            <div className="seg tabs" data-testid="dispatch-tabs">
+              <button className={unitTab === 'all' ? 'on' : ''} onClick={() => setUnitTab('all')}>All</button>
+              {tabDepts.map(d => (
+                <button key={d.id} className={unitTab === d.id ? 'on' : ''} onClick={() => setUnitTab(d.id)} data-testid={`dispatch-tab-${d.id}`}>
+                  <span className="dot" style={{ background: d.color }} /> {d.short}
+                  {selByDept[d.id] ? <span className="cnt sel">{selByDept[d.id]}</span> : null}
                 </button>
               ))}
             </div>
           )}
           <div className="list">
-            {candidates.map(({ v, eta, problem }) => {
+            {candidates.filter(c => inTab(c.v)).map(({ v, eta, problem }) => {
               const t = vehicleType(v.typeId);
               const useful = t.caps.some(cp => missingAll.some(m => m.cap === cp));
               return (
@@ -253,9 +262,9 @@ export function IncidentDetail({ id }: { id: string }) {
           </div>
           {followCands.length > 0 && (
             <>
-              <div className="subhead">Follow up — busy units go here straight after their current call</div>
+              {followCands.some(c => inTab(c.v)) && <div className="subhead">Follow up — busy units go here straight after their current call</div>}
               <div className="list">
-                {followCands.map(({ v, d }) => {
+                {followCands.filter(c => inTab(c.v)).map(({ v, d }) => {
                   const t = vehicleType(v.typeId);
                   const cur = v.incidentId ? game.incident(v.incidentId) : null;
                   return (
@@ -273,9 +282,20 @@ export function IncidentDetail({ id }: { id: string }) {
               </div>
             </>
           )}
-          <div className="actions sticky">
-            <Btn kind="primary" onClick={() => dispatch(false)} disabled={!selCount} testid="dispatch-btn">Dispatch</Btn>
-            <Btn onClick={() => dispatch(true)} disabled={!selCount} testid="dispatch-next">Dispatch & next</Btn>
+          <div className="dispatch-footer">
+          {quickShown.length > 0 && (
+            <div className="aao" data-testid="aao">
+              {quickShown.map(q => (
+                <button key={q.cap} className={`aao-btn ${q.needed ? 'needed' : ''}`} disabled={!q.next} onClick={() => q.next && addVehicle(q.next)}>
+                  + {capability(q.cap).name} <span className="muted">{q.left}</span>
+                </button>
+              ))}
+            </div>
+          )}
+            <div className="actions">
+              <Btn kind="primary" onClick={() => dispatch(false)} disabled={!selCount} testid="dispatch-btn">Dispatch</Btn>
+              <Btn onClick={() => dispatch(true)} disabled={!selCount} testid="dispatch-next">Dispatch & next</Btn>
+            </div>
           </div>
         </Section>
       )}
