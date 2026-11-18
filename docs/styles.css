@@ -382,3 +382,11 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .missing-table.follow table { outline-color: #e3a008; }
 .missing-table th { font-size: 10.5px; padding: 7px 4px; }
 .missing-table td { padding: 7px 4px; }
+
+/* Recruiting + transfers + academy */
+.stepper { display: inline-flex; align-items: center; gap: 0; background: var(--surface2); border-radius: 10px; overflow: hidden; }
+.stepper button { width: 44px; height: 38px; font-size: 20px; font-weight: 700; }
+.stepper button:disabled { opacity: .35; }
+.stepper b { min-width: 44px; text-align: center; font-size: 16px; }
+.mini-select { flex: 0 0 auto; max-width: 128px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px; font-size: 12.5px; }
+.linkish-row { text-align: left; min-width: 0; }

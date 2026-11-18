@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, capability, dept, qualification, stationType, vehicleType } from '../../data/departments';
+import { ACADEMIES, DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, capability, dept, qualification, stationType, vehicleType } from '../../data/departments';
 import { Btn, Group, Chip, Dot, Empty, Header, Section, Stat, StatusCode, useCtx } from '../common';
 import { extensionsFor } from '../../data/progression';
 import { mi, money } from '../format';
@@ -51,6 +51,23 @@ export function StationsList() {
           </Section>
         );
       })}
+      {game.setupDone && (tab === 'all' || ACADEMIES[tab]) && (
+        <Section title="Academies">
+          <div className="list">
+            {Object.entries(ACADEMIES).filter(([d]) => tab === 'all' || d === tab).map(([d, a]) => {
+              const built = game.academyOf(d);
+              return (
+                <button key={d} className="row" onClick={() => push({ kind: 'academy', dept: d })} data-testid={`academy-${d}`}>
+                  <span className="st-ico" style={{ background: dept(d).color }} dangerouslySetInnerHTML={{ __html: glyph(d, 15) }} />
+                  <div className="grow"><div className="row-title">{a.name}</div>
+                    <div className="row-sub">{built ? `${1 + built.classrooms} classroom${built.classrooms ? 's' : ''} · ${game.inTraining(d)}/${game.academySeats(d)} in training` : `Not built · ${money(a.cost)} · needed to train ${dept(d).short.toLowerCase()} staff`}</div></div>
+                  <span className="muted">›</span>
+                </button>
+              );
+            })}
+          </div>
+        </Section>
+      )}
     </div>
   );
 }
@@ -155,10 +172,11 @@ export function StationDetail({ id }: { id: string }) {
       </Group>
 
       <Group id="st-personnel" title="Personnel" sub={`${staff.length}/${cap.staff} employees · ${freeStaff} unassigned`}>
-        <div className="actions"><Btn small onClick={() => push({ kind: 'hire', stationId: s.id })} disabled={staff.length >= cap.staff} testid="hire-open">Hire staff</Btn></div>
+        <RecruitControls stationId={s.id} />
         <div className="kv">
           <span>{staff.length} employees · {freeStaff} unassigned</span>
         </div>
+        <StaffTransfer stationId={s.id} />
         <div className="actions">
           <Btn small onClick={() => act(() => game.autoStaff(s.id), 'Crews assigned')}>Auto-assign crews</Btn>
           <Btn small kind="ghost" onClick={() => push({ kind: 'personnel' })}>View personnel</Btn>
@@ -204,6 +222,64 @@ export function StationDetail({ id }: { id: string }) {
         <p className="hint">Level 1 costs {money(game.levelCost(1))}, level 2 {money(game.levelCost(2))}, then {money(game.levelCost(3))} per level.</p>
       </Group>
       </Section>
+    </div>
+  );
+}
+
+/** Wanted staff (free recruit every 24 real hours) plus a paid instant hire. */
+function RecruitControls({ stationId }: { stationId: string }) {
+  const { game, act } = useCtx();
+  const [, setNow] = useState(0);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t); }, []);
+  const s = game.station(stationId)!;
+  const cap = game.stationCapacity(s).staff;
+  const staff = game.stationStaff(s.id).length;
+  const target = Math.max(s.hireTarget ?? staff, staff);
+  const fee = dept(s.dept).hireCost;
+  const set = (n: number) => act(() => game.setHireTarget(s.id, n));
+  const left = s.nextHireAt ? Math.max(0, s.nextHireAt - Date.now()) : 0;
+  const h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000);
+  return (
+    <div className="recruit">
+      <div className="field"><label>Wanted staff at this station (max {cap})</label>
+        <div className="stepper" data-testid="hire-target">
+          <button onClick={() => set(target - 1)} disabled={target <= staff} aria-label="Fewer">−</button>
+          <b data-testid="hire-target-value">{target}</b>
+          <button onClick={() => set(target + 1)} disabled={target >= cap} aria-label="More" data-testid="hire-target-plus">+</button>
+        </div>
+      </div>
+      <p className="hint" data-testid="recruit-status">{staff >= Math.min(target, cap) ? `All ${staff} wanted staff are here. Tap + to recruit more (free, one every 24 hours).` : `${target - staff} more wanted · next free recruit in ${h}h ${m}m (one every 24 hours).`}</p>
+      <div className="actions">
+        <Btn small kind="primary" disabled={staff >= cap || game.city.money < fee} testid="hire-now" onClick={() => act(() => game.hireNow(s.id), 'New recruit hired')}>Hire 1 now · {money(fee)}</Btn>
+      </div>
+    </div>
+  );
+}
+
+/** Move staff to another station of the same department. */
+function StaffTransfer({ stationId }: { stationId: string }) {
+  const { game, act, push } = useCtx();
+  const s = game.station(stationId)!;
+  const others = game.city.stations.filter(x => x.dept === s.dept && x.id !== s.id);
+  const staff = game.stationStaff(s.id);
+  if (!staff.length) return null;
+  return (
+    <div className="list" data-testid="staff-list">
+      {staff.map(e => (
+        <div key={e.id} className="row compact">
+          <button className="grow linkish-row" onClick={() => push({ kind: 'employee', id: e.id })}>
+            <div className="row-title">{e.name}</div>
+            <div className="row-sub">{e.training ? `Training: ${qualification(e.training.qual).name}` : e.quals.length ? e.quals.map(q => qualification(q).name).join(', ') : 'No training yet'}{e.vehicleId ? ` · ${game.vehicle(e.vehicleId)?.name}` : ''}</div>
+          </button>
+          {others.length > 0 && (
+            <select className="mini-select" value="" aria-label={`Transfer ${e.name}`} data-testid="transfer-select"
+              onChange={(ev: any) => ev.target.value && act(() => game.moveEmployee(e.id, ev.target.value), `${e.name} transferred`)}>
+              <option value="">Transfer…</option>
+              {others.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </select>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

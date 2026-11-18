@@ -57,7 +57,7 @@ export interface VehicleTypeDef {
   transport?: { kind: 'patient' | 'prisoner'; capacity: number };
 }
 
-export interface QualificationDef { id: string; name: string; dept: string; cost: number; hours: number; unlockLevel: number; neededAt?: number }
+export interface QualificationDef { id: string; name: string; dept: string; cost: number; hours: number; unlockLevel: number; neededAt?: number; days?: number }
 export interface CapabilityDef { id: string; name: string; dept: string }
 
 export interface IncidentTypeDef {
@@ -140,6 +140,8 @@ export interface Station {
   level: number;          // bays = 1 + level (+ extensions)
   extensions?: string[];
   address?: string;
+  hireTarget?: number;    // staff wanted; one free recruit arrives every 24 real hours until reached
+  nextHireAt?: number;    // real time (ms) of the next free recruit
 }
 
 export interface Goal { id: string; metric: string; label: string; target: number; progress: number; reward: number; xp: number; done: boolean }
@@ -207,6 +209,7 @@ export interface FinanceBucket {
 
 export interface CityState {
   cityId: string;
+  academies?: Record<string, { classrooms: number }>; // fire / police academies (classrooms beyond the first)
   money: number;
   stations: Station[];
   vehicles: Vehicle[];
@@ -279,5 +282,6 @@ export type GameEvent = { cityId?: string } & (
   | { type: 'research_done'; id: string }
   | { type: 'goal_done'; label: string; reward: number }
   | { type: 'training_done'; empId: string; qual: string }
+  | { type: 'recruited'; stationId: string; count: number }
   | { type: 'routing_fallback' }
   | { type: 'notice'; text: string });

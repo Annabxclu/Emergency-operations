@@ -7,7 +7,7 @@ export type Route =
   | { kind: 'dispatch' } | { kind: 'incident'; id: string }
   | { kind: 'stations' } | { kind: 'station'; id: string } | { kind: 'build' }
   | { kind: 'vehicles' } | { kind: 'vehicle'; id: string }
-  | { kind: 'personnel' } | { kind: 'employee'; id: string } | { kind: 'hire'; stationId: string }
+  | { kind: 'personnel' } | { kind: 'employee'; id: string } | { kind: 'hire'; stationId: string } | { kind: 'academy'; dept: string }
   | { kind: 'finances' } | { kind: 'settings' } | { kind: 'missions' } | { kind: 'research' } | { kind: 'goals' };
 
 export interface Ctx {

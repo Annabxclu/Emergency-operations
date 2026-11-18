@@ -12,7 +12,7 @@ import { tabIcon } from './icons';
 import { DispatchList, IncidentDetail } from './panels/Dispatch';
 import { BuildChooser, StationDetail, StationsList } from './panels/Stations';
 import { VehicleDetail, VehiclesList } from './panels/Vehicles';
-import { EmployeeDetail, HirePanel, PersonnelList } from './panels/Personnel';
+import { AcademyPanel, EmployeeDetail, PersonnelList } from './panels/Personnel';
 import { FinancesPanel } from './panels/Finances';
 import { SettingsPanel } from './panels/Settings';
 import { MissionsPanel } from './panels/Missions';
@@ -172,6 +172,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
         toast(`${emp?.name ?? 'Employee'} completed ${qualification(e.qual).name}`, 'ok');
         break;
       }
+      case 'recruited': toast(`${e.count} new recruit${e.count > 1 ? 's' : ''} joined ${game.station(e.stationId)?.name ?? 'a station'}`, 'ok'); break;
       case 'routing_fallback':
         if (Date.now() - lastFallbackToast.current > 60000) {
           lastFallbackToast.current = Date.now();
@@ -309,7 +310,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'stations': return <StationsList />;
       case 'station': return <StationDetail key={r.id} id={r.id} />;
       case 'build': return <BuildChooser />;
-      case 'hire': return <HirePanel stationId={r.stationId} />;
+      case 'academy': return <AcademyPanel key={r.dept} dept={r.dept} />;
       case 'vehicles': return <VehiclesList />;
       case 'vehicle': return <VehicleDetail key={r.id} id={r.id} />;
       case 'personnel': return <PersonnelList />;

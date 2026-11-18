@@ -354,6 +354,40 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(/towing vehicle/i.test(msg), `a trailer can't be sent without its towing vehicle (${msg})`);
   }
 
+  // Recruiting: a free recruit every 24 real hours up to the wanted number; instant hire costs money.
+  {
+    const gr = new Game(JSON.parse(JSON.stringify(g.state)), fake);
+    const st = gr.city.stations.find(s => s.dept === 'fire')!;
+    const before = gr.stationStaff(st.id).length;
+    gr.city.money = 1_000_000;
+    while (gr.stationCapacity(st).staff < before + 3) gr.upgradeStation(st.id);
+    gr.setHireTarget(st.id, before + 2);
+    const t0 = Date.now();
+    gr.processRecruiting(t0 + 1000);
+    assert(gr.stationStaff(st.id).length === before, 'no free recruit before 24 hours have passed');
+    gr.processRecruiting(t0 + 24 * 3600 * 1000 + 5000);
+    assert(gr.stationStaff(st.id).length === before + 1, 'one free recruit after 24 hours');
+    gr.processRecruiting(t0 + 5 * 24 * 3600 * 1000);
+    assert(gr.stationStaff(st.id).length === before + 2 && !st.nextHireAt, 'recruiting stops at the wanted number');
+    const m = gr.city.money;
+    const e = gr.hireNow(st.id);
+    assert(gr.city.money === m - 2500 && e.quals.length === 0, 'instant hire costs the fee and the recruit is untrained');
+    // Transfer only within the same department
+    const fire2 = gr.placeStation('fire_station', [33.76, -84.37]);
+    gr.moveEmployee(e.id, fire2.id);
+    assert(gr.employee(e.id)!.stationId === fire2.id, 'staff can transfer between fire stations');
+    const pol = gr.city.stations.find(s => s.dept === 'police')!;
+    let threw = false; try { gr.moveEmployee(e.id, pol.id); } catch { threw = true; }
+    assert(threw, 'fire staff cannot transfer to a police station');
+    // Academy
+    threw = false; try { gr.train(e.id, 'hazmat_tech'); } catch { threw = true; }
+    assert(threw, 'fire training needs a Fire Academy');
+    gr.buildAcademy('fire');
+    gr.train(e.id, 'hazmat_tech');
+    const left = gr.employee(e.id)!.training!.until - gr.state.time;
+    assert(Math.abs(left - 3 * 86400) < 5, `HazMat course takes 3 days (${left}s)`);
+  }
+
   // A slow routing service must not hold units at the station.
   {
     const stuck: RoutingProvider = { route: () => new Promise(() => undefined), nearest: async p => ({ pos: p, name: 'Peachtree St NE' }) };

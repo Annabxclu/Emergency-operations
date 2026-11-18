@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
-import type { Employee } from '../../engine/types';
-import { DEPARTMENTS, QUALIFICATIONS, dept, qualification, vehicleType } from '../../data/departments';
+import { useState } from 'react';
+import { ACADEMIES, DEPARTMENTS, QUALIFICATIONS, dept, isTrainable, qualification, vehicleType } from '../../data/departments';
 import { Btn, Chip, ConfirmBtn, Dot, Empty, Header, Section, Stat, useCtx } from '../common';
 import { dur, money } from '../format';
 
@@ -77,12 +76,12 @@ export function EmployeeDetail({ id }: { id: string }) {
       <Section title="Qualifications">
         <div className="tags">{e.quals.length ? e.quals.map(q => <span key={q} className="tag ok">{qualification(q).name}</span>) : <span className="muted small">None yet</span>}</div>
         <div className="list">
-          {QUALIFICATIONS.filter(q => q.dept === e.dept && !e.quals.includes(q.id)).map(q => {
-            const need = game.needStations(game.deptItemRequirement(q), q.dept);
+          {QUALIFICATIONS.filter(q => q.dept === e.dept && !e.quals.includes(q.id) && isTrainable(q)).map(q => {
+            const need = (ACADEMIES[q.dept] && !game.academyOf(q.dept) ? `Needs ${ACADEMIES[q.dept].name}` : null) || game.needStations(game.deptItemRequirement(q), q.dept);
             const locked = !!need;
             return (
               <div key={q.id} className={`row compact ${locked ? 'disabled' : ''}`}>
-                <div className="grow"><div className="row-title">{q.name}</div><div className="row-sub">{q.hours} h course</div></div>
+                <div className="grow"><div className="row-title">{q.name}</div><div className="row-sub">{q.days ? `${q.days} days` : `${q.hours} h`} course</div></div>
                 {locked ? <span className="muted small">{need}</span> :
                   <Btn small disabled={!!e.training || game.city.money < q.cost} onClick={() => act(() => game.train(e.id, q.id), `${e.name} started ${q.name}`)}>Train · {money(q.cost)}</Btn>}
               </div>
@@ -104,33 +103,69 @@ export function EmployeeDetail({ id }: { id: string }) {
   );
 }
 
-export function HirePanel({ stationId }: { stationId: string }) {
+export function AcademyPanel({ dept: deptId }: { dept: string }) {
   const { game, act } = useCtx();
-  const [seed, setSeed] = useState(0);
-  const s = game.station(stationId);
-  const cands: Employee[] = useMemo(() => (s ? game.candidates(s.id) : []), [stationId, seed]);
-  const [hired, setHired] = useState(() => new Set<string>());
-  if (!s) return <div><Header title="Station not found" /></div>;
-  const d = dept(s.dept);
-  const cap = game.stationCapacity(s);
-  const staff = game.stationStaff(s.id).length;
+  const def = ACADEMIES[deptId];
+  const a = game.academyOf(deptId);
+  const courses = QUALIFICATIONS.filter(q => q.dept === deptId && isTrainable(q));
+  const [course, setCourse] = useState(courses[0]?.id ?? '');
+  const [picked, setPicked] = useState(() => new Set<string>());
+  const d = dept(deptId);
+  if (!def) return <div><Header title="No academy" /></div>;
+  if (!a) return (
+    <div>
+      <Header title={def.name} sub="Not built yet" />
+      <p className="hint">New {d.short.toLowerCase()} recruits arrive untrained. Build the {def.name} to run courses for them. Each classroom trains up to {def.seatsPerClassroom} people at a time.</p>
+      <div className="actions"><Btn kind="primary" disabled={game.city.money < def.cost} testid="academy-build" onClick={() => act(() => game.buildAcademy(deptId), `${def.name} built`)}>Build {def.name} · {money(def.cost)}</Btn></div>
+      <Section title="Courses taught here"><div className="list">{courses.map(q => <div key={q.id} className="row compact"><div className="grow"><div className="row-title">{q.name}</div></div><span className="muted small">{q.days} days</span></div>)}</div></Section>
+    </div>
+  );
+  const q = qualification(course);
+  const seats = game.academySeats(deptId), used = game.inTraining(deptId), free = seats - used;
+  const eligible = game.city.employees.filter(e => e.dept === deptId && !e.training && !e.quals.includes(course));
+  const trainees = game.city.employees.filter(e => e.dept === deptId && e.training);
+  const toggle = (id: string) => { const n = new Set(picked); if (n.has(id)) n.delete(id); else if (n.size < free) n.add(id); setPicked(n); };
+  const start = () => {
+    let ok = 0;
+    for (const id of picked) if (act(() => game.train(id, course))) ok++;
+    if (ok) setPicked(new Set());
+  };
   return (
     <div>
-      <Header title={`Hire · ${s.name}`} sub={`${staff}/${cap.staff} staff · hiring fee ${money(d.hireCost)}`}
-        right={<Btn small kind="ghost" onClick={() => { setSeed(seed + 1); setHired(new Set()); }}>New candidates</Btn>} />
-      <div className="list">
-        {cands.map(c => (
-          <div key={c.id} className="row compact">
-            <div className="grow"><div className="row-title">{c.name}</div>
-              <div className="row-sub">{d.ranks[0]}{c.quals.length ? ` · ${c.quals.map(q => qualification(q).name).join(', ')}` : ''}</div></div>
-            {hired.has(c.id) ? <Chip tone="ok">Hired</Chip> :
-              <Btn small kind="primary" disabled={staff >= cap.staff || game.city.money < d.hireCost} testid="hire-btn"
-                onClick={() => { if (act(() => game.hire(s.id, c), `${c.name} hired`)) setHired(new Set([...hired, c.id])); }}>Hire</Btn>}
-          </div>
-        ))}
-      </div>
-      {staff >= cap.staff && <p className="hint">This station is at personnel capacity. Upgrade it to hire more.</p>}
-      <p className="hint">New hires are assigned to vehicles automatically when a seat is open.</p>
+      <Header title={def.name} sub={`${1 + a.classrooms} classroom${a.classrooms ? 's' : ''} · ${used}/${seats} seats in use`} />
+      <Section title="Start a course">
+        <div className="field"><label>Course</label>
+          <select value={course} onChange={(ev: any) => { setCourse(ev.target.value); setPicked(new Set()); }} data-testid="academy-course">
+            {courses.map(c => <option key={c.id} value={c.id}>{c.name} · {c.days} days · {money(c.cost)}/person</option>)}
+          </select></div>
+        <p className="hint">Pick who should take {q.name} ({q.days} days). {free > 0 ? `${free} seat${free > 1 ? 's' : ''} free.` : 'No free seats — add a classroom or wait for a course to finish.'} People in training can't crew vehicles.</p>
+        {!eligible.length && <Empty>Everyone has this training or is already in a course.</Empty>}
+        <div className="list">
+          {eligible.map(e => (
+            <label key={e.id} className="row compact cand" data-testid="academy-student">
+              <input type="checkbox" checked={picked.has(e.id)} onChange={() => toggle(e.id)} disabled={!picked.has(e.id) && picked.size >= free} />
+              <div className="grow"><div className="row-title">{e.name}</div>
+                <div className="row-sub">{game.station(e.stationId)?.name}{e.quals.length ? ` · ${e.quals.map(x => qualification(x).name).join(', ')}` : ''}</div></div>
+            </label>
+          ))}
+        </div>
+        <div className="actions"><Btn kind="primary" disabled={!picked.size || game.city.money < picked.size * q.cost} testid="academy-start" onClick={start}>
+          Start {q.name} for {picked.size} · {money(picked.size * q.cost)}</Btn></div>
+      </Section>
+      {trainees.length > 0 && (
+        <Section title="In training">
+          <div className="list">{trainees.map(e => (
+            <div key={e.id} className="row compact"><div className="grow"><div className="row-title">{e.name}</div>
+              <div className="row-sub">{qualification(e.training!.qual).name}</div></div>
+              <span className="muted small">{dur(e.training!.until - game.state.time)} left</span></div>
+          ))}</div>
+        </Section>
+      )}
+      <Section title="Classrooms">
+        {a.classrooms < def.maxExtraClassrooms ? (
+          <div className="actions"><Btn small disabled={game.city.money < def.classroomCost} testid="academy-classroom" onClick={() => act(() => game.addClassroom(deptId), 'Classroom added')}>Add classroom (+{def.seatsPerClassroom} seats) · {money(def.classroomCost)}</Btn></div>
+        ) : <p className="hint">All {1 + def.maxExtraClassrooms} classrooms built.</p>}
+      </Section>
     </div>
   );
 }

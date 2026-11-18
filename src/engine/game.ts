@@ -7,9 +7,8 @@ import type {
   Requirement, RoutingProvider, Station, Vehicle,
 } from './types';
 import {
-  CAPABILITIES, DEPARTMENTS, QUALIFICATIONS, STARTER_KITS, STARTING_MONEY, STATION_TYPES, VEHICLE_TYPES,
-  dept, qualification, stationType, stationTypeForDept, vehicleType,
-} from '../data/departments';
+  CAPABILITIES, DEPARTMENTS, STARTER_KITS, STARTING_MONEY, STATION_TYPES, VEHICLE_TYPES,
+  dept, qualification, stationType, stationTypeForDept, vehicleType, ACADEMIES, isTrainable } from '../data/departments';
 import { INCIDENT_TYPES, incidentType, CATEGORY_DEPT } from '../data/incidents';
 import { TUNING } from '../data/tuning';
 import { AGREEMENTS, GOAL_TEMPLATES, RESEARCH, extensionsFor, type ModKey } from '../data/progression';
@@ -578,10 +577,7 @@ export class Game {
     const d = dept(deptId);
     const quals: string[] = [];
     let salary = d.baseSalaryPerHour * rand(0.92, 1.08);
-    if (withQualChance && Math.random() < 0.3) {
-      const options = QUALIFICATIONS.filter(q => q.dept === deptId && this.stationCount(deptId) >= this.deptItemRequirement(q));
-      if (options.length) { quals.push(pick(options).id); salary *= 1.12; }
-    }
+    void withQualChance; // new hires always start untrained; training happens at the academy
     const count = this.city.employees.filter(e => e.dept === deptId).length + 1;
     return {
       id: this.id('e'), empNo: `${d.empPrefix}-${String(count + 1000).padStart(4, '0')}`,
@@ -612,6 +608,78 @@ export class Game {
     this.autoStaff(st.id);
     this.changed();
     return e;
+  }
+
+  // ---- Recruiting: set how many staff a station should have; one free recruit arrives every 24 real hours.
+  static HIRE_INTERVAL_MS = 24 * 3600 * 1000;
+
+  setHireTarget(stationId: string, target: number) {
+    const st = this.station(stationId);
+    if (!st) throw new ActionError('Station not found.');
+    const cap = this.stationCapacity(st).staff;
+    const staff = this.stationStaff(st.id).length;
+    st.hireTarget = Math.max(staff, Math.min(cap, Math.round(target))); // can't go below current staff
+    if (st.hireTarget > staff) { if (!st.nextHireAt) st.nextHireAt = Date.now() + Game.HIRE_INTERVAL_MS; }
+    else st.nextHireAt = undefined;
+    this.changed();
+  }
+
+  /** Pay the hiring fee to get one untrained recruit right away. */
+  hireNow(stationId: string) {
+    const st = this.station(stationId);
+    if (!st) throw new ActionError('Station not found.');
+    if (this.stationStaff(st.id).length >= this.stationCapacity(st).staff) throw new ActionError('Station is at personnel capacity. Upgrade it.');
+    this.spend(dept(st.dept).hireCost, 'hiring', st.dept, 'Instant hire');
+    const e = this.makeEmployee(st.dept, st.id, false);
+    this.city.employees.push(e);
+    if (st.hireTarget != null && this.stationStaff(st.id).length >= st.hireTarget) { st.hireTarget = this.stationStaff(st.id).length; st.nextHireAt = undefined; }
+    this.autoStaff(st.id);
+    this.changed();
+    return e;
+  }
+
+  /** Deliver free recruits that are due (runs for every city, also after time away). */
+  processRecruiting(now = Date.now()) {
+    for (const cid of Object.keys(this.state.cities)) this.inCity(cid, () => {
+      for (const st of this.city.stations) {
+        if (!st.hireTarget || !st.nextHireAt) continue;
+        const cap = Math.min(st.hireTarget, this.stationCapacity(st).staff);
+        let added = 0;
+        while (st.nextHireAt && st.nextHireAt <= now && this.stationStaff(st.id).length < cap) {
+          this.city.employees.push(this.makeEmployee(st.dept, st.id, false));
+          added++;
+          st.nextHireAt += Game.HIRE_INTERVAL_MS;
+        }
+        if (this.stationStaff(st.id).length >= cap) st.nextHireAt = undefined;
+        if (added) { this.autoStaff(st.id); this.emit({ type: 'recruited', stationId: st.id, count: added }); }
+      }
+    });
+  }
+
+  // ---- Academies (fire / police): training for those departments happens here.
+  academyOf(deptId: string) { return this.city.academies?.[deptId] ?? null; }
+  academySeats(deptId: string) {
+    const a = this.academyOf(deptId);
+    return a ? (1 + a.classrooms) * ACADEMIES[deptId].seatsPerClassroom : 0;
+  }
+  inTraining(deptId: string) { return this.city.employees.filter(e => e.dept === deptId && e.training).length; }
+
+  buildAcademy(deptId: string) {
+    const def = ACADEMIES[deptId];
+    if (!def) throw new ActionError('No academy for this department.');
+    if (this.academyOf(deptId)) throw new ActionError(`${def.name} already built.`);
+    this.spend(def.cost, 'stations', deptId, `Built ${def.name}`);
+    this.city.academies = { ...(this.city.academies ?? {}), [deptId]: { classrooms: 0 } };
+    this.changed();
+  }
+
+  addClassroom(deptId: string) {
+    const def = ACADEMIES[deptId], a = this.academyOf(deptId);
+    if (!def || !a) throw new ActionError('Build the academy first.');
+    if (a.classrooms >= def.maxExtraClassrooms) throw new ActionError('All classrooms are built.');
+    this.spend(def.classroomCost, 'stations', deptId, `${def.name}: extra classroom`);
+    a.classrooms++;
+    this.changed();
   }
 
   dismiss(empId: string) {
@@ -689,6 +757,11 @@ export class Game {
     const e = this.employee(empId);
     const q = qualification(qualId);
     if (!e || !q) throw new ActionError('Not found.');
+    if (!isTrainable(q)) throw new ActionError(`${q.name} is no longer taught.`);
+    if (ACADEMIES[q.dept]) {
+      if (!this.academyOf(q.dept)) throw new ActionError(`Build a ${ACADEMIES[q.dept].name} first.`);
+      if (this.inTraining(q.dept) >= this.academySeats(q.dept)) throw new ActionError(`${ACADEMIES[q.dept].name} is full. Add a classroom or wait for a course to finish.`);
+    }
     const needQ = this.needStations(this.deptItemRequirement(q), q.dept); if (needQ) throw new ActionError(needQ + '.');
     if (e.quals.includes(qualId)) throw new ActionError('Already qualified.');
     if (e.training) throw new ActionError('Already in training.');
@@ -696,7 +769,8 @@ export class Game {
     if (cur && !this.vehicleAtStation(cur)) throw new ActionError(`${cur.name} is out on a call.`);
     this.spend(q.cost, 'training', e.dept, `${q.name} training: ${e.name}`);
     e.status = 'training';
-    e.training = { qual: qualId, until: this.state.time + q.hours * 3600 * this.mod('training') * (this.hasFeature(this.station(e.stationId), 'academy') ? 0.7 : 1) };
+    // Academy courses run for whole days; other departments keep their hour-based courses.
+    e.training = { qual: qualId, until: this.state.time + (q.days ? q.days * 86400 : q.hours * 3600 * this.mod('training') * (this.hasFeature(this.station(e.stationId), 'academy') ? 0.7 : 1)) };
     this.changed();
   }
 
@@ -947,6 +1021,7 @@ export class Game {
   tick(dt: number) {
     if (dt <= 0) return;
     this.state.time += dt;
+    this.processRecruiting();
     for (const id of Object.keys(this.state.cities)) this.inCity(id, () => this.tickCity(dt, id === this.state.activeCity));
     const rs = this.state.research;
     if (rs.active && this.state.time >= rs.active.until) {

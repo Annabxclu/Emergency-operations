@@ -113,7 +113,7 @@ export const CAPABILITIES: CapabilityDef[] = [
 export const QUALIFICATIONS: QualificationDef[] = [
   { id: 'aerial_operator', name: 'Aerial Operator', dept: 'fire', cost: 3000, hours: 8, unlockLevel: 2 },
   { id: 'wildland', name: 'Wildland Firefighting', dept: 'fire', cost: 2500, hours: 8, unlockLevel: 2 },
-  { id: 'tech_rescue', name: 'Technical Rescue', dept: 'fire', cost: 5000, hours: 16, unlockLevel: 3 },
+  { id: 'tech_rescue', name: 'Technical Rescue Training', dept: 'fire', cost: 5000, hours: 16, unlockLevel: 3 },
   { id: 'fire_officer', name: 'Fire Officer', dept: 'fire', cost: 4500, hours: 12, unlockLevel: 4 },
   { id: 'hazmat_tech', name: 'HazMat', dept: 'fire', cost: 6000, hours: 16, unlockLevel: 5, neededAt: 11 },
   { id: 'mobile_command', name: 'Mobile Command', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1, neededAt: 13 },
@@ -122,14 +122,24 @@ export const QUALIFICATIONS: QualificationDef[] = [
   { id: 'lifeguard', name: 'Lifeguard Training', dept: 'fire', cost: 3000, hours: 8, unlockLevel: 1 },
   { id: 'lifeguard_supervisor', name: 'Lifeguard Supervisor', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
   { id: 'swift_water', name: 'Swift Water Rescue', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
+  { id: 'airborne_firefighting', name: 'Airborne Firefighting', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
+  { id: 'heavy_machinery', name: 'Heavy Machinery Operating', dept: 'fire', cost: 4000, hours: 12, unlockLevel: 1 },
+  { id: 'hotshot', name: 'Hotshot Crew', dept: 'fire', cost: 4000, hours: 12, unlockLevel: 1 },
+  { id: 'fire_ocean_navigation', name: 'Ocean Navigation', dept: 'fire', cost: 4000, hours: 12, unlockLevel: 1 },
+  { id: 'search_rescue', name: 'Search and Rescue Training', dept: 'fire', cost: 4000, hours: 12, unlockLevel: 1 },
+  { id: 'wildland_lead_pilot', name: 'Wildland Lead Pilot Training', dept: 'fire', cost: 6000, hours: 12, unlockLevel: 1 },
+  { id: 'wildland_mcc_training', name: 'Wildland Mobile Command Center Training', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
+  { id: 'police_aviation', name: 'Police Aviation', dept: 'police', cost: 6000, hours: 12, unlockLevel: 1 },
+  { id: 'sharpshooter', name: 'Sharpshooter Training', dept: 'police', cost: 4000, hours: 12, unlockLevel: 1 },
+  { id: 'police_swift_water', name: 'Swift Water Rescue', dept: 'police', cost: 4000, hours: 12, unlockLevel: 1 },
   { id: 'smoke_jumper', name: 'Smoke Jumper Training', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
   { id: 'truck_license', name: 'Truck Drivers License', dept: 'fire', cost: 2000, hours: 6, unlockLevel: 1 },
-  { id: 'traffic_control', name: 'Traffic Control Training', dept: 'fire', cost: 2000, hours: 6, unlockLevel: 1 },
-  { id: 'police_supervisor', name: 'Police Supervisor', dept: 'police', cost: 5000, hours: 12, unlockLevel: 1, neededAt: 7 },
+  { id: 'traffic_control', name: 'Traffic Control', dept: 'fire', cost: 2000, hours: 6, unlockLevel: 1 },
+  { id: 'police_supervisor', name: 'Police Supervisor/Sheriff', dept: 'police', cost: 5000, hours: 12, unlockLevel: 1, neededAt: 7 },
   { id: 'ocean_navigation', name: 'Ocean Navigation', dept: 'police', cost: 4000, hours: 12, unlockLevel: 1 },
   { id: 'game_warden_q', name: 'Environmental Game Warden', dept: 'police', cost: 3000, hours: 8, unlockLevel: 1 },
   { id: 'police_ops', name: 'Police Operation Management', dept: 'police', cost: 5000, hours: 12, unlockLevel: 1 },
-  { id: 'police_traffic', name: 'Traffic Control Training', dept: 'police', cost: 2000, hours: 6, unlockLevel: 1 },
+  { id: 'police_traffic', name: 'Traffic Control', dept: 'police', cost: 2000, hours: 6, unlockLevel: 1 },
   { id: 'riot_training', name: 'Riot Police Training', dept: 'police', cost: 4000, hours: 12, unlockLevel: 1 },
   { id: 'fbi_bomb_tech', name: 'FBI Bomb Technician', dept: 'police', cost: 6000, hours: 16, unlockLevel: 1 },
   { id: 'drone_operator', name: 'Drone Operator', dept: 'police', cost: 3000, hours: 8, unlockLevel: 1 },
@@ -171,7 +181,7 @@ export const VEHICLE_TYPES: VehicleTypeDef[] = [
   vt({ id: 'tanker', dept: 'fire', name: 'Water Tanker', callsign: 'Tanker', short: 'TK', price: 17300, speedFactor: 0.95, minCrew: 1, maxCrew: 3, caps: ['water_supply'], maintenancePerHour: 8, fuelPerKm: 1.5, turnoutSec: 70, unlockLevel: 5, neededAt: 7 }),
   // Police
   vt({ id: 'patrol', dept: 'police', name: 'Patrol Car', callsign: 'Patrol', short: 'P', price: 5000, speedFactor: 1.35, minCrew: 1, maxCrew: 2, caps: ['police'], maintenancePerHour: 3, fuelPerKm: 0.4, turnoutSec: 30, unlockLevel: 1, transport: { kind: 'prisoner', capacity: 1 }, neededAt: 0 }),
-  vt({ id: 'traffic', dept: 'police', name: 'Traffic Enforcement', callsign: 'Traffic', short: 'TE', price: 11000, speedFactor: 1.4, minCrew: 1, maxCrew: 1, quals: [q('traffic_enf')], caps: ['police', 'traffic'], maintenancePerHour: 3, fuelPerKm: 0.45, turnoutSec: 30, unlockLevel: 2, transport: { kind: 'prisoner', capacity: 1 } }),
+  vt({ id: 'traffic', dept: 'police', name: 'Traffic Enforcement', callsign: 'Traffic', short: 'TE', price: 11000, speedFactor: 1.4, minCrew: 1, maxCrew: 1, quals: [q('police_traffic')], caps: ['police', 'traffic'], maintenancePerHour: 3, fuelPerKm: 0.45, turnoutSec: 30, unlockLevel: 2, transport: { kind: 'prisoner', capacity: 1 } }),
   vt({ id: 'k9', dept: 'police', name: 'K-9 Unit', callsign: 'K-9', short: 'K9', price: 7000, speedFactor: 1.35, minCrew: 1, maxCrew: 2, quals: [q('k9_handler')], caps: ['police', 'k9'], maintenancePerHour: 4, fuelPerKm: 0.45, turnoutSec: 40, unlockLevel: 3, neededAt: 6 }),
   vt({ id: 'detective', dept: 'police', name: 'Detective Vehicle', callsign: 'Detective', short: 'D', price: 5000, speedFactor: 1.25, minCrew: 1, maxCrew: 2, quals: [q('detective')], caps: ['investigation'], maintenancePerHour: 3, fuelPerKm: 0.4, turnoutSec: 60, unlockLevel: 3, needsExt: true }),
   vt({ id: 'prisoner_van', dept: 'police', name: 'Police Prisoner Van', callsign: 'Transport', short: 'PV', price: 25000, speedFactor: 1.15, minCrew: 2, maxCrew: 4, caps: ['prisoner_transport'], maintenancePerHour: 5, fuelPerKm: 0.8, turnoutSec: 45, unlockLevel: 4, transport: { kind: 'prisoner', capacity: 5 } }),
@@ -227,7 +237,7 @@ VEHICLE_TYPES.push(
   vt({ id: 'quint', dept: 'fire', name: 'Quint', callsign: 'Quint', short: 'Q', price: 19000, speedFactor: 1.05, minCrew: 1, maxCrew: 6, caps: ['engine', 'ladder'], maintenancePerHour: 12, fuelPerKm: 1.6, turnoutSec: 70, unlockLevel: 1, neededAt: 3 }),
   vt({ id: 'rescue_engine', dept: 'fire', name: 'Rescue Engine', callsign: 'Rescue Engine', short: 'RE', price: 19000, speedFactor: 1.1, minCrew: 1, maxCrew: 6, caps: ['engine', 'rescue'], maintenancePerHour: 11, fuelPerKm: 1.4, turnoutSec: 65, unlockLevel: 1, neededAt: 4 }),
   vt({ id: 'utility_unit', dept: 'fire', name: 'Utility Unit', callsign: 'Utility', short: 'U', price: 12180, speedFactor: 1.15, minCrew: 1, maxCrew: 4, caps: ['rescue'], maintenancePerHour: 6, fuelPerKm: 1.0, turnoutSec: 60, unlockLevel: 1, neededAt: 4 }),
-  vt({ id: 'motorcycle', dept: 'police', name: 'Police Motorcycle', callsign: 'Motor', short: 'MO', price: 2500, speedFactor: 1.45, minCrew: 1, maxCrew: 1, quals: [q('motor_officer')], caps: ['police'], maintenancePerHour: 2, fuelPerKm: 0.2, turnoutSec: 25, unlockLevel: 1, neededAt: 0 }),
+  vt({ id: 'motorcycle', dept: 'police', name: 'Police Motorcycle', callsign: 'Motor', short: 'MO', price: 2500, speedFactor: 1.45, minCrew: 1, maxCrew: 1, caps: ['police'], maintenancePerHour: 2, fuelPerKm: 0.2, turnoutSec: 25, unlockLevel: 1, neededAt: 0 }),
   vt({ id: 'swat_suv', dept: 'police', name: 'SWAT SUV', callsign: 'SWAT', short: 'SS', price: 7000, speedFactor: 1.2, minCrew: 2, maxCrew: 4, quals: [q('swat', 2)], caps: ['swat'], maintenancePerHour: 5, fuelPerKm: 0.6, turnoutSec: 90, unlockLevel: 1, neededAt: 8 }),
   // ---- MissionChief vehicle list (from the player's spreadsheet)
   vt({ id: 'arff_medium', dept: 'fire', name: 'Medium ARFF Crash Tender', callsign: 'Crash', short: 'ARM', price: 16000, speedFactor: 1.1, minCrew: 2, maxCrew: 4, caps: ['arff'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, quals: [q('arff_training', 2)], needsExt: true }),
@@ -236,7 +246,7 @@ VEHICLE_TYPES.push(
   vt({ id: 'type4_engine', dept: 'fire', name: 'Type 4 Engine', callsign: 'Brush', short: 'B4', price: 10000, speedFactor: 1.1, minCrew: 3, maxCrew: 5, caps: ['brush'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
   vt({ id: 'type6_engine', dept: 'fire', name: 'Type 6 Engine', callsign: 'Brush', short: 'B6', price: 5000, speedFactor: 1.1, minCrew: 1, maxCrew: 2, caps: ['brush'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
   vt({ id: 'type7_engine', dept: 'fire', name: 'Type 7 Engine', callsign: 'Brush', short: 'B7', price: 5000, speedFactor: 1.1, minCrew: 1, maxCrew: 2, caps: ['brush'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
-  vt({ id: 'wildland_mcc', dept: 'fire', name: 'Wildland MCC', callsign: 'Wildland Command', short: 'WMC', price: 20000, speedFactor: 1.1, minCrew: 1, maxCrew: 6, caps: ['command'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'wildland_mcc', dept: 'fire', name: 'Wildland MCC', callsign: 'Wildland Command', short: 'WMC', price: 20000, speedFactor: 1.1, minCrew: 1, maxCrew: 6, quals: [q('wildland_mcc_training')], caps: ['command'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
   vt({ id: 'fire_prevention', dept: 'fire', name: 'Fire Prevention Unit', callsign: 'Prevention', short: 'FP', price: 15000, speedFactor: 1.1, minCrew: 1, maxCrew: 2, caps: ['fire_prevention'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
   vt({ id: 'lifeguard_truck', dept: 'fire', name: 'Lifeguard Truck', callsign: 'Lifeguard', short: 'LG', price: 10000, speedFactor: 1.1, minCrew: 2, maxCrew: 4, caps: ['lifeguard'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1 }),
   vt({ id: 'lifeguard_rescue', dept: 'fire', name: 'Lifeguard Rescue', callsign: 'Lifeguard Rescue', short: 'LR', price: 35000, speedFactor: 1.1, minCrew: 2, maxCrew: 4, caps: ['lifeguard'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, quals: [q('lifeguard', 2)], needsExt: true }),
@@ -308,3 +318,27 @@ export const vehicleType = (id: string) => VEHICLE_TYPES.find(v => v.id === id)!
 export const capability = (id: string) => CAPABILITIES.find(c => c.id === id)!;
 export const qualification = (id: string) => QUALIFICATIONS.find(q => q.id === id)!;
 export const stationTypeForDept = (d: string) => STATION_TYPES.find(s => s.dept === d && !s.small)!;
+
+/** Courses taught at the Fire and Police Academies, with their length in (real) days. */
+export const ACADEMY_COURSES: Record<string, Record<string, number>> = {
+  fire: {
+    arff_training: 3, airborne_firefighting: 5, hazmat_tech: 3, heavy_machinery: 3, hotshot: 3, fire_investigator: 4,
+    lifeguard_supervisor: 5, lifeguard: 5, mobile_command: 5, fire_ocean_navigation: 5, search_rescue: 4, smoke_jumper: 3,
+    swift_water: 4, tech_rescue: 4, traffic_control: 3, truck_license: 2, wildland_lead_pilot: 7, wildland_mcc_training: 5,
+  },
+  police: {
+    csi: 5, detective: 5, drone_operator: 5, game_warden_q: 4, fbi_bomb_tech: 5, k9_handler: 5, ocean_navigation: 5,
+    police_aviation: 7, police_supervisor: 5, riot_training: 3, swat: 5, sharpshooter: 5, police_swift_water: 4, police_traffic: 3,
+    police_ops: 5,
+  },
+};
+export const ACADEMIES: Record<string, { name: string; cost: number; classroomCost: number; maxExtraClassrooms: number; seatsPerClassroom: number }> = {
+  fire: { name: 'Fire Academy', cost: 500000, classroomCost: 400000, maxExtraClassrooms: 3, seatsPerClassroom: 10 },
+  police: { name: 'Police Academy', cost: 500000, classroomCost: 400000, maxExtraClassrooms: 3, seatsPerClassroom: 10 },
+};
+for (const [d, list] of Object.entries(ACADEMY_COURSES)) for (const [id, days] of Object.entries(list)) {
+  const qd = QUALIFICATIONS.find(x => x.id === id && x.dept === d);
+  if (qd) { qd.days = days; qd.hours = days * 24; delete qd.neededAt; qd.unlockLevel = 1; } // academy courses: open as soon as the academy exists
+}
+/** Can this training still be started (fire/police courses only at the academy)? */
+export const isTrainable = (qd: QualificationDef) => !ACADEMY_COURSES[qd.dept] || qd.id in ACADEMY_COURSES[qd.dept];
