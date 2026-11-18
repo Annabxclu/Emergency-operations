@@ -103,11 +103,85 @@ const CODE_CAP: Record<string, string> = {
   wt: 'water_supply', hr: 'rescue', tr: 'rescue', hz: 'hazmat', pc: 'police', k9: 'k9', ph: 'air_police', sw: 'swat',
   arff: 'arff', am: 'ambulance', fwk: 'crane', bt: 'boat', fb: 'fireboat', br: 'brush', fd: 'federal', dn: 'drone',
   bo: 'bomb', iv: 'investigation', gw: 'game_warden', pb: 'police_boat', fo: 'foam', cs: 'coastal', cht: 'coast_heli',
+  fl: 'flood', pv: 'prisoner_transport', rt: 'riot',
 };
 // Codes -> catalog "extras" keys, so new missions get a sensible category.
 const CODE_EXTRA: Record<string, string> = {
   fb: 'fbd', bt: 'wre', cs: 'crs', cht: 'chh', pb: 'wpe', fd: 'fed', iv: 'csi', gw: 'warden', br: 'forestry',
-  arff: 'airport', fo: 'foam', fi: 'fmo', bo: 'bomb', dn: 'drone',
+  arff: 'airport', fo: 'foam', fi: 'fmo', bo: 'bomb', dn: 'drone', fl: 'flood', rt: 'riot', pv: 'det',
+};
+
+// Catalog names that are shortened versions of the full mission names in the data.
+const ALIAS: Record<string, string> = {
+  "self-service laundry fire": "self-service laundry facility fire",
+  "commercial aircraft runway incursion": "commercial aircraft - runway incursion collision",
+  "protesters stuck on monument": "protesters stuck on top of a monument",
+  "nuclear explosion at power plant": "nuclear explosion (power plant)",
+  "supervision of risky sports match": "supervision of a risky sports match",
+  "clash of risky fans": "clash and assault of risky fans",
+  "paraglider rescued from tree": "rescue of a paraglider from a tree",
+  "highway construction demonstration": "demonstration against the construction of a highway project",
+  "flooding in a small house": "flooding in a small house, following bad weather",
+  "flooding in a big house": "flooding in a big house, following bad weather",
+  "flooding in a neighborhood": "flooding in a neighborhood following bad weather",
+  "major flooding in a neighborhood": "major flooding in a neighborhood following bad weather",
+  "rising waters of the canal": "rising waters of the canal (flood)",
+  "fire in automobile manufacturing plant": "fire in an automobile manufacturing plant",
+  "truck accident - animal transport": "truck accident - transport of animals",
+  "explosive devices in a vehicle": "discovery of explosive devices in a vehicle",
+  "vehicle into gas station rack": "crash of a vehicle into a rack at a gas station",
+  "chemical leak in hospital lab": "leakage of chemicals in a laboratory (hospital)",
+  "vehicle repossession gone wrong": "vehicle reposession gone wrong",
+  "windsurfer and swimmer collision": "collision between a windsurfer and a swimmer",
+  "chemical vapor release in factory": "release of chemical vapor in a factory",
+  "police directing traffic": "police assistance directing traffic",
+  "hand laceration (deli slicer)": "hand laceration caused by malfunctioning deli slicer",
+  "bakery oven explosion": "bakery oven explosion in supermarket",
+  "butcher injured (bandsaw)": "butcher injured by bandsaw machine malfunction",
+  "burns from seafood steamer": "burns caused by seafood steamer malfunction",
+  "vagrants slash car tires": "group of vagrants slash car tires in supermarket parking lot",
+  "fired employee spills chemicals": "fired employee spills cleaning chemicals",
+  "lithium battery factory fire": "fire in a lithium battery manufacturing factory",
+  "drowned person in lake": "searching for a drowned person in a lake",
+  "police search on the water": "police search",
+  "bridge collapse with prisoner transport": "bridge collapse traps prisoner transport in river",
+  "plane into water - pilot distress": "pilot distress - plane crash lands into water",
+  "illegal firearms gun store raid": "illegal firearms found in gun store raid",
+  "armored truck crashes into casino": "stolen armored truck crashes into casino",
+  "double tractor trailer broken down": "double tractor trailer broken down on highway",
+  "car carrier semi collision": "driver on phone slams into car carrier semi transport on highway",
+  "passenger train into fire truck": "passenger train crashes into fire truck stuck on railroad crossing",
+  "pursuit into supermarket and water main": "highspeed pursuit ends in suspect crashing into supermarket causing water main break",
+  "illegal substances in buffet food": "illegal substances found in buffet food",
+  "carbon monoxide poisoning in school": "carbon monoxide poisoning in a school",
+  "rockslide debris on highway": "massive debris from rockslide stuck on highway trapping drivers",
+  "worker fell from roof": "worker fell from a roof, in cardiac arrest",
+  "dismasted sailing boat": "dis-masted sailing boat (inshore)",
+  "mountain biker hit a tree": "mountainbiker hit a tree",
+  "grain dryer fire": "grain dryer fires",
+  "child fell from tree": "child fell from tree while playing",
+  "search for multiple armed suspects": "search for multiple armed suspects in woods",
+  "trees blocking roads after storm": "trees blocking the roads after heavy storm",
+  "person trapped by rising tide": "person trapped by the rising tide",
+  "single vehicle collision exercise": "single vehicle road traffic collision (exercise)",
+  "mass influx of sick people at train station": "mass influx of sick people - train station",
+  "possible illegal plantation": "possible illegal plantation (aerial thermal imaging required)",
+  "train vs concrete mixer": "collision between train and concrete mixer",
+  "interpol arrest warrant": "execution of an interpol arrest warrant",
+  "powerline sparks farmland fire": "powerline sparks fire on farmland",
+  "dog running on highway": "dog running around on the highway",
+  "roof tiles loose": "roof tiles loose on the roof",
+  "fire in a photovoltaic panel plant": "fire in a photovoltaic panel manufacturing plant",
+  "cleanup after oil or chemical fires": "cleanup of areas damaged by fires of oil or chemical origin",
+  "preventive decontamination at hazmat facility": "preventive decontamination at high-risk hazardous materials facilities",
+  "person stuck in a silo": "person falls into a silo and gets stuck",
+  "tennis player hit by tennis ball": "tennis player hit in stomach by tennis ball",
+  "burn injury from welding work": "burn injury caused by welding work",
+  "forged professional certificates": "discovery of forged professional certificates",
+  "organized identity theft investigation": "investigation into organized identity theft",
+  "witness intimidation before court hearing": "witness intimidation before a court hearing",
+  "coordinated arrests in corruption case": "coordinated arrests in a major corruption investigation",
+  "home invasion crime scene": "home invasion - crime scene",
 };
 
 export interface RealMission {
@@ -155,7 +229,7 @@ export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDe
     rows.push({ name: name.trim(), credits: Number(creditsS) || 0, f: Number(fS) || 0, a: Number(aS) || 0, p: Number(pS) || 0, extras: parseExtras(extrasS) });
   }
   // Missions that only appear in the requirements data.
-  const catalogNames = new Set(rows.map(r => r.name.toLowerCase()));
+  const catalogNames = new Set(rows.flatMap(r => [r.name.toLowerCase(), ALIAS[r.name.toLowerCase()]].filter(Boolean)));
   for (const [key, r] of real) {
     if (catalogNames.has(key) || !r.prereq) continue;
     rows.push({ name: r.name, credits: r.credits, f: r.prereq[0], a: r.prereq[1], p: r.prereq[2], extras: r.extras });
@@ -165,7 +239,7 @@ export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDe
     const key = name.toLowerCase();
     if (existingNames.has(key) || seen.has(key)) continue;
     seen.add(key);
-    const r = real.get(key);
+    const r = real.get(key) ?? real.get(ALIAS[key]);
     const extras = { ...row.extras, ...(r?.extras || {}) };
     const credits = row.credits || r?.credits || 0;
     const n = key;
