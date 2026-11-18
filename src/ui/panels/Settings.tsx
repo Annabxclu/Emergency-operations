@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { xpForLevel } from '../../engine/game';
 import { CITY_SLOT_LEVELS } from '../../data/cities';
 import { INCIDENT_TYPES } from '../../data/incidents';
 import { Btn, ConfirmBtn, Header, Section, useCtx } from '../common';
@@ -16,7 +15,6 @@ export function SettingsPanel(p: Props) {
   const [paste, setPaste] = useState('');
   const [exported, setExported] = useState('');
   const fileRef = useRef(null as HTMLInputElement | null);
-  const lvl = game.state.level;
   const slots = game.citySlots();
 
   const doExport = () => {
@@ -39,7 +37,7 @@ export function SettingsPanel(p: Props) {
 
   return (
     <div>
-      <Header title="Settings" sub={`Level ${lvl} · ${game.state.xp}/${xpForLevel(lvl + 1)} XP`} />
+      <Header title="Settings" sub={`${game.cityDef.name}, ${game.cityDef.state} · ${game.stationCount()} stations`} />
 
       <Section title="Manage">
         <div className="list">
@@ -86,7 +84,7 @@ export function SettingsPanel(p: Props) {
       </Section>
 
       <Section title="Tuning">
-        <label className="check"><input type="checkbox" checked={s.runningCosts !== false} onChange={(e: any) => { s.runningCosts = e.target.checked; game.changed(); }} data-testid="running-costs" /> Running costs (payroll, upkeep, fuel, maintenance)</label>
+        <label className="check"><input type="checkbox" checked={s.runningCosts !== false} onChange={(e: any) => { s.runningCosts = e.target.checked; game.changed(); }} data-testid="running-costs" /> Running costs (station upkeep, fuel, maintenance)</label>
         <p className="hint">Off: you only spend money when you build, buy, hire or train.</p>
         <div className="field"><label>Driving speed</label>
           <div className="seg">
@@ -116,7 +114,7 @@ export function SettingsPanel(p: Props) {
       <Section title="Missions">
         <button className="row" onClick={() => push({ kind: 'missions' })} data-testid="missions-open">
           <div className="grow"><div className="row-title">All missions & requirements</div>
-            <div className="row-sub">{INCIDENT_TYPES.length} call types · {INCIDENT_TYPES.filter(t => t.unlockLevel <= lvl).length} unlocked</div></div>
+            <div className="row-sub">{INCIDENT_TYPES.length} call types · {INCIDENT_TYPES.filter(t => game.stationCount() >= t.unlockLevel).length} unlocked</div></div>
           <span className="muted">›</span>
         </button>
       </Section>
@@ -137,7 +135,7 @@ export function SettingsPanel(p: Props) {
         </div>
         <div className="actions">
           <Btn small kind="primary" disabled={!slots.canAdd} onClick={p.onAddCity} testid="add-city">+ Add a city</Btn>
-          {!slots.canAdd && slots.nextLevel && <span className="muted small">Next city unlocks at level {slots.nextLevel}</span>}
+          {!slots.canAdd && slots.nextLevel && <span className="muted small">Next city unlocks at {slots.nextLevel} total stations</span>}
         </div>
         <p className="hint">Each city has its own stations, staff, calls and budget. Cities you're not viewing keep running, but new calls only arrive in the city you're viewing.</p>
       </Section>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActionError, Game, SETUP_ORDER, newGameState, xpForLevel } from '../engine/game';
+import { ActionError, Game, SETUP_ORDER, newGameState } from '../engine/game';
 import type { GameEvent, LatLng } from '../engine/types';
 import { DEPARTMENTS, dept, qualification, stationType, stationTypeForDept } from '../data/departments';
 import type { OsrmRouting } from '../services/routing';
@@ -148,7 +148,6 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       }
       case 'research_done': toast(`Research complete: ${RESEARCH.find(r => r.id === e.id)?.name}`, 'ok'); if (game.state.settings.sound) playAlert('good'); break;
       case 'goal_done': toast(`Daily goal done: ${e.label} +${money(e.reward)}`, 'ok'); if (game.state.settings.sound) playAlert('good'); break;
-      case 'level_up': toast(`Level ${e.level} reached — new vehicles and call types may be unlocked`, 'ok'); break;
       case 'training_done': {
         const emp = game.employee(e.empId);
         toast(`${emp?.name ?? 'Employee'} completed ${qualification(e.qual).name}`, 'ok');
@@ -255,8 +254,6 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const setup = !game.setupDone;
   const setupType = setup ? stationTypeForDept(SETUP_ORDER[c.setupStep]).id : null;
   const activeBuild = picker || menu ? null : setup ? setupType : buildType;
-  const lvl = game.state.level;
-  const xpFrac = Math.min(1, (game.state.xp - xpForLevel(lvl)) / Math.max(1, xpForLevel(lvl + 1) - xpForLevel(lvl)));
   const pendingCount = c.incidents.filter(i => i.status === 'pending').length;
   const top = stack[stack.length - 1];
   const activeTab = stack.length ? TAB_OF[stack[0].kind] : 'map';
@@ -338,7 +335,6 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
         <header className="topbar">
           <button className="money" onClick={() => openRoot({ kind: 'finances' })} data-testid="money">
             <span className={c.money < 0 ? 'bad' : ''}>{moneyShort(c.money)}</span>
-            <span className="lvl">Lv {lvl}<span className="xpbar"><span style={{ width: `${xpFrac * 100}%` }} /></span></span>
           </button>
           <div className="topcity">
             <span>{game.cityDef.name}, {game.cityDef.state}</span>

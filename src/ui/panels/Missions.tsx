@@ -11,17 +11,17 @@ export function MissionsPanel() {
   const { game } = useCtx();
   const [filter, setFilter] = useState('all');
   const [showCaps, setShowCaps] = useState(false);
-  const lvl = game.state.level;
+  const owned = game.stationCount();
   const wm = game.state.settings.workMult ?? 0.1;
   const fmtWork = (min: number) => { const sec = Math.max(20, min * 60 * wm); return sec < 90 ? `${Math.round(sec)}s` : `${Math.round(sec / 60)} min`; };
   const fleet = game.city.vehicles;
   const have = (cap: string) => fleet.filter(v => vehicleType(v.typeId).caps.includes(cap)).length;
 
-  const list = INCIDENT_TYPES.filter(t => filter === 'all' || (filter === 'unlocked' ? t.unlockLevel <= lvl : t.unlockLevel > lvl));
+  const list = INCIDENT_TYPES.filter(t => filter === 'all' || (filter === 'unlocked' ? t.unlockLevel <= owned : t.unlockLevel > owned));
 
   return (
     <div>
-      <Header title="Missions" sub={`${INCIDENT_TYPES.length} call types · you are level ${lvl}`} />
+      <Header title="Missions" sub={`${INCIDENT_TYPES.length} call types · new ones unlock as you own more stations (you have ${owned})`} />
       <div className="seg">
         {[['all', 'All'], ['unlocked', 'Unlocked'], ['locked', 'Locked']].map(([k, l]) =>
           <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>)}
@@ -36,7 +36,7 @@ export function MissionsPanel() {
             <div key={c.id} className="row compact">
               <span className="dot" style={{ background: dept(c.dept).color }} />
               <div className="grow"><div className="row-title">{c.name}</div>
-                <div className="row-sub">{VEHICLE_TYPES.filter(v => v.caps.includes(c.id)).map(v => `${v.name} (Lv ${v.unlockLevel})`).join(' · ')}</div></div>
+                <div className="row-sub">{VEHICLE_TYPES.filter(v => v.caps.includes(c.id)).map(v => `${v.name}${game.deptItemRequirement(v) > 1 ? ` (${game.deptItemRequirement(v)} ${dept(v.dept).short} stations)` : ''}`).join(' · ')}</div></div>
               <span className="muted small">you have {have(c.id)}</span>
             </div>
           ))}
@@ -50,7 +50,7 @@ export function MissionsPanel() {
           <Section key={cat.id} title={<><span className="dot" style={{ background: dept(CATEGORY_DEPT[cat.id]).color }} /> {cat.name}</>}>
             <div className="list">
               {items.map(t => {
-                const locked = t.unlockLevel > lvl;
+                const locked = t.unlockLevel > owned;
                 const ready = t.requirements.every(r => have(r.cap) >= r.count);
                 return (
                   <div key={t.id} className={`mission ${locked ? 'locked' : ''}`} data-testid="mission">
@@ -58,7 +58,7 @@ export function MissionsPanel() {
                       <span className={`inc-ico sev${t.severity}`} dangerouslySetInnerHTML={{ __html: glyph(t.category, 14) }} />
                       <div className="grow"><div className="row-title">{t.name}</div>
                         <div className="row-sub">{SEVERITY[t.severity]} severity · {fmtWork(t.workMin[0])}–{fmtWork(t.workMin[1])} on scene</div></div>
-                      {locked ? <Chip tone="muted">Level {t.unlockLevel}</Chip> : ready ? <Chip tone="ok">Ready</Chip> : <Chip tone="warn">Need units</Chip>}
+                      {locked ? <Chip tone="muted">{t.unlockLevel} stations</Chip> : ready ? <Chip tone="ok">Ready</Chip> : <Chip tone="warn">Need units</Chip>}
                     </div>
                     <div className="mission-reqs">
                       {t.requirements.map(r => {

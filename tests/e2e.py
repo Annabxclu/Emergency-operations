@@ -112,7 +112,7 @@ def main():
                 page.wait_for_timeout(150)
             check(game('g.setupDone'), 'three starter stations placed by tapping the map')
             check(game('g.city.money') == 0, 'new game starts with $0')
-            game('(g.city.money = 100000, g.changed(), 0)')  # test funds
+            game('(g.city.money = 200000, g.changed(), 0)')  # test funds
             check(game('g.city.vehicles.length') == 4, 'starter fleet created (engine, 2 patrol, ambulance)')
             shot('02-after-setup')
 
@@ -138,11 +138,14 @@ def main():
             shot('03-placing-station')
             page.click('[data-testid=build-confirm]')
             page.wait_for_selector('[data-testid=buy-engine]')
-            check(game('g.city.money') == 40000, 'fire station built for $60,000')
+            check(game('g.city.money') == 100000, 'fire station built for $100,000')
             check(game('g.city.stations[3].address').startswith('320 S Boston Ave'), 'station stores its street address')
             check(game('g.city.stations[0].address') == '101 S Boston Ave, Downtown', 'tapped station got its address by reverse lookup')
             page.click('[data-testid=buy-engine]')
-            check(game('g.city.money') == 15000, 'engine purchased for $25,000')
+            check(game('g.city.money') == 75000, 'engine purchased for $25,000')
+            page.click('[data-testid=station-level-up]')
+            check(game('g.city.money') == 65000 and game('g.city.stations[3].level') == 1, 'bought station level 1 (+1 bay) for $10,000')
+            page.locator('.sheet-body').evaluate('el => el.scrollTo(0, el.scrollHeight)'); shot('03c-station-level')
             page.click('[data-testid=hire-open]')
             for i in range(3):
                 page.locator('[data-testid=hire-btn]').first.click()
@@ -272,7 +275,7 @@ def main():
             shot('13-research')
             page.click('.back')
             # --- Multi-city: unlock a second city at level 5 and add Atlanta
-            game('(g.state.level = 5, g.changed(), 0)')
+            game('(g.citySlots = () => ({ unlocked: 2, used: 1, nextLevel: 10, canAdd: true }), g.changed(), 0)')
             page.click('[data-testid=add-city]')
             page.fill('[data-testid=city-name]', 'Atlanta')
             page.select_option('[data-testid=city-state]', 'Georgia')

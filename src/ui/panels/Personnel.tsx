@@ -9,11 +9,10 @@ export function PersonnelList() {
   const [d, setD] = useState('all');
   const c = game.city;
   const list = c.employees.filter(e => d === 'all' || e.dept === d);
-  const payroll = c.employees.reduce((a, e) => a + e.salaryPerHour, 0);
   return (
     <div>
       <div className="sheet-head"><button className="back" onClick={back} aria-label="Back">‹</button><div className="grow"><div className="title">Personnel</div>
-        <div className="sub">{c.employees.length} employees · payroll {money(payroll)}/h{game.state.settings.shifts ? ` · shift ${game.currentShift()} on duty` : ''}</div></div></div>
+        <div className="sub">{c.employees.length} employees{game.state.settings.shifts ? ` · shift ${game.currentShift()} on duty` : ''}</div></div></div>
       <div className="seg">
         <button className={d === 'all' ? 'on' : ''} onClick={() => setD('all')}>All</button>
         {DEPARTMENTS.filter(x => c.employees.some(e => e.dept === x.id)).map(x => <button key={x.id} className={d === x.id ? 'on' : ''} onClick={() => setD(x.id)}>{x.short} {c.employees.filter(e => e.dept === x.id).length}</button>)}
@@ -53,7 +52,6 @@ export function EmployeeDetail({ id }: { id: string }) {
     <div>
       <Header title={e.name} sub={`${e.empNo} · ${d.ranks[e.rank]} · Shift ${e.shift}`} right={e.status === 'training' ? <Chip tone="warn">Training</Chip> : <Chip tone="ok">On duty</Chip>} />
       <div className="stats">
-        <Stat label="Salary" value={`${money(e.salaryPerHour)}/h`} />
         <Stat label="Experience" value={`${e.xp} XP`} />
         <Stat label="Certs" value={e.quals.length} />
       </div>
@@ -80,11 +78,12 @@ export function EmployeeDetail({ id }: { id: string }) {
         <div className="tags">{e.quals.length ? e.quals.map(q => <span key={q} className="tag ok">{qualification(q).name}</span>) : <span className="muted small">None yet</span>}</div>
         <div className="list">
           {QUALIFICATIONS.filter(q => q.dept === e.dept && !e.quals.includes(q.id)).map(q => {
-            const locked = q.unlockLevel > game.state.level;
+            const need = game.needStations(game.deptItemRequirement(q), q.dept);
+            const locked = !!need;
             return (
               <div key={q.id} className={`row compact ${locked ? 'disabled' : ''}`}>
                 <div className="grow"><div className="row-title">{q.name}</div><div className="row-sub">{q.hours} h course</div></div>
-                {locked ? <span className="muted small">Level {q.unlockLevel}</span> :
+                {locked ? <span className="muted small">{need}</span> :
                   <Btn small disabled={!!e.training || game.city.money < q.cost} onClick={() => act(() => game.train(e.id, q.id), `${e.name} started ${q.name}`)}>Train · {money(q.cost)}</Btn>}
               </div>
             );
@@ -96,7 +95,7 @@ export function EmployeeDetail({ id }: { id: string }) {
         {canPromote ? (
           <div className="actions">
             <Btn small kind="primary" disabled={e.xp < need} onClick={() => act(() => game.promote(e.id), `Promoted to ${d.ranks[e.rank + 1]}`)}>Promote to {d.ranks[e.rank + 1]}</Btn>
-            <span className="muted small">{e.xp}/{need} XP · +12% salary</span>
+            <span className="muted small">{e.xp}/{need} XP</span>
           </div>
         ) : <p className="hint">Highest rank reached.</p>}
         <div className="actions"><ConfirmBtn small onConfirm={() => { if (act(() => game.dismiss(e.id), `${e.name} dismissed`)) back(); }}>Dismiss employee</ConfirmBtn></div>
@@ -123,7 +122,7 @@ export function HirePanel({ stationId }: { stationId: string }) {
         {cands.map(c => (
           <div key={c.id} className="row compact">
             <div className="grow"><div className="row-title">{c.name}</div>
-              <div className="row-sub">{d.ranks[0]} · {money(c.salaryPerHour)}/h{c.quals.length ? ` · ${c.quals.map(q => qualification(q).name).join(', ')}` : ''}</div></div>
+              <div className="row-sub">{d.ranks[0]}{c.quals.length ? ` · ${c.quals.map(q => qualification(q).name).join(', ')}` : ''}</div></div>
             {hired.has(c.id) ? <Chip tone="ok">Hired</Chip> :
               <Btn small kind="primary" disabled={staff >= cap.staff || game.city.money < d.hireCost} testid="hire-btn"
                 onClick={() => { if (act(() => game.hire(s.id, c), `${c.name} hired`)) setHired(new Set([...hired, c.id])); }}>Hire</Btn>}

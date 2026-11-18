@@ -19,17 +19,17 @@ export interface DepartmentDef {
   hireCost: number;
 }
 
-export interface StationLevel { bays: number; staff: number; upgradeCost: number }
-
 export interface StationTypeDef {
   id: string;
   dept: string;
-  name: string;          // e.g. "Fire Station"
+  name: string;
   cost: number;
-  levels: StationLevel[];
+  maxLevel: number;        // each level adds one vehicle bay (level 0 = 1 bay)
   upkeepPerHour: number;
   contractPerHour: number; // city contract income earned by having this station
   coverageKm: number;
+  small?: boolean;         // small station: low max level, no extensions
+  upgradeTo?: string;      // small station can be converted into this type
 }
 
 export interface VehicleTypeDef {
@@ -132,7 +132,7 @@ export interface Station {
   dept: string;
   name: string;
   pos: LatLng;
-  level: number;          // index into StationTypeDef.levels
+  level: number;          // bays = 1 + level (+ extensions)
   extensions?: string[];
   address?: string;
 }

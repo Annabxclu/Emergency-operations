@@ -68,7 +68,7 @@ export function FinancesPanel() {
       )}
       <Section title="Running costs per game hour">
         <div className="kv">
-          <span>Personnel {money(h.payroll)}</span><span>Stations {money(h.upkeep)}</span><span>Vehicles {money(h.maint)}</span>
+<span>Stations {money(h.upkeep)}</span><span>Vehicles {money(h.maint)}</span>
           <span className="ok">City contracts +{money(h.contract)}</span>
         </div>
         <p className="hint">Fixed costs net {money(h.net)}/h before call rewards and fuel. Costs only accrue while the game is open and unpaused.</p>
@@ -78,14 +78,13 @@ export function FinancesPanel() {
           {AGREEMENTS.map(a => {
             const signed = (c.agreements || []).includes(a.id);
             const met = game.agreementActive(a.id);
-            const locked = a.unlockLevel > game.state.level;
+            const locked = false;
             const req = `${a.stations} ${dept(a.dept).short} station${a.stations > 1 ? 's' : ''}${a.extraDept ? ` + ${dept(a.extraDept).short}` : ''}`;
             return (
               <div key={a.id} className={`row compact ${locked ? 'disabled' : ''}`}>
                 <div className="grow"><div className="row-title">{a.name}</div>
                   <div className="row-sub wrap">{a.desc} Needs {req}. +{money(a.incomePerHour)}/h</div></div>
                 {signed ? (met ? <ConfirmBtn small onConfirm={() => game.cancelAgreement(a.id)} confirmText="Cancel?">Active</ConfirmBtn> : <Chip tone="warn">Paused</Chip>)
-                  : locked ? <Chip tone="muted">Level {a.unlockLevel}</Chip>
                   : <Btn small kind="primary" disabled={!met || c.money < a.signCost} onClick={() => act(() => game.signAgreement(a.id), `Signed ${a.name}`)}>Sign · {money(a.signCost)}</Btn>}
               </div>
             );

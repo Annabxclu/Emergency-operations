@@ -17,7 +17,7 @@ import { CITIES, CITY_SLOT_LEVELS } from '../data/cities';
 import { FIRST_NAMES, LAST_NAMES } from '../data/names';
 import { destination, directRoute, distanceM, estimateEtaS, makeRoute, pointAlong } from './geo';
 
-export const SCHEMA = 1;
+export const SCHEMA = 2;
 export const SETUP_ORDER = ['fire', 'police', 'ems'];
 export const MIN_CONDITION = 25;
 const DAY = 86400;
@@ -78,6 +78,17 @@ export function migrate(raw: unknown): GameState {
   s.settings.deptFilter = { ...fresh.settings.deptFilter, ...(s.settings.deptFilter || {}) };
   for (const c of Object.values(s.cities)) for (const i of [...c.incidents, ...c.resolved]) { i.patients ??= 0; i.prisoners ??= 0; }
   if (!['osm', 'hot'].includes(s.settings.tileStyle)) s.settings.tileStyle = 'osm'; // CARTO styles retired (need a key)
+  if ((s.schema ?? 1) < 2) {
+    // Station levels used to index a small table; now every level is one bay.
+    const OLD: Record<string, number[]> = { fire_station: [2, 3, 4, 6], police_precinct: [3, 5, 7, 10], ems_station: [2, 3, 4, 6], public_works_yard: [2, 4, 6],
+      water_rescue_station: [2, 3, 4], air_base: [1, 2, 3], special_ops_base: [2, 3, 4], eoc: [2, 3, 4], disaster_center: [2, 3, 4] };
+    for (const c of Object.values(s.cities)) for (const st of c.stations) {
+      const bays = (OLD[st.typeId]?.[st.level] ?? 1) + (st.extensions?.includes('bays') ? 2 : 0);
+      const vehicles = c.vehicles.filter(v => v.stationId === st.id).length;
+      st.level = Math.max(bays, vehicles) - 1;
+      st.extensions = (st.extensions || []).filter(x => x !== 'bays' && x !== 'quarters');
+    }
+  }
   s.schema = SCHEMA;
   return s;
 }
@@ -193,11 +204,46 @@ export class Game {
   incidentVehicles(incId: string) { return this.city.vehicles.filter(v => v.incidentId === incId); }
   hasDept(d: string) { return this.city.stations.some(s => s.dept === d); }
 
+  /** Bays = 1 + level (+ extensions). Personnel capacity scales with bays. */
   stationCapacity(s: Station) {
-    const base = stationType(s.typeId).levels[s.level];
-    let bays = base.bays, staff = base.staff;
-    for (const ext of extensionsFor(s.typeId)) if (s.extensions?.includes(ext.id)) { bays += ext.bays || 0; staff += ext.staff || 0; }
-    return { bays, staff: staff * (this.state.settings.shifts ? 3 : 1), upgradeCost: base.upgradeCost };
+    let bays = 1 + s.level;
+    for (const ext of extensionsFor(s.typeId)) if (s.extensions?.includes(ext.id)) bays += ext.bays || 0;
+    return { bays, staff: bays * TUNING.staffPerBay * (this.state.settings.shifts ? 3 : 1) };
+  }
+
+  levelCost(targetLevel: number) {
+    const c = TUNING.levelCosts;
+    return c[Math.min(targetLevel - 1, c.length - 1)];
+  }
+
+  /** Price of the next station of a type: rises once you own many of that type. */
+  stationPrice(typeId: string) {
+    const t = stationType(typeId);
+    const n = this.city.stations.filter(s => s.typeId === typeId).length;
+    if (n < TUNING.priceRiseAfter) return t.cost;
+    return Math.round(t.cost * TUNING.bigNetworkMultiplier + (n - TUNING.priceRiseAfter) * t.cost * 0.05);
+  }
+
+  /** Can this station house vehicles of a department (own dept or via an extension)? */
+  hostsDept(s: Station, deptId: string) {
+    return s.dept === deptId || extensionsFor(s.typeId).some(e => e.allowsDept === deptId && s.extensions?.includes(e.id));
+  }
+
+  // ------------------------------------------------------------ unlocks (by stations owned)
+  stationCount(deptId?: string) {
+    return this.city.stations.filter(s => !deptId || s.dept === deptId).length;
+  }
+
+  /** Stations (any type) you must own before you can build a department's first station. */
+  deptRequirement(deptId: string) { return (dept(deptId).unlockLevel - 1) * 2; }
+
+  /** Stations of its own department needed to buy a vehicle type / train a certification. */
+  deptItemRequirement(item: { unlockLevel: number; dept: string }) { return Math.max(1, item.unlockLevel - dept(item.dept).unlockLevel + 1); }
+
+  /** Null when unlocked, otherwise e.g. "Needs 3 Fire stations". */
+  needStations(n: number, deptId?: string): string | null {
+    if (n <= 0 || this.stationCount(deptId) >= n) return null;
+    return `Needs ${n} ${deptId ? dept(deptId).short + ' ' : ''}station${n > 1 ? 's' : ''}`;
   }
 
   hasFeature(s: Station | undefined, feature: string) {
@@ -209,6 +255,12 @@ export class Game {
     const ext = s && extensionsFor(s.typeId).find(e => e.id === extId);
     if (!s || !ext) throw new ActionError('Not found.');
     if (s.extensions?.includes(extId)) throw new ActionError('Already built.');
+    if (ext.perStations) {
+      const sameType = this.city.stations.filter(x => x.typeId === s.typeId);
+      const built = sameType.filter(x => x.extensions?.includes(extId)).length;
+      const allowed = Math.floor(sameType.length / ext.perStations);
+      if (built >= allowed) throw new ActionError(`One ${ext.name} per ${ext.perStations} stations of this type (you have ${sameType.length}).`);
+    }
     this.spend(ext.cost, 'construction', s.dept, `${ext.name} at ${s.name}`);
     (s.extensions ||= []).push(extId);
     this.changed();
@@ -227,7 +279,7 @@ export class Game {
     const rs = this.state.research;
     if (rs.done.includes(id)) throw new ActionError('Already researched.');
     if (rs.active) throw new ActionError('Another project is in progress.');
-    if (r.unlockLevel > this.state.level) throw new ActionError(`Unlocks at level ${r.unlockLevel}.`);
+    const needR = this.needStations(r.unlockLevel); if (needR) throw new ActionError(needR + '.');
     if (r.requires && !rs.done.includes(r.requires)) throw new ActionError(`Requires ${RESEARCH.find(x => x.id === r.requires)!.name}.`);
     this.spend(r.cost, 'research', null, `Research: ${r.name}`);
     rs.active = { id, until: this.state.time + r.hours * 3600 };
@@ -269,7 +321,6 @@ export class Game {
     if (!a) throw new ActionError('Not found.');
     const list = (this.city.agreements ||= []);
     if (list.includes(id)) throw new ActionError('Already signed.');
-    if (a.unlockLevel > this.state.level) throw new ActionError(`Unlocks at level ${a.unlockLevel}.`);
     if (!this.agreementActive(id)) throw new ActionError('Requirements not met yet.');
     this.spend(a.signCost, 'contracts', a.dept, `Signed: ${a.name}`);
     list.push(id);
@@ -286,7 +337,7 @@ export class Game {
     const c = this.city;
     const day = Math.floor(this.state.time / DAY);
     if (c.goals && c.goals.day === day) return;
-    const lvl = this.state.level;
+    const lvl = 1 + Math.floor(this.stationCount() / 4);
     const pool = GOAL_TEMPLATES.filter(t => t.minLevel <= lvl).sort(() => Math.random() - 0.5).slice(0, 3);
     c.goals = {
       day,
@@ -359,22 +410,20 @@ export class Game {
 
   private addXp(n: number) {
     this.state.xp += Math.round(n);
-    while (this.state.xp >= xpForLevel(this.state.level + 1)) {
-      this.state.level++;
-      this.emit({ type: 'level_up', level: this.state.level });
-    }
+    // Player levels are retired; unlocks now depend on the stations you own.
   }
 
   // ------------------------------------------------------------ actions: stations
   placeStation(typeId: string, pos: LatLng, name?: string, address?: string): Station {
     const c = this.city;
     const t = stationType(typeId);
-    if (dept(t.dept).unlockLevel > this.state.level) throw new ActionError('Department not unlocked yet.');
+    const needD = this.needStations(this.deptRequirement(t.dept)); if (needD) throw new ActionError(`${dept(t.dept).name}: ${needD.toLowerCase()} first.`);
     const setup = !this.setupDone;
     if (setup && SETUP_ORDER[c.setupStep] !== t.dept) throw new ActionError(`Place your ${stationTypeForDept(SETUP_ORDER[c.setupStep]).name} first.`);
-    if (!setup) this.spend(t.cost, 'construction', t.dept, `Built ${t.name}`);
+    if (!setup) this.spend(this.stationPrice(typeId), 'construction', t.dept, `Built ${t.name}`);
     const n = c.stations.filter(s => s.typeId === typeId).length + 1;
-    const st: Station = { id: this.id('s'), typeId, dept: t.dept, name: name?.trim() || `${t.name} ${n}`, pos, level: 0, address: address || undefined };
+    const st: Station = { id: this.id('s'), typeId, dept: t.dept, name: name?.trim() || `${t.name.replace(' (Small)', '')} ${n}`, pos, level: 0, address: address || undefined };
+    if (setup) st.level = Math.max(0, STARTER_KITS[t.dept].vehicles.length - 1); // room for the starter fleet
     c.stations.push(st);
     if (setup) {
       const kit = STARTER_KITS[t.dept];
@@ -394,10 +443,21 @@ export class Game {
     const s = this.station(id);
     if (!s) throw new ActionError('Station not found.');
     const t = stationType(s.typeId);
-    const next = t.levels[s.level + 1];
-    if (!next) throw new ActionError('Station is fully upgraded.');
-    this.spend(next.upgradeCost, 'upgrades', s.dept, `Upgraded ${s.name}`);
+    if (s.level >= t.maxLevel) throw new ActionError(t.small ? 'Small stations max out at 6 bays. Convert it to a full station to keep growing.' : 'Station is at the maximum level.');
+    const cost = this.levelCost(s.level + 1);
+    this.spend(cost, 'upgrades', s.dept, `${s.name}: level ${s.level + 1}`);
     s.level++;
+    this.changed();
+  }
+
+  /** Turn a small station into a full one (keeps its level, vehicles and staff). */
+  convertSmallStation(id: string) {
+    const s = this.station(id);
+    if (!s) throw new ActionError('Station not found.');
+    const t = stationType(s.typeId);
+    if (!t.small || !t.upgradeTo) throw new ActionError('Only small stations can be converted.');
+    this.spend(t.cost, 'upgrades', s.dept, `${s.name}: converted to full station`);
+    s.typeId = t.upgradeTo;
     this.changed();
   }
 
@@ -430,8 +490,8 @@ export class Game {
     const st = this.station(stationId);
     if (!st) throw new ActionError('Station not found.');
     const t = vehicleType(typeId);
-    if (t.dept !== st.dept) throw new ActionError(`${t.name} must be assigned to a ${dept(t.dept).short} station.`);
-    if (t.unlockLevel > this.state.level) throw new ActionError(`Unlocks at level ${t.unlockLevel}.`);
+    if (!this.hostsDept(st, t.dept)) throw new ActionError(`${t.name} needs a ${dept(t.dept).short} station (or a station extension that houses it).`);
+    const needV = this.needStations(this.deptItemRequirement(t), t.dept); if (needV) throw new ActionError(needV + '.');
     if (this.stationVehicles(st.id).length >= this.stationCapacity(st).bays) throw new ActionError('No free vehicle bays. Upgrade the station.');
     this.spend(t.price, 'vehicles', t.dept, `Purchased ${t.name}`);
     const v = this.addVehicle(typeId, st, t.price);
@@ -442,7 +502,7 @@ export class Game {
   reassignVehicle(vehicleId: string, stationId: string) {
     const v = this.vehicle(vehicleId), st = this.station(stationId);
     if (!v || !st) throw new ActionError('Not found.');
-    if (st.dept !== vehicleType(v.typeId).dept) throw new ActionError('Wrong department for this station.');
+    if (!this.hostsDept(st, vehicleType(v.typeId).dept)) throw new ActionError('That station cannot house this vehicle.');
     if (v.stationId === st.id) return;
     if (v.status !== 'available') throw new ActionError('Vehicle must be available at its station.');
     if (this.stationVehicles(st.id).length >= this.stationCapacity(st).bays) throw new ActionError('No free bays at that station.');
@@ -492,7 +552,7 @@ export class Game {
     const quals: string[] = [];
     let salary = d.baseSalaryPerHour * rand(0.92, 1.08);
     if (withQualChance && Math.random() < 0.3) {
-      const options = QUALIFICATIONS.filter(q => q.dept === deptId && q.unlockLevel <= this.state.level);
+      const options = QUALIFICATIONS.filter(q => q.dept === deptId && this.stationCount(deptId) >= this.deptItemRequirement(q));
       if (options.length) { quals.push(pick(options).id); salary *= 1.12; }
     }
     const count = this.city.employees.filter(e => e.dept === deptId).length + 1;
@@ -545,7 +605,6 @@ export class Game {
       const v = this.vehicle(vehicleId);
       if (!v) throw new ActionError('Vehicle not found.');
       const t = vehicleType(v.typeId);
-      if (t.dept !== e.dept) throw new ActionError('Wrong department.');
       if (v.stationId !== e.stationId) throw new ActionError('Employee must be at the same station.');
       if (!this.vehicleAtStation(v)) throw new ActionError(`${v.name} is out on a call.`);
       if (this.crew(v.id).length >= this.crewCap(t.maxCrew)) throw new ActionError(`${v.name} is fully crewed.`);
@@ -603,8 +662,7 @@ export class Game {
     const e = this.employee(empId);
     const q = qualification(qualId);
     if (!e || !q) throw new ActionError('Not found.');
-    if (q.dept !== e.dept) throw new ActionError('Wrong department.');
-    if (q.unlockLevel > this.state.level) throw new ActionError(`Unlocks at level ${q.unlockLevel}.`);
+    const needQ = this.needStations(this.deptItemRequirement(q), q.dept); if (needQ) throw new ActionError(needQ + '.');
     if (e.quals.includes(qualId)) throw new ActionError('Already qualified.');
     if (e.training) throw new ActionError('Already in training.');
     const cur = e.vehicleId ? this.vehicle(e.vehicleId) : null;
@@ -904,14 +962,15 @@ export class Game {
 
   // ------------------------------------------------------------ cities
   citySlots() {
-    const unlocked = CITY_SLOT_LEVELS.filter(l => l <= this.state.level).length;
+    const total = Object.values(this.state.cities).reduce((a, c) => a + c.stations.length, 0);
+    const unlocked = CITY_SLOT_LEVELS.filter(l => l <= total).length;
     const used = Object.keys(this.state.cities).length;
     const nextLevel = CITY_SLOT_LEVELS[used] ?? null;
     return { unlocked, used, nextLevel, canAdd: used < unlocked };
   }
 
   addCity(def: CityDef) {
-    if (!this.citySlots().canAdd) throw new ActionError(`Your next city unlocks at level ${this.citySlots().nextLevel}.`);
+    if (!this.citySlots().canAdd) throw new ActionError(`Your next city unlocks at ${this.citySlots().nextLevel} total stations.`);
     if (this.state.cities[def.id]) throw new ActionError('You already run that city.');
     if (!CITIES.some(c => c.id === def.id)) this.state.cityDefs[def.id] = def;
     const cs = newCityState(def.id);
@@ -935,10 +994,10 @@ export class Game {
     const add = (k: string, n: number) => (c.accrual[k] = (c.accrual[k] || 0) + n);
     const salary = this.mod('salary'), contract = this.mod('contract'), maintM = this.mod('maintenance');
     const costs = this.state.settings.runningCosts !== false;
-    if (costs) for (const e of c.employees) add(`payroll|${e.dept}`, e.salaryPerHour * salary * h);
+    void salary; // payroll removed: staff have no wages
     for (const s of c.stations) {
       const t = stationType(s.typeId);
-      if (costs) add(`station upkeep|${s.dept}`, t.upkeepPerHour * (1 + s.level * 0.35) * h);
+      if (costs) add(`station upkeep|${s.dept}`, t.upkeepPerHour * (1 + s.level * 0.05) * h);
       if (this.setupDone) add(`city contract|${s.dept}`, -t.contractPerHour * contract * h);
     }
     for (const id of c.agreements || []) {
@@ -1205,7 +1264,7 @@ export class Game {
   /** Incident types the player can currently be sent (unlocked and staffed departments). */
   eligibleTypes() {
     return INCIDENT_TYPES.filter(t =>
-      t.unlockLevel <= this.state.level &&
+      this.stationCount() >= t.unlockLevel &&
       t.requirements.every(r => this.hasDept(CAPABILITIES.find(c => c.id === r.cap)!.dept)));
   }
 
@@ -1331,10 +1390,10 @@ export class Game {
   hourlyCosts() {
     const c = this.city;
     let payroll = 0, upkeep = 0, maint = 0, contract = 0;
-    c.employees.forEach(e => (payroll += e.salaryPerHour * this.mod('salary')));
+    // staff have no wages
     c.stations.forEach(s => {
       const t = stationType(s.typeId);
-      upkeep += t.upkeepPerHour * (1 + s.level * 0.35);
+      upkeep += t.upkeepPerHour * (1 + s.level * 0.05);
       contract += t.contractPerHour * this.mod('contract');
     });
     for (const id of c.agreements || []) { const a = AGREEMENTS.find(x => x.id === id); if (a && this.agreementActive(id)) contract += a.incomePerHour * this.mod('contract'); }

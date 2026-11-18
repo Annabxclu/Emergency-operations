@@ -2,6 +2,14 @@
 // Change a value, rebuild (npm run build:pages), and push.
 
 export const TUNING = {
+  /** Cost of each station level (index 0 = level 1). Levels past the list use the last value. */
+  levelCosts: [10000, 50000, 100000],
+  /** After this many stations of one type, new ones cost `bigNetworkMultiplier` x and rise a little each time. */
+  priceRiseAfter: 24,
+  bigNetworkMultiplier: 3,
+  /** Personnel capacity per vehicle bay. */
+  staffPerBay: 8,
+
   startingMoney: 0,
 
   /** Daily login bonus: day N pays N × base, up to `days`, then starts over at day 1. */

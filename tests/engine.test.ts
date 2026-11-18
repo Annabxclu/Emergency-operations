@@ -1,5 +1,5 @@
 // Headless test of the full gameplay loop with a fake road network.
-import { Game, newGameState, missingRequirements, xpForLevel } from '../src/engine/game';
+import { Game, newGameState, missingRequirements, xpForLevel, migrate } from '../src/engine/game';
 import type { LatLng, RoutingProvider } from '../src/engine/types';
 import { distanceM } from '../src/engine/geo';
 import { vehicleType } from '../src/data/departments';
@@ -35,19 +35,26 @@ async function run(g: Game, seconds: number, step = 1) {
   g.placeStation('ems_station', [33.76, -84.37]);
   assert(g.setupDone, 'setup complete after three stations');
   assert(c().money === 0, 'new game starts at $0; starter stations are free');
-  c().money = 100000; // test funds for the purchases below
+  c().money = 200000; // test funds for the purchases below
   assert(c().vehicles.length === 4 && c().employees.length === 12, 'starter kit: 4 vehicles, 12 personnel');
   assert(c().vehicles.every(v => g.staffingProblem(v) === null), 'all starter vehicles staffed');
 
   // Build a second fire station and buy an engine.
   const st = g.placeStation('fire_station', [33.78, -84.40]);
-  assert(c().money === 40000, 'fire station costs $60,000');
+  assert(c().money === 100000, 'fire station costs $100,000');
+  assert(g.stationCapacity(st).bays === 1, 'a new station starts with 1 bay');
   const eng = g.buyVehicle('engine', st.id);
-  assert(c().money === 15000, 'engine costs $25,000');
+  assert(c().money === 75000, 'engine costs $25,000');
   assert(g.staffingProblem(eng) !== null, 'new engine with no staff is unstaffed');
   threw = false;
-  try { g.buyVehicle('ladder', st.id); } catch { threw = true; }
-  assert(threw, 'ladder locked at level 1');
+  try { g.buyVehicle('heavy_rescue', st.id); } catch { threw = true; }
+  assert(threw, 'heavy rescue needs 3 fire stations');
+  g.upgradeStation(st.id);
+  assert(c().money === 65000 && g.stationCapacity(st).bays === 2, 'level 1 costs $10,000 and adds a bay');
+  g.upgradeStation(st.id);
+  assert(c().money === 15000 && g.stationCapacity(st).bays === 3, 'level 2 costs $50,000');
+  assert(g.levelCost(3) === 100000 && g.levelCost(39) === 100000, 'levels 3+ cost $100,000');
+  c().money = 100000;
 
   // Hire crew for it.
   for (let i = 0; i < 3; i++) g.hire(st.id, g.candidates(st.id)[0]);
@@ -62,7 +69,7 @@ async function run(g: Game, seconds: number, step = 1) {
   g.dispatch(inc!.id, rec.ids);
   const amb = g.vehicle(rec.ids[0])!;
   assert(amb.status === 'dispatched', 'ambulance dispatched (turnout)');
-  await run(g, 50);
+  for (let i = 0; i < 120 && amb.status !== 'enroute'; i++) { g.tick(1); await flush(); }
   assert(amb.status === 'enroute' && amb.route && amb.route.coords.length === 3, 'en route on road geometry after turnout');
   const expect = amb.route!.distanceM / (55 * 0.44704) / g.state.settings.travelMult!;
   assert(Math.abs(amb.route!.durationS - expect) < 1, `fixed speed: ambulance at 55 mph × driving-speed setting (${Math.round(amb.route!.durationS)}s for ${Math.round(amb.route!.distanceM)}m)`);
@@ -70,7 +77,7 @@ async function run(g: Game, seconds: number, step = 1) {
   assert(Math.abs(g.travelSeconds(vehicleType('bls'), 1000, 120) - 120 / 1.3 / g.state.settings.travelMult!) < 0.01, 'realistic option uses road time with lights & sirens factor');
   g.state.settings.travelModel = 'fixed';
   const p0 = amb.pos;
-  await run(g, 5);
+  g.tick(1);
   assert(distanceM(p0, amb.pos) > 1, 'vehicle position advances along route');
   await run(g, 3000);
   assert(c().resolved.some(i => i.id === inc!.id), 'incident resolved');
@@ -104,7 +111,8 @@ async function run(g: Game, seconds: number, step = 1) {
   assert(xpForLevel(2) > 0 && xpForLevel(3) > xpForLevel(2), 'xp curve increasing');
 
   // Hourly costs were posted.
-  assert((c().finance.total.expense['payroll'] || 0) > 0, 'payroll charged');
+  assert(!(c().finance.total.expense['payroll']), 'no payroll for staff');
+  assert((c().finance.total.expense['station upkeep'] || 0) > 0, 'station upkeep charged when running costs are on');
   assert((c().finance.total.income['city contract'] || 0) > 0, 'city contract income paid');
   assert((c().finance.total.expense['fuel'] || 0) > 0, 'fuel charged');
 
@@ -122,6 +130,7 @@ async function run(g: Game, seconds: number, step = 1) {
 
   // Major event spawns child calls (force-unlock levels for the test).
   g.state.level = 12;
+  (g as any).deptRequirement = () => 0; (g as any).deptItemRequirement = () => 1; // unlock everything for these tests
   (g.city as any).money = 1e7;
   for (const d of ['emergency', 'public_works']) g.placeStation(d === 'emergency' ? 'eoc' : 'public_works_yard', [33.75, -84.38]);
   (g.city as any).money = 1e7;
@@ -147,8 +156,17 @@ async function run(g: Game, seconds: number, step = 1) {
   assert(g.state.research.done.includes('cad') && Math.abs(g.mod('turnout') - 0.85) < 1e-9, 'research completes and applies its modifier');
   const fs = c().stations.find(x => x.dept === 'fire')!;
   const bays0 = g.stationCapacity(fs).bays;
-  g.buildExtension(fs.id, 'bays');
-  assert(g.stationCapacity(fs).bays === bays0 + 2, 'bay extension adds 2 bays');
+  (g.city as any).money = 1e8;
+  while (c().stations.filter(x => x.typeId === 'fire_station').length < 10) g.placeStation('fire_station', [33.68, -84.44]);
+  const fireCount = c().stations.filter(x => x.typeId === 'fire_station').length;
+  assert(fireCount >= 10, `have ${fireCount} fire stations`);
+  g.buildExtension(fs.id, 'large');
+  assert(g.stationCapacity(fs).bays === bays0 + 10, 'Large Station extension adds 10 bays');
+  let threwL = false; try { g.buildExtension(c().stations.filter(x => x.typeId === 'fire_station')[1].id, 'large'); } catch { threwL = true; }
+  assert(threwL === (fireCount < 20), 'only one Large Station per 10 fire stations');
+  g.buildExtension(fs.id, 'ems_ext');
+  const ambAtFire = g.buyVehicle('bls', fs.id);
+  assert(ambAtFire.stationId === fs.id, 'Ambulance Extension lets a fire station house an ambulance');
   assert(c().goals && c().goals!.list.length === 3, `3 daily goals: ${c().goals!.list.map(x => x.label).join('; ')}`);
   g.placeStation('fire_station', [33.70, -84.42]); g.placeStation('fire_station', [33.82, -84.36]);
   g.state.level = Math.max(g.state.level, 3);
@@ -269,6 +287,16 @@ async function run(g: Game, seconds: number, step = 1) {
     for (let i = 0; i < 2000 && call!.status !== 'working'; i++) { g7.tick(1); if (i % 10 === 0) await flush(); }
     const leftAfter = call!.workUntil! - g7.state.time;
     assert(Math.abs(leftAfter - leftBefore) < 3, `work resumed with progress kept (${Math.round(leftBefore)}s -> ${Math.round(leftAfter)}s left)`);
+  }
+
+  // Old saves: station levels convert to one-bay-per-level without losing capacity.
+  {
+    const old = JSON.parse(JSON.stringify(newGameState()));
+    old.schema = 1;
+    const cs = old.cities[old.activeCity];
+    cs.stations.push({ id: 's1', typeId: 'police_precinct', dept: 'police', name: 'P', pos: [33.7, -84.4], level: 1 });
+    const m = migrate(old);
+    assert(m.cities[m.activeCity].stations[0].level === 4, 'old police level 2 (5 bays) becomes level 4 (5 bays)');
   }
 
   // Save round trip.

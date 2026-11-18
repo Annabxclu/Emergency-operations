@@ -13,7 +13,8 @@ export function RealStationPanel({ id }: { id: string }) {
   const d = dept(r.dept);
   const t = stationTypeForDept(r.dept);
   const setupDept = !game.setupDone;
-  const locked = d.unlockLevel > game.state.level;
+  const need = game.needStations(game.deptRequirement(d.id));
+  const locked = !!need;
   return (
     <div>
       <Header title={<><span className="st-ico inline" style={{ background: d.color }} dangerouslySetInnerHTML={{ __html: glyph(r.dept, 13) }} /> {r.name}</>}
@@ -21,13 +22,13 @@ export function RealStationPanel({ id }: { id: string }) {
       <p className="hint">This is a real station from OpenStreetMap. Build your own {t.name.toLowerCase()} on the same spot to mirror the city's real network.</p>
       <Section>
         <div className="actions">
-          <Btn kind="primary" disabled={setupDept || locked || game.city.money < t.cost} testid="build-real"
+          <Btn kind="primary" disabled={setupDept || locked || game.city.money < game.stationPrice(t.id)} testid="build-real"
             onClick={() => startBuild(t.id, { pos: r.pos, name: r.name, address: r.address })}>
-            Build {t.name} here · {money(t.cost)}
+            Build {t.name} here · {money(game.stationPrice(t.id))}
           </Btn>
         </div>
         {setupDept && <p className="hint">Finish placing your starter stations first — you can tap real stations while placing them to use their spots.</p>}
-        {locked && <p className="hint">{d.name} unlocks at level {d.unlockLevel}.</p>}
+        {locked && <p className="hint">{d.name}: {need?.toLowerCase()}.</p>}
       </Section>
     </div>
   );

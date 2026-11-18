@@ -25,18 +25,32 @@ export const RESEARCH: ResearchDef[] = [
   { id: 'excellence', name: 'Service Excellence Program', desc: 'Call rewards +15%.', cost: 200000, hours: 48, unlockLevel: 10, requires: 'analytics', effects: { reward: 1.15 } },
 ];
 
-export interface ExtensionDef { id: string; name: string; desc: string; cost: number; bays?: number; staff?: number; feature?: 'academy' | 'cells' }
+export interface ExtensionDef {
+  id: string; name: string; desc: string; cost: number;
+  bays?: number;                        // extra vehicle bays
+  allowsDept?: string;                  // lets this station house another department's vehicles
+  feature?: 'academy' | 'cells';
+  perStations?: number;                 // limit: one per this many stations of the same type
+}
 
-const COMMON: ExtensionDef[] = [
-  { id: 'bays', name: 'Additional Vehicle Bays', desc: '+2 vehicle bays.', cost: 30000, bays: 2 },
-  { id: 'quarters', name: 'Expanded Quarters', desc: '+6 personnel capacity.', cost: 20000, staff: 6 },
-  { id: 'training_room', name: 'Training Room', desc: 'Staff based here train 30% faster.', cost: 25000, feature: 'academy' },
-];
+const LARGE: ExtensionDef = { id: 'large', name: 'Large Station', desc: '+10 vehicle bays. One per 10 stations of this type.', cost: 1000000, bays: 10, perStations: 10 };
+const TRAINING: ExtensionDef = { id: 'training_room', name: 'Training Room', desc: 'Staff based here train 30% faster.', cost: 25000, feature: 'academy' };
 
 export const EXTENSIONS: Record<string, ExtensionDef[]> = {
-  police_precinct: [...COMMON, { id: 'cells', name: 'Holding Cells', desc: 'Prisoner transports to this precinct pay 50% more.', cost: 35000, feature: 'cells' }],
+  fire_station: [
+    { id: 'ems_ext', name: 'Ambulance Extension', desc: 'House EMS vehicles (ambulances) at this fire station.', cost: 100000, allowsDept: 'ems' },
+    { id: 'water_ext', name: 'Water Rescue Extension', desc: 'House rescue boats and dive teams here.', cost: 200000, allowsDept: 'water' },
+    { id: 'pw_ext', name: 'Public Works Extension', desc: 'House public works crews here.', cost: 150000, allowsDept: 'public_works' },
+    LARGE, TRAINING,
+  ],
+  police_precinct: [
+    { id: 'cells', name: 'Holding Cells', desc: 'Prisoner transports to this station pay 50% more.', cost: 25000, feature: 'cells' },
+    { id: 'special_ext', name: 'Tactical Extension', desc: 'House Special Operations vehicles here.', cost: 250000, allowsDept: 'special' },
+    LARGE, TRAINING,
+  ],
+  ems_station: [LARGE, TRAINING],
 };
-export const extensionsFor = (stationTypeId: string): ExtensionDef[] => EXTENSIONS[stationTypeId] || COMMON;
+export const extensionsFor = (stationTypeId: string): ExtensionDef[] => EXTENSIONS[stationTypeId] || (stationTypeId.endsWith('_small') ? [] : [TRAINING]);
 
 export interface AgreementDef { id: string; name: string; desc: string; dept: string; stations: number; extraDept?: string; incomePerHour: number; signCost: number; unlockLevel: number }
 

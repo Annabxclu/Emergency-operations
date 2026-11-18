@@ -25,27 +25,22 @@ export const DEPARTMENTS: DepartmentDef[] = [
     ranks: ['Responder', 'Specialist', 'Team Lead', 'Division Chief'] },
 ];
 
-const lv = (b: number[], s: number[], c: number[]) => b.map((bays, i) => ({ bays, staff: s[i], upgradeCost: c[i] }));
-
+// Every level adds one vehicle bay: normal fire/police/EMS stations go to level 39 = 40 bays.
+// Small stations are cheaper, stop at level 5 (6 bays), take no extensions and can be
+// converted into a normal station later.
 export const STATION_TYPES: StationTypeDef[] = [
-  { id: 'fire_station', dept: 'fire', name: 'Fire Station', cost: 60000, upkeepPerHour: 60, contractPerHour: 70, coverageKm: 3.5,
-    levels: lv([2, 3, 4, 6], [10, 14, 18, 26], [0, 25000, 40000, 65000]) },
-  { id: 'police_precinct', dept: 'police', name: 'Police Precinct', cost: 50000, upkeepPerHour: 50, contractPerHour: 60, coverageKm: 4,
-    levels: lv([3, 5, 7, 10], [8, 12, 16, 24], [0, 20000, 35000, 55000]) },
-  { id: 'ems_station', dept: 'ems', name: 'EMS Station', cost: 35000, upkeepPerHour: 40, contractPerHour: 50, coverageKm: 4.5,
-    levels: lv([2, 3, 4, 6], [6, 9, 12, 18], [0, 15000, 28000, 45000]) },
-  { id: 'public_works_yard', dept: 'public_works', name: 'Public Works Yard', cost: 55000, upkeepPerHour: 45, contractPerHour: 55, coverageKm: 6,
-    levels: lv([2, 4, 6], [6, 10, 14], [0, 25000, 40000]) },
-  { id: 'water_rescue_station', dept: 'water', name: 'Water Rescue Station', cost: 75000, upkeepPerHour: 55, contractPerHour: 60, coverageKm: 7,
-    levels: lv([2, 3, 4], [6, 9, 12], [0, 30000, 45000]) },
-  { id: 'air_base', dept: 'air', name: 'Air Support Base', cost: 250000, upkeepPerHour: 140, contractPerHour: 120, coverageKm: 20,
-    levels: lv([1, 2, 3], [4, 8, 12], [0, 120000, 180000]) },
-  { id: 'special_ops_base', dept: 'special', name: 'Special Operations Base', cost: 140000, upkeepPerHour: 90, contractPerHour: 90, coverageKm: 10,
-    levels: lv([2, 3, 4], [8, 12, 16], [0, 50000, 80000]) },
-  { id: 'eoc', dept: 'emergency', name: 'Emergency Operations Center', cost: 160000, upkeepPerHour: 100, contractPerHour: 110, coverageKm: 15,
-    levels: lv([2, 3, 4], [6, 9, 12], [0, 60000, 90000]) },
-  { id: 'disaster_center', dept: 'disaster', name: 'Disaster Response Center', cost: 200000, upkeepPerHour: 110, contractPerHour: 110, coverageKm: 15,
-    levels: lv([2, 3, 4], [8, 12, 16], [0, 70000, 100000]) },
+  { id: 'fire_station', dept: 'fire', name: 'Fire Station', cost: 100000, maxLevel: 39, upkeepPerHour: 60, contractPerHour: 70, coverageKm: 3.5 },
+  { id: 'fire_station_small', dept: 'fire', name: 'Fire Station (Small)', cost: 50000, maxLevel: 5, upkeepPerHour: 35, contractPerHour: 40, coverageKm: 3, small: true, upgradeTo: 'fire_station' },
+  { id: 'police_precinct', dept: 'police', name: 'Police Station', cost: 100000, maxLevel: 39, upkeepPerHour: 50, contractPerHour: 60, coverageKm: 4 },
+  { id: 'police_precinct_small', dept: 'police', name: 'Police Station (Small)', cost: 50000, maxLevel: 5, upkeepPerHour: 30, contractPerHour: 35, coverageKm: 3.5, small: true, upgradeTo: 'police_precinct' },
+  { id: 'ems_station', dept: 'ems', name: 'EMS Station', cost: 100000, maxLevel: 39, upkeepPerHour: 40, contractPerHour: 50, coverageKm: 4.5 },
+  { id: 'ems_station_small', dept: 'ems', name: 'EMS Station (Small)', cost: 50000, maxLevel: 5, upkeepPerHour: 25, contractPerHour: 30, coverageKm: 4, small: true, upgradeTo: 'ems_station' },
+  { id: 'public_works_yard', dept: 'public_works', name: 'Public Works Yard', cost: 100000, maxLevel: 14, upkeepPerHour: 45, contractPerHour: 55, coverageKm: 6 },
+  { id: 'water_rescue_station', dept: 'water', name: 'Water Rescue Station', cost: 150000, maxLevel: 14, upkeepPerHour: 55, contractPerHour: 60, coverageKm: 7 },
+  { id: 'air_base', dept: 'air', name: 'Air Support Base', cost: 500000, maxLevel: 4, upkeepPerHour: 140, contractPerHour: 120, coverageKm: 20 },
+  { id: 'special_ops_base', dept: 'special', name: 'Special Operations Base', cost: 250000, maxLevel: 9, upkeepPerHour: 90, contractPerHour: 90, coverageKm: 10 },
+  { id: 'eoc', dept: 'emergency', name: 'Emergency Operations Center', cost: 300000, maxLevel: 4, upkeepPerHour: 100, contractPerHour: 110, coverageKm: 15 },
+  { id: 'disaster_center', dept: 'disaster', name: 'Disaster Response Center', cost: 300000, maxLevel: 9, upkeepPerHour: 110, contractPerHour: 110, coverageKm: 15 },
 ];
 
 export const CAPABILITIES: CapabilityDef[] = [
@@ -181,4 +176,4 @@ export const stationType = (id: string) => STATION_TYPES.find(s => s.id === id)!
 export const vehicleType = (id: string) => VEHICLE_TYPES.find(v => v.id === id)!;
 export const capability = (id: string) => CAPABILITIES.find(c => c.id === id)!;
 export const qualification = (id: string) => QUALIFICATIONS.find(q => q.id === id)!;
-export const stationTypeForDept = (d: string) => STATION_TYPES.find(s => s.dept === d)!;
+export const stationTypeForDept = (d: string) => STATION_TYPES.find(s => s.dept === d && !s.small)!;

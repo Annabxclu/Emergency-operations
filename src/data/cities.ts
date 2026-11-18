@@ -51,5 +51,5 @@ export const CITIES: CityDef[] = [
 
 export const city = (id: string) => CITIES.find(c => c.id === id)!;
 
-/** Levels at which the player can run an additional city (first city is free). */
-export const CITY_SLOT_LEVELS = [1, 5, 10, 15, 20];
+/** Total stations (all cities) needed to run each additional city. The first city is free. */
+export const CITY_SLOT_LEVELS = [0, 10, 20, 30, 40];
