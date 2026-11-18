@@ -3,6 +3,7 @@ import { Game, newGameState, missingRequirements, xpForLevel, migrate } from '..
 import type { LatLng, RoutingProvider } from '../src/engine/types';
 import { distanceM } from '../src/engine/geo';
 import { vehicleType } from '../src/data/departments';
+import { INCIDENT_TYPES } from '../src/data/incidents';
 
 let routeCalls = 0;
 const fake: RoutingProvider = {
@@ -313,6 +314,18 @@ async function run(g: Game, seconds: number, step = 1) {
     g8.upgradeStation(fs.id); g8.buildExtension(fs.id, 'airport_ext');
     g8.buyVehicle('arff', fs.id);
     assert(g8.eligibleTypes().some(t => t.requirements.some(r => r.cap === 'arff')), 'owning a crash tender unlocks airport calls');
+  }
+
+  // Real per-mission requirements and one ambulance per patient.
+  {
+    const methane = INCIDENT_TYPES.find(t => t.name === 'Methane explosion')!;
+    const need = (cap: string) => methane.requirements.find(r => r.cap === cap)?.count;
+    assert(need('engine') === 10 && need('ladder') === 2 && need('foam') === 3 && need('air_unit') === 2, 'Methane explosion uses the real requirements');
+    const cpr = INCIDENT_TYPES.find(t => t.name === 'Carbon monoxide leak (large)')!;
+    let inc = null;
+    for (let i = 0; i < 20 && !(inc && inc.patients > 1); i++) inc = await g.spawnIncident(cpr.id);
+    const amb = inc!.requirements.filter(r => ['ambulance', 'als', 'ccu'].includes(r.cap)).reduce((n, r) => n + r.count, 0);
+    assert(amb >= Math.min(inc!.patients, 10), `patients drive ambulances (${inc!.patients} patients -> ${amb} ambulances)`);
   }
 
   // Save round trip.

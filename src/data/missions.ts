@@ -1,5 +1,6 @@
 import type { IncidentTypeDef, Requirement } from '../engine/types';
 import { CATALOG } from './catalog';
+import { REAL_REQUIREMENTS } from './realRequirements';
 
 // Turns the catalog (credits + station requirements + special units) into playable
 // call types. All the rules for which vehicles a call needs live here.
@@ -94,42 +95,119 @@ function category(name: string, f: number, a: number, p: number, extras: Record<
   return 'ems';
 }
 
+
+// ---------------------------------------------------------------- real requirements
+// Codes used in realRequirements.ts -> capability ids.
+const CODE_CAP: Record<string, string> = {
+  ft: 'engine', any: 'engine', pt: 'ladder', fi: 'investigator', bc: 'chief', mc: 'command', ma: 'air_unit',
+  wt: 'water_supply', hr: 'rescue', tr: 'rescue', hz: 'hazmat', pc: 'police', k9: 'k9', ph: 'air_police', sw: 'swat',
+  arff: 'arff', am: 'ambulance', fwk: 'crane', bt: 'boat', fb: 'fireboat', br: 'brush', fd: 'federal', dn: 'drone',
+  bo: 'bomb', iv: 'investigation', gw: 'game_warden', pb: 'police_boat', fo: 'foam', cs: 'coastal', cht: 'coast_heli',
+};
+// Codes -> catalog "extras" keys, so new missions get a sensible category.
+const CODE_EXTRA: Record<string, string> = {
+  fb: 'fbd', bt: 'wre', cs: 'crs', cht: 'chh', pb: 'wpe', fd: 'fed', iv: 'csi', gw: 'warden', br: 'forestry',
+  arff: 'airport', fo: 'foam', fi: 'fmo', bo: 'bomb', dn: 'drone',
+};
+
+export interface RealMission {
+  name: string; credits: number; reqs: Requirement[]; extras: Record<string, number>;
+  patients: [number, number] | null; prisoners: number; prereq: [number, number, number] | null;
+}
+
+export function parseReal(): Map<string, RealMission> {
+  const out = new Map<string, RealMission>();
+  for (const line of REAL_REQUIREMENTS.split('\n')) {
+    if (!line.trim()) continue;
+    const [name, cr, rq = '', pt = '', pr = '', pre = ''] = line.split('|');
+    const reqs: Requirement[] = [];
+    const extras: Record<string, number> = {};
+    for (const tok of rq.split(',').map(t => t.trim()).filter(Boolean)) {
+      const m = tok.match(/^(k9|[a-z]+)(\d+)$/);
+      if (!m) continue;
+      const cap = CODE_CAP[m[1]];
+      const n = Number(m[2]);
+      if (!cap || !n) continue;
+      const ex = reqs.find(r => r.cap === cap);
+      if (ex) ex.count += n; else reqs.push({ cap, count: n });
+      if (CODE_EXTRA[m[1]]) extras[CODE_EXTRA[m[1]]] = n;
+    }
+    const [pMin, pMax] = pt.split('-').map(Number);
+    const patients: [number, number] | null = pMax > 0 ? [pMin || 0, pMax] : null;
+    const ps = pre.split('/').map(Number);
+    const prereq: [number, number, number] | null = ps.length === 3 && ps.every(x => !isNaN(x)) ? [ps[0], ps[1], ps[2]] : null;
+    const key = name.trim().toLowerCase();
+    if (!out.has(key)) out.set(key, { name: name.trim(), credits: Number(cr) || 0, reqs, extras, patients, prisoners: Number(pr) || 0, prereq });
+  }
+  return out;
+}
+
 const slug = (s: string) => 'mc_' + s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDef[] {
   const out: IncidentTypeDef[] = [];
   const seen = new Set<string>();
+  const real = parseReal();
+  const rows: { name: string; credits: number; f: number; a: number; p: number; extras: Record<string, number> }[] = [];
   for (const line of CATALOG.split('\n')) {
     if (!line.trim()) continue;
     const [name, creditsS, fS, aS, pS, extrasS = ''] = line.split(';');
-    const key = name.trim().toLowerCase();
+    rows.push({ name: name.trim(), credits: Number(creditsS) || 0, f: Number(fS) || 0, a: Number(aS) || 0, p: Number(pS) || 0, extras: parseExtras(extrasS) });
+  }
+  // Missions that only appear in the requirements data.
+  const catalogNames = new Set(rows.map(r => r.name.toLowerCase()));
+  for (const [key, r] of real) {
+    if (catalogNames.has(key) || !r.prereq) continue;
+    rows.push({ name: r.name, credits: r.credits, f: r.prereq[0], a: r.prereq[1], p: r.prereq[2], extras: r.extras });
+  }
+  for (const row of rows) {
+    const { name, f, a, p } = row;
+    const key = name.toLowerCase();
     if (existingNames.has(key) || seen.has(key)) continue;
     seen.add(key);
-    const credits = Number(creditsS) || 0;
-    const f = Number(fS) || 0, a = Number(aS) || 0, p = Number(pS) || 0;
-    const extras = parseExtras(extrasS);
+    const r = real.get(key);
+    const extras = { ...row.extras, ...(r?.extras || {}) };
+    const credits = row.credits || r?.credits || 0;
     const n = key;
     const reward = credits || 300 + a * 100;
     const severity: 1 | 2 | 3 = reward < 1000 ? 1 : reward < 5000 ? 2 : 3;
-    const patients = a > 0 ? Math.min(8, Math.max(1, Math.round(a / 2))) : 0;
-    const arrests = p > 0 && has(n, ARREST) ? Math.min(4, Math.max(1, Math.ceil(p / 3))) : 0;
-    const cat = category(name, f, a, p, extras);
+    let requirements: Requirement[];
+    let patients: [number, number] | undefined;
+    let prisoners: [number, number] | undefined;
+    let unlock = Math.max(1, f, a, p);
+    if (r) {
+      requirements = r.reqs.map(x => ({ ...x }));
+      // Calls with only patients still need an ambulance to be dispatchable; the
+      // engine adds one ambulance per patient when the call comes in.
+      if (!requirements.length) requirements.push({ cap: 'ambulance', count: 1 });
+      patients = r.patients ? [Math.min(r.patients[0], 20), Math.min(r.patients[1], 20)] : undefined;
+      prisoners = r.prisoners ? [0, Math.min(r.prisoners, 10)] : undefined;
+      if (r.prereq) unlock = Math.max(1, ...r.prereq);
+    } else {
+      requirements = deriveRequirements(name, f, a, p, extras);
+      const pc = a > 0 ? Math.min(8, Math.max(1, Math.round(a / 2))) : 0;
+      const arrests = p > 0 && has(n, ARREST) ? Math.min(4, Math.max(1, Math.ceil(p / 3))) : 0;
+      patients = pc ? [Math.max(1, pc - 1), pc] : undefined;
+      prisoners = arrests ? [arrests > 1 ? 1 : 0, arrests] : undefined;
+    }
+    const cf = r?.prereq ? r.prereq[0] : f, ca = r?.prereq ? r.prereq[1] : a, cp = r?.prereq ? r.prereq[2] : p;
+    const cat = r && !r.reqs.length ? 'ems' : category(name, cf, r ? (r.reqs.some(x => x.cap === 'ambulance') ? ca : 0) : ca, cp, extras);
     out.push({
       id: slug(name),
-      name: name.trim(),
+      name,
       category: cat,
       severity,
-      descriptions: [`Caller reports: ${name.trim().toLowerCase()}.`],
-      requirements: deriveRequirements(name, f, a, p, extras),
+      descriptions: [`Caller reports: ${name.toLowerCase()}.`],
+      requirements,
       escalation: [],
       deadlineMin: 12,
       workMin: [Math.max(4, Math.min(60, Math.round(reward / 400))), Math.max(6, Math.min(90, Math.round(reward / 250)))],
       reward,
       xp: Math.max(5, Math.round(reward / 50)),
       weight: reward < 1000 ? 5 : reward < 5000 ? 3 : reward < 15000 ? 1.5 : 0.6,
-      unlockLevel: Math.max(1, f, a, p),
-      patients: patients ? [Math.max(1, patients - 1), patients] : undefined,
-      prisoners: arrests ? [arrests > 1 ? 1 : 0, arrests] : undefined,
+      unlockLevel: unlock,
+      patients,
+      prisoners,
     });
   }
   return out;

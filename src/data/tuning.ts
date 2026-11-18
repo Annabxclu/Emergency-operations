@@ -35,6 +35,7 @@ export const TUNING = {
 
   /** Seconds a unit spends handing over a patient (hospital) or suspect (jail). */
   handoverSeconds: 5,
+  maxPatientAmbulances: 10,
 
   /** Multiplier on every call reward (also adjustable in Settings > Tuning). */
   defaultRewardMultiplier: 1,

@@ -1345,6 +1345,15 @@ export class Game {
       reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
       patients: range(t.patients), prisoners: range(t.prisoners), parentId,
     };
+    // One ambulance per patient (capped), like the real game.
+    if (inc.patients > 0 && this.canCover('ambulance')) {
+      const need = Math.min(inc.patients, TUNING.maxPatientAmbulances);
+      const have = inc.requirements.filter(r => ['ambulance', 'als', 'ccu'].includes(r.cap)).reduce((n, r) => n + r.count, 0);
+      if (have < need) {
+        const amb = inc.requirements.find(r => r.cap === 'ambulance');
+        if (amb) amb.count += need - have; else inc.requirements.push({ cap: 'ambulance', count: need - have });
+      }
+    }
     c.incidents.push(inc);
     this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
     this.changed();

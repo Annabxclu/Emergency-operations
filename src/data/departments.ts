@@ -71,7 +71,7 @@ export const CAPABILITIES: CapabilityDef[] = [
   { id: 'air_police', name: 'Police helicopter', dept: 'air' },
   { id: 'bomb', name: 'Bomb squad', dept: 'special' },
   { id: 'usar', name: 'Urban search & rescue', dept: 'special' },
-  { id: 'command', name: 'Mobile command', dept: 'emergency' },
+  { id: 'command', name: 'Mobile command', dept: 'fire' },
   { id: 'logistics', name: 'Logistics unit', dept: 'emergency' },
   { id: 'heavy_equipment', name: 'Heavy equipment', dept: 'disaster' },
   { id: 'relief', name: 'Relief & shelter unit', dept: 'disaster' },
@@ -90,6 +90,7 @@ export const CAPABILITIES: CapabilityDef[] = [
   { id: 'coastal', name: 'Coastal rescue boat', dept: 'water' },
   { id: 'coast_heli', name: 'Coastal rescue helicopter', dept: 'air' },
   { id: 'federal', name: 'Federal agents', dept: 'special' },
+  { id: 'air_unit', name: 'Mobile air unit', dept: 'fire' },
 ];
 
 export const QUALIFICATIONS: QualificationDef[] = [
@@ -183,6 +184,8 @@ VEHICLE_TYPES.push(
   vt({ id: 'fireboat', dept: 'water', name: 'Fireboat', callsign: 'Fireboat', short: 'FB', price: 150000, speedFactor: 1.0, minCrew: 3, maxCrew: 4, caps: ['fireboat'], maintenancePerHour: 18, fuelPerKm: 3, turnoutSec: 100, unlockLevel: 5 }),
   vt({ id: 'coastal_boat', dept: 'water', name: 'Coastal Rescue Boat', callsign: 'Coastal', short: 'CB', price: 120000, speedFactor: 1.1, minCrew: 3, maxCrew: 4, caps: ['coastal'], maintenancePerHour: 15, fuelPerKm: 2.5, turnoutSec: 90, unlockLevel: 4, transport: { kind: 'patient', capacity: 2 } }),
   vt({ id: 'coast_heli', dept: 'air', name: 'Coastal Rescue Helicopter', callsign: 'Coast Air', short: 'CH', price: 400000, speedFactor: 5.5, minCrew: 3, maxCrew: 4, quals: [q('pilot')], caps: ['coast_heli'], maintenancePerHour: 60, fuelPerKm: 6, turnoutSec: 240, unlockLevel: 6, air: true, transport: { kind: 'patient', capacity: 1 } }),
+  vt({ id: 'fire_command', dept: 'fire', name: 'Mobile Command Vehicle', callsign: 'Command', short: 'MCV', price: 30000, speedFactor: 1.0, minCrew: 1, maxCrew: 3, caps: ['command'], maintenancePerHour: 8, fuelPerKm: 1.2, turnoutSec: 90, unlockLevel: 6 }),
+  vt({ id: 'air_unit', dept: 'fire', name: 'Mobile Air Unit', callsign: 'Air Unit', short: 'MA', price: 25000, speedFactor: 1.0, minCrew: 1, maxCrew: 2, caps: ['air_unit'], maintenancePerHour: 6, fuelPerKm: 1.1, turnoutSec: 80, unlockLevel: 5 }),
   vt({ id: 'federal_unit', dept: 'special', name: 'Federal Agents', callsign: 'Federal', short: 'FA', price: 30000, speedFactor: 1.3, minCrew: 2, maxCrew: 4, caps: ['federal'], maintenancePerHour: 5, fuelPerKm: 0.6, turnoutSec: 90, unlockLevel: 7 }),
 );
 
@@ -194,7 +197,7 @@ const MPH: Record<string, number> = {
   road_crew: 40, tree_crew: 40, signal_crew: 45, rescue_boat: 45, dive_team: 50,
   med_heli: 150, police_heli: 160, bomb_squad: 50, usar: 40, mobile_command: 40, logistics: 45, heavy_equipment: 30, relief_unit: 45,
   arff: 55, foam_tender: 40, fire_investigator: 60, fire_crane: 35, riot_unit: 55, police_drone: 60, game_warden: 55, police_boat: 45,
-  tow_truck: 50, rotator: 40, flood_unit: 40, fireboat: 40, coastal_boat: 45, coast_heli: 150, federal_unit: 60,
+  tow_truck: 50, rotator: 40, flood_unit: 40, fireboat: 40, coastal_boat: 45, coast_heli: 150, federal_unit: 60, fire_command: 45, air_unit: 45,
 };
 VEHICLE_TYPES.forEach(v => { v.mph = MPH[v.id] ?? 45; });
 
