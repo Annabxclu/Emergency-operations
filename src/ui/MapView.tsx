@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import type { Game } from '../engine/game';
 import type { LatLng, Vehicle } from '../engine/types';
 import { dept, stationType, vehicleType } from '../data/departments';
-import { CATEGORY_DEPT } from '../data/incidents';
 import { glyph } from './icons';
 
 declare const L: any; // Leaflet, loaded from CDN in index.html
@@ -156,7 +155,6 @@ export function MapView(props: Props) {
       // Incidents
       const iIds = new Set<string>();
       for (const inc of c.incidents) {
-        if (!filt[CATEGORY_DEPT[inc.category]]) continue;
         iIds.add(inc.id);
         let m = markers.incidents.get(inc.id);
         if (!m) { m = clickable(L.marker(inc.pos, { zIndexOffset: 300 }), { kind: 'incident', id: inc.id }); layers.incidents.addLayer(m); markers.incidents.set(inc.id, m); }
@@ -172,8 +170,7 @@ export function MapView(props: Props) {
       // Vehicles (only those away from their station) and their routes
       const vIds = new Set<string>(), rIds = new Set<string>();
       for (const v of c.vehicles) {
-        const t = vehicleType(v.typeId);
-        if (!filt[t.dept]) continue;
+        const t = vehicleType(v.typeId); // department buttons only hide stations; moving units always show
         const away = ['enroute', 'onscene', 'returning', 'transporting', 'handover'].includes(v.status);
         if (away) {
           vIds.add(v.id);

@@ -87,3 +87,21 @@ export function StatusCode(p: { status: string; label?: boolean }) {
   if (!st) return null;
   return <span className="scode-wrap"><span className="scode" style={{ background: st.color }}>{st.code}</span>{p.label !== false && <span className="scode-l">{st.label}</span>}</span>;
 }
+
+// Buttons that expand when tapped (Settings, station screens). Open groups are
+// remembered while the app is open (e.g. after visiting Missions and coming back).
+const openGroups = new Set<string>();
+export function Group({ id, title, sub, children }: { id: string; title: string; sub?: string; children: any }) {
+  const [open, setOpen] = useState(openGroups.has(id));
+  const toggle = () => { if (open) openGroups.delete(id); else openGroups.add(id); setOpen(!open); };
+  return (
+    <div className={`set-group ${open ? 'open' : ''}`}>
+      <button className="set-group-head" onClick={toggle} data-testid={`group-${id}`} aria-expanded={open}>
+        <div className="grow"><div className="row-title">{title}</div>{sub && <div className="row-sub">{sub}</div>}</div>
+        <span className="chev">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && <div className="set-group-body">{children}</div>}
+    </div>
+  );
+}
+

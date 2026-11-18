@@ -10,8 +10,9 @@ KEY={'firetrucks':'ft','platform_trucks':'pt','battalion_chief_vehicles':'bc','m
 'crime_scene_unit':'csu','game_warden':'gw','foam':'fo','coastal_boat':'cs','large_coastal_boat':'cs','coastal_helicopter':'cht',
 'fwk':'fwk','flood_equipment':'fl','detention_unit':'pv','riot_police':'rt','mcc':'pm','elw_police':'pm','water_rescue':'lg',
 'police_boat':'pb'}
-IGNORE={'riot_police_trailer','coastal_plane','fire_aviation','coastal_command','brush_air_command','none','','-'}
-SEASON=re.compile(r'christmas|halloween|pumpkin|zombie|witch|frankenstein|candy|easter|bunny|valentin|leprechaun|patrick|shamrock|firework|firecracker|new year|thanksgiving|turkey|carnival|santa|advent|snowman|cupid|teddy|proposing|heart stolen|broken heart|butterflies|chocolate|soccer ball|corner flag|captain armband|trophy|team bus|celebrating|hitting bar|after diving|ice spray|goal fell|anniversary|fondue',re.I)
+IGNORE={'none','','-'}
+KEY.update({'riot_police_trailer':'rpt','coastal_plane':'cpl','fire_aviation':'fav','coastal_command':'ccm','brush_air_command':'bac'})
+SEASON=re.compile(r'christmas|halloween|pumpkin|zombie|\bwitch\b|frankenstein|candy|easter|bunny|valentin|leprechaun|patrick|shamrock|firework|firecracker|new year|thanksgiving|turkey|carnival|santa|advent|snowman|cupid|teddy|proposing|heart stolen|broken heart|butterflies|chocolate|soccer ball|corner flag|captain armband|trophy|team bus|celebrating|hitting bar|after diving|ice spray|goal fell|anniversary|fondue',re.I)
 raw={}; unknown=set()
 for f in sorted(glob.glob('scripts/mc-raw/*.txt')):
   for line in open(f):

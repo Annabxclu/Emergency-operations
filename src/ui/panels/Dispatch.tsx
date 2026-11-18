@@ -126,8 +126,7 @@ export function IncidentDetail({ id }: { id: string }) {
   const candidates = game.city.vehicles
     .filter(v => v.incidentId == null && (v.status === 'available' || v.status === 'returning' || v.status === 'out_of_service' || v.status === 'maintenance'))
     .map(v => ({ v, eta: game.etaEstimate(v, inc.pos), problem: game.dispatchProblem(v) }))
-    .sort((a, b) => (a.problem ? 1 : 0) - (b.problem ? 1 : 0) || a.eta - b.eta)
-    .slice(0, 30);
+    .sort((a, b) => (a.problem ? 1 : 0) - (b.problem ? 1 : 0) || a.eta - b.eta); // every unit, no distance limit
 
   const toggle = (v: Vehicle) => {
     const n = new Set(sel);
@@ -136,7 +135,7 @@ export function IncidentDetail({ id }: { id: string }) {
   };
   const followCands = game.followUpCandidates(inc.id)
     .map(v => ({ v, d: distanceM(v.pos, inc.pos) }))
-    .sort((a, b) => a.d - b.d).slice(0, 20);
+    .sort((a, b) => a.d - b.d);
   const queued = game.followUpsFor(inc.id);
   const selFollow = [...sel].filter(i => followCands.some(c => c.v.id === i));
   const allUnits = [...candidates.map(c => c.v), ...followCands.map(c => c.v)];

@@ -56,7 +56,7 @@ export const EXTENSIONS: Record<string, ExtensionDef[]> = {
   police_precinct: [
     { id: 'cells', name: 'Holding Cells', desc: 'Prisoner transports to this station pay 50% more.', cost: 25000, feature: 'cells' },
     { id: 'special_ext', name: 'Tactical Extension', desc: 'House Special Operations vehicles here.', cost: 250000, allowsDept: 'special' },
-    { id: 'riot_ext', name: 'Riot Police Extension', desc: 'House riot control units.', cost: 200000, allowsVehicles: ['riot_unit', 'riot_bus'] },
+    { id: 'riot_ext', name: 'Riot Police Extension', desc: 'House riot control units.', cost: 200000, allowsVehicles: ['riot_unit', 'riot_bus', 'riot_trailer'] },
     { id: 'federal_ext', name: 'Federal Police Expansion', desc: 'House FBI investigation wagons, bomb technicians and surveillance drones.', cost: 200000, allowsVehicles: ['fbi_wagon', 'fbi_bomb_tech', 'fbi_drone'] },
     { id: 'police_tow_ext', name: 'Tow Truck Expansion', desc: 'House police wreckers.', cost: 100000, allowsVehicles: ['police_wrecker'] },
     { id: 'crime_ext', name: 'Crime Scene and Investigation Extension', desc: 'House detective vehicles and crime scene units.', cost: 100000, allowsVehicles: ['detective', 'crime_scene_unit'] },

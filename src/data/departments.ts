@@ -102,6 +102,12 @@ export const CAPABILITIES: CapabilityDef[] = [
   { id: 'light_supply', name: 'Light tower', dept: 'fire' },
   { id: 'energy_supply', name: 'Generator', dept: 'fire' },
   { id: 'fire_prevention', name: 'Fire prevention', dept: 'fire' },
+  { id: 'smoke_jumpers', name: 'Smoke jumper crew', dept: 'fire' },
+  { id: 'riot_trailer', name: 'Riot police trailer', dept: 'police' },
+  { id: 'coastal_plane', name: 'Coastal patrol plane', dept: 'air' },
+  { id: 'fire_aviation', name: 'Fire aviation (air tanker)', dept: 'air' },
+  { id: 'coastal_command', name: 'Coastal command', dept: 'water' },
+  { id: 'air_attack', name: 'Air attack (brush air command)', dept: 'air' },
 ];
 
 export const QUALIFICATIONS: QualificationDef[] = [
@@ -116,6 +122,7 @@ export const QUALIFICATIONS: QualificationDef[] = [
   { id: 'lifeguard', name: 'Lifeguard Training', dept: 'fire', cost: 3000, hours: 8, unlockLevel: 1 },
   { id: 'lifeguard_supervisor', name: 'Lifeguard Supervisor', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
   { id: 'swift_water', name: 'Swift Water Rescue', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
+  { id: 'smoke_jumper', name: 'Smoke Jumper Training', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
   { id: 'truck_license', name: 'Truck Drivers License', dept: 'fire', cost: 2000, hours: 6, unlockLevel: 1 },
   { id: 'traffic_control', name: 'Traffic Control Training', dept: 'fire', cost: 2000, hours: 6, unlockLevel: 1 },
   { id: 'police_supervisor', name: 'Police Supervisor', dept: 'police', cost: 5000, hours: 12, unlockLevel: 1, neededAt: 7 },
@@ -242,7 +249,7 @@ VEHICLE_TYPES.push(
   vt({ id: 'generator_trailer', dept: 'fire', name: 'Energy Generator Trailer', callsign: 'Generator', short: 'GT', price: 10000, speedFactor: 1.1, minCrew: 0, maxCrew: 0, caps: ['energy_supply'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, towedBy: ['utility_unit', 'chief', 'engine', 'type2_engine', 'heavy_rescue'], needsExt: true }),
   vt({ id: 'firewrecker', dept: 'fire', name: 'Firewrecker', callsign: 'Wrecker', short: 'FW', price: 15000, speedFactor: 1.1, minCrew: 1, maxCrew: 2, caps: ['tow'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
   vt({ id: 'pumper_tanker', dept: 'fire', name: 'Pumper Tanker', callsign: 'Tanker', short: 'PT', price: 19000, speedFactor: 1.1, minCrew: 1, maxCrew: 6, caps: ['engine', 'water_supply'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1 }),
-  vt({ id: 'crew_carrier', dept: 'fire', name: 'Crew Carrier', callsign: 'Crew', short: 'CC', price: 10000, speedFactor: 1.1, minCrew: 1, maxCrew: 12, caps: ['crew_carrier'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1 }),
+  vt({ id: 'crew_carrier', dept: 'fire', name: 'Crew Carrier', callsign: 'Crew', short: 'CC', price: 10000, speedFactor: 1.1, minCrew: 1, maxCrew: 12, quals: [q('smoke_jumper')], caps: ['smoke_jumpers'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1 }),
   vt({ id: 'crew_cab_semi', dept: 'fire', name: 'Crew Cab Semi', callsign: 'Semi', short: 'CS', price: 5000, speedFactor: 1.1, minCrew: 1, maxCrew: 3, caps: ['semi'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, quals: [q('truck_license')] }),
   vt({ id: 'fire_traffic_blocker', dept: 'fire', name: 'Fire Traffic Blocker Unit', callsign: 'Blocker', short: 'TB', price: 12000, speedFactor: 1.1, minCrew: 1, maxCrew: 6, caps: ['traffic_blocker'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, quals: [q('traffic_control')] }),
   vt({ id: 'police_supervisor', dept: 'police', name: 'Police Supervisor', callsign: 'Supervisor', short: 'SUP', price: 15000, speedFactor: 1.1, minCrew: 1, maxCrew: 2, caps: ['supervisor'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, quals: [q('police_supervisor')], neededAt: 7 }),
@@ -258,6 +265,11 @@ VEHICLE_TYPES.push(
   vt({ id: 'police_wrecker', dept: 'police', name: 'Police Wrecker', callsign: 'Wrecker', short: 'PW', price: 15000, speedFactor: 1.1, minCrew: 1, maxCrew: 2, caps: ['tow'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
   vt({ id: 'police_boat_trailer', dept: 'police', name: 'Police Water Rescue Double Boat Trailer', callsign: 'Boat Trailer', short: 'PBT', price: 60000, speedFactor: 1.1, minCrew: 0, maxCrew: 0, caps: ['boat'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, capCount: { boat: 2 }, towedBy: ['patrol', 'k9', 'police_crew_carrier', 'police_supervisor', 'game_warden', 'swat', 'swat_suv'] }),
   vt({ id: 'crime_scene_unit', dept: 'police', name: 'Crime Scene Unit', callsign: 'CSU', short: 'CSU', price: 10000, speedFactor: 1.1, minCrew: 2, maxCrew: 2, caps: ['crime_scene'], maintenancePerHour: 5, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1, quals: [q('csi', 2)], needsExt: true }),
+  vt({ id: 'riot_trailer', dept: 'police', name: 'Riot Police Trailer', callsign: 'Riot Trailer', short: 'RPT', price: 10000, speedFactor: 1, minCrew: 0, maxCrew: 0, caps: ['riot_trailer'], maintenancePerHour: 2, fuelPerKm: 0.3, turnoutSec: 60, unlockLevel: 1, towedBy: ['riot_unit', 'riot_bus'], needsExt: true }),
+  vt({ id: 'coastal_plane', dept: 'air', name: 'Coastal Patrol Plane', callsign: 'Coast Plane', short: 'CPL', price: 350000, speedFactor: 7, minCrew: 3, maxCrew: 5, quals: [q('pilot')], caps: ['coastal_plane'], maintenancePerHour: 60, fuelPerKm: 6, turnoutSec: 240, unlockLevel: 1, air: true }),
+  vt({ id: 'air_tanker', dept: 'air', name: 'Fire Aviation Air Tanker', callsign: 'Tanker', short: 'AT', price: 400000, speedFactor: 7, minCrew: 2, maxCrew: 2, quals: [q('pilot')], caps: ['fire_aviation'], maintenancePerHour: 70, fuelPerKm: 7, turnoutSec: 240, unlockLevel: 1, air: true }),
+  vt({ id: 'air_attack', dept: 'air', name: 'Air Attack (Brush Air Command)', callsign: 'Air Attack', short: 'AA', price: 300000, speedFactor: 7, minCrew: 2, maxCrew: 2, quals: [q('pilot')], caps: ['air_attack'], maintenancePerHour: 50, fuelPerKm: 5, turnoutSec: 200, unlockLevel: 1, air: true }),
+  vt({ id: 'coastal_command', dept: 'water', name: 'Coastal Command Vehicle', callsign: 'Coastal Command', short: 'CCV', price: 30000, speedFactor: 1.1, minCrew: 2, maxCrew: 4, caps: ['coastal_command'], maintenancePerHour: 6, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 1 }),
   vt({ id: 'federal_unit', dept: 'special', name: 'Federal Agents', callsign: 'Federal', short: 'FA', price: 30000, speedFactor: 1.3, minCrew: 2, maxCrew: 4, caps: ['federal'], maintenancePerHour: 5, fuelPerKm: 0.6, turnoutSec: 90, unlockLevel: 7 }),
 );
 
@@ -276,7 +288,7 @@ const MPH: Record<string, number> = {
   tanker_trailer: 40, flood_trailer: 40, light_trailer: 40, generator_trailer: 40, firewrecker: 45, pumper_tanker: 40, crew_carrier: 50,
   crew_cab_semi: 45, fire_traffic_blocker: 45, police_supervisor: 65, police_crew_carrier: 50, police_mcv: 45, police_traffic_blocker: 50,
   k9_small_carrier: 55, k9_large_carrier: 50, riot_bus: 45, fbi_wagon: 60, fbi_bomb_tech: 55, fbi_drone: 60, police_wrecker: 45,
-  police_boat_trailer: 45, crime_scene_unit: 55,
+  police_boat_trailer: 45, crime_scene_unit: 55, riot_trailer: 45, coastal_command: 55,
 };
 VEHICLE_TYPES.forEach(v => { v.mph = MPH[v.id] ?? 45; });
 

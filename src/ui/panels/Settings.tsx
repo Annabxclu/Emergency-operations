@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { CITY_SLOT_LEVELS } from '../../data/cities';
 import { INCIDENT_TYPES } from '../../data/incidents';
-import { Btn, ConfirmBtn, Header, Section, useCtx } from '../common';
+import { Btn, ConfirmBtn, Group, Header, Section, useCtx } from '../common';
 import { money } from '../format';
 import { TILE_STYLES } from '../MapView';
 import { exportJson } from '../../services/storage';
@@ -16,23 +16,6 @@ export const THEMES = [
   { id: 'purple', name: 'Purple', bg: '#140f24', surface: '#251c40' },
   { id: 'black', name: 'Black', bg: '#000000', surface: '#141414' },
 ];
-
-// Settings are grouped into buttons that expand when tapped. Open groups are
-// remembered while the app is open (e.g. after visiting Missions and coming back).
-const openGroups = new Set<string>();
-function Group({ id, title, sub, children }: { id: string; title: string; sub?: string; children: any }) {
-  const [open, setOpen] = useState(openGroups.has(id));
-  const toggle = () => { if (open) openGroups.delete(id); else openGroups.add(id); setOpen(!open); };
-  return (
-    <div className={`set-group ${open ? 'open' : ''}`}>
-      <button className="set-group-head" onClick={toggle} data-testid={`group-${id}`} aria-expanded={open}>
-        <div className="grow"><div className="row-title">{title}</div>{sub && <div className="row-sub">{sub}</div>}</div>
-        <span className="chev">{open ? '▾' : '▸'}</span>
-      </button>
-      {open && <div className="set-group-body">{children}</div>}
-    </div>
-  );
-}
 
 interface Props { onImport(text: string): void; onNewGame(): void; onAddCity(): void; onSwitchCity(id: string): void; onRoutingUrl(url: string): void; routingOk: boolean | null }
 

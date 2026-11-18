@@ -294,7 +294,7 @@ Cabin fire|3000|br1,bc1,wt1,ft4|0-6|0|9/4/0
 Campsite fire|3000|br1,bc1,wt1,ft4|0-2|0|9/2/0
 Medium forest fire|5500|br5,bc2,wt2|0-0|0|11/0/0
 Large Forest Fire|8000|br8,bc5,mc1,wt3|0-0|0|15/0/0
-Major Forest Fire|11000|br10,bc7,mc2,wt4,pc4|0-0|0|18/0/3
+Major Forest Fire|11000|br10,bc7,mc2,fav1,wt4,pc4|0-0|0|18/0/3
 Fire Watch|1600|br2|0-0|0|2/0/0
 Burning Bus Terminal|2000|bc1,ft3|0-12|0|6/6/0
 Traffic light failure|250|pc1|0-0|0|0/0/1
@@ -545,17 +545,17 @@ Overturned Large Vessel|14000|cs5,cht2|0-5|0|0/8/0
 Drowning Surfer|1000|lg1|1-1|0|0/1/0
 Missing Vessel|7000|cs2,cht1|0-5|0|0/3/0
 Oil Rig Fire|10000|cht2,cs2,fb2|0-10|0|8/6/0
-Oil Rig Explosion|35000|cs8,cht5,fb6|0-20|0|20/16/0
+Oil Rig Explosion|35000|cs8,cht5,cpl1,fb6|0-20|0|20/16/0
 Shark Attack|1000|cs1,lg1|1-1|0|0/2/0
-Smuggling via Boat|4000|cht2,cs2|0-0|4|0/0/2
-Parasailing Accident|2500|cs1,cht1,lg2|1-4|0|0/2/0
+Smuggling via Boat|4000|cht2,cpl1,cs2|0-0|4|0/0/2
+Parasailing Accident|2500|cs1,ccm1,cht1,lg2|1-4|0|0/2/0
 Deep Water Search & Rescue|4000|cs2,cht2|0-3|0|0/2/0
 Hostage Rescue Aboard Cargo Ship|8500|cs5,cht2|1-8|6|0/5/6
 Whaling Vessel Performing Illegal Operations|8000|cs3|0-0|8|0/0/6
 Multiple Whaling Vessels Performing Illegal Operations|10000|cs9,cht2|10-24|24|0/0/14
 Sailors Trapped in Capsized Naval Vessel|9000|cht1,cs2|1-4|0|0/3/0
-Distressed Yacht Caught in Hurricane|5000|cht1,cs1|1-4|0|0/3/0
-Oil Tanker on Fire in Ocean|15000|cht2,cs3,fb4|3-12|0|12/10/0
+Distressed Yacht Caught in Hurricane|5000|cht1,cpl1,cs1|1-4|0|0/3/0
+Oil Tanker on Fire in Ocean|15000|cht2,cpl1,cs3,fb4|3-12|0|12/10/0
 Stalker|500|pc1|0-0|1|0/0/1
 Multi Vehicle Pile-up|3000|hr1,ft1,pc3|3-10|1|4/3/4
 Multi Vehicle Pile-up (Large)|6000|hr2,ft2,pc4|6-15|1|5/4/6
@@ -594,6 +594,7 @@ Library Fire (Medium)|6500|pt1,bc1,wt1,ft5|3-10|0|7/2/0
 Library Fire (Large)|10000|pt2,bc2,mc1,ma1,wt2,ft8,pc2|8-15|0|10/10/1
 Library Fire (Major)|20000|pt4,bc4,mc1,fi3,ma2,wt3,sv1,ft15,pc4|15-50|0|14/20/7
 Train Fire With Flammable Products|4300|bc2,mc1,hz1,hr2,ft5,pc3|0-0|0|13/0/2
+Switchboard Fire|500|ft1|0-0|0|1/0/0
 Campside - Gas Canister Explosion|9800|pt2,bc1,hz2,wt2,ft5,pc3|0-25|0|14/6/5
 Peaceful Demonstration (Small)|5000|k91,pc5|0-0|0|0/0/6
 Peaceful Demonstration (Large)|10000|k91,pc15|0-0|0|0/0/6
@@ -610,7 +611,7 @@ Smoke Sighting|1600|br1,bc1|0-0|0|4/0/0
 Small Rapid Wildfire|1500|br1,wt1|0-0|0|6/0/0
 Medium Rapid Wildfire|2900|br2,bc1,wt2,mc1|0-0|0|10/0/0
 Large Rapid Wildfire|7550|br4,bc1,wt3,mc2,cc2|0-0|0|10/0/0
-Major Rapid Wildfire|13200|br4,bc1,wt3,mc2,cc4|0-0|0|10/0/0
+Major Rapid Wildfire|13200|br4,bc1,wt3,mc2,bac1,cc4|0-0|0|10/0/0
 Institutional Fire Drill|1000|ft1|0-0|0|1/0/0
 Industrial Fire Drill|3000|fi1,ft1|0-0|0|1/0/0
 Fire Line Requested|1000|br1,wt1|0-0|0|6/0/0
@@ -644,13 +645,13 @@ Train collision|16000|bc4,mc1,hz1,hr6,ft6,pc6|15-30|0|10/15/10
 Scooter Accident|1500|ft1,pc1|1-1|0|2/1/1
 Impalement on Fence|1500|hr1,ft1,pc1|1-1|0|4/1/1
 Nuclear Explosion (Power Plant)|45000|pt12,bc8,mc2,fo6,ma4,hz4,wt4,hr18,sv2,ft60,pc8|20-65|0|60/30/25
-Supervision of a risky sports match|9500|k92,pv1,rt2,pc6|0-0|8|0/0/8
-Escort of risky fans|17000|k94,ph1,pm1,pv2,rt3,pc10|0-0|8|0/0/14
-Clash and assault of risky fans|23000|k94,ph1,pm1,pv6,rt4,pc20|0-25|40|0/8/18
-Crowd Control|3500|k95,pm1,rt1,pc5|0-0|0|0/0/8
-Kidnapped Politician|13000|k93,rt1,pc8|0-1|6|0/0/7
-School Bomb Threat|12500|bo1,k94,pm1,rt2,pc9|1-6|7|0/0/9
-Large Violent Protest|12500|pm1,pv1,rt2,pc12|0-0|10|0/0/8
+Supervision of a risky sports match|9500|k92,pv1,rt2,rpt1,pc6|0-0|8|0/0/8
+Escort of risky fans|17000|k94,ph1,pm1,pv2,rt3,rpt1,pc10|0-0|8|0/0/14
+Clash and assault of risky fans|23000|k94,ph1,pm1,pv6,rt4,rpt1,pc20|0-25|40|0/8/18
+Crowd Control|3500|k95,pm1,rt1,rpt1,pc5|0-0|0|0/0/8
+Kidnapped Politician|13000|k93,rt1,rpt1,pc8|0-1|6|0/0/7
+School Bomb Threat|12500|bo1,k94,pm1,rt2,rpt1,pc9|1-6|7|0/0/9
+Large Violent Protest|12500|pm1,pv1,rt2,rpt1,pc12|0-0|10|0/0/8
 Monitoring of small strike|2800|pv1,rt2,pc4|0-0|2|0/0/3
 Monitoring of a Large strike|5600|pv1,rt4,pc12|1-2|2|0/1/8
 Rescue of a paraglider from a tree|1300|pt1,hr1,ft1,pc1|1-1|0|4/5/2

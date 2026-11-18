@@ -104,7 +104,8 @@ const CODE_CAP: Record<string, string> = {
   arff: 'arff', am: 'ambulance', fwk: 'crane', bt: 'boat', fb: 'fireboat', br: 'brush', fd: 'federal', dn: 'drone',
   bo: 'bomb', iv: 'investigation', gw: 'game_warden', pb: 'police_boat', fo: 'foam', cs: 'coastal', cht: 'coast_heli',
   fl: 'flood', pv: 'prisoner_transport', rt: 'riot',
-  sv: 'supervisor', pm: 'police_command', csu: 'crime_scene', lg: 'lifeguard', cc: 'crew_carrier',
+  sv: 'supervisor', pm: 'police_command', csu: 'crime_scene', lg: 'lifeguard', cc: 'smoke_jumpers',
+  rpt: 'riot_trailer', cpl: 'coastal_plane', fav: 'fire_aviation', ccm: 'coastal_command', bac: 'air_attack',
 };
 // Codes -> catalog "extras" keys, so new missions get a sensible category.
 const CODE_EXTRA: Record<string, string> = {
@@ -113,7 +114,7 @@ const CODE_EXTRA: Record<string, string> = {
 };
 
 // Catalog names that are shortened versions of the full mission names in the data.
-const ALIAS: Record<string, string> = {
+export const ALIAS: Record<string, string> = {
   "self-service laundry fire": "self-service laundry facility fire",
   "commercial aircraft runway incursion": "commercial aircraft - runway incursion collision",
   "protesters stuck on monument": "protesters stuck on top of a monument",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, capability, dept, qualification, stationType, vehicleType } from '../../data/departments';
-import { Btn, Chip, Dot, Empty, Header, Section, Stat, StatusCode, useCtx } from '../common';
+import { Btn, Group, Chip, Dot, Empty, Header, Section, Stat, StatusCode, useCtx } from '../common';
 import { extensionsFor } from '../../data/progression';
 import { mi, money } from '../format';
 import { glyph } from '../icons';
@@ -128,7 +128,8 @@ export function StationDetail({ id }: { id: string }) {
         </div>
       </Section>
 
-      <Section title="Buy vehicle" right={<span className="muted small">Balance {money(game.city.money)}</span>}>
+      <Section title="Manage">
+      <Group id="st-buy" title="Buy vehicle" sub={`${vehicles.length}/${cap.bays} bays used · balance ${money(game.city.money)}`}>
         <div className="list">
           {VEHICLE_TYPES.filter(v => game.hostsDept(s, v.dept)).map(vt => {
             const need = game.needStations(game.deptItemRequirement(vt), vt.dept) || game.vehicleExtNeeded(s, vt);
@@ -150,10 +151,11 @@ export function StationDetail({ id }: { id: string }) {
             );
           })}
         </div>
-        {vehicles.length >= cap.bays && <p className="hint">All bays are full. Add a level below for another bay.</p>}
-      </Section>
+        {vehicles.length >= cap.bays && <p className="hint">All bays are full. Buy another level under "Building & levels" for another bay.</p>}
+      </Group>
 
-      <Section title="Personnel" right={<Btn small onClick={() => push({ kind: 'hire', stationId: s.id })} disabled={staff.length >= cap.staff} testid="hire-open">Hire</Btn>}>
+      <Group id="st-personnel" title="Personnel" sub={`${staff.length}/${cap.staff} employees · ${freeStaff} unassigned`}>
+        <div className="actions"><Btn small onClick={() => push({ kind: 'hire', stationId: s.id })} disabled={staff.length >= cap.staff} testid="hire-open">Hire staff</Btn></div>
         <div className="kv">
           <span>{staff.length} employees · {freeStaff} unassigned</span>
         </div>
@@ -161,9 +163,9 @@ export function StationDetail({ id }: { id: string }) {
           <Btn small onClick={() => act(() => game.autoStaff(s.id), 'Crews assigned')}>Auto-assign crews</Btn>
           <Btn small kind="ghost" onClick={() => push({ kind: 'personnel' })}>View personnel</Btn>
         </div>
-      </Section>
+      </Group>
 
-      <Section title="Extensions">
+      <Group id="st-ext" title="Extensions" sub={`${(s.extensions ?? []).length} built`}>
         {t.small && <p className="hint">Small stations can't have extensions. Convert it to a full station below to add them.</p>}
         <div className="list">
           {extensionsFor(s.typeId).map(ext => {
@@ -179,9 +181,9 @@ export function StationDetail({ id }: { id: string }) {
             );
           })}
         </div>
-      </Section>
+      </Group>
 
-      <Section title="Building">
+      <Group id="st-building" title="Building & levels" sub={`Level ${s.level}/${t.maxLevel} · ${cap.bays} bays`}>
         <div className="kv">{game.state.settings.runningCosts !== false && <span>Upkeep {money(upkeep)}/h</span>}<span>City contract +{money(t.contractPerHour)}/h</span><span>Coverage {mi(t.coverageKm)}</span></div>
         <div className="level-bar"><span style={{ width: `${(s.level / t.maxLevel) * 100}%` }} /></div>
         <div className="kv"><span>Level {s.level} of {t.maxLevel}</span><span>{cap.bays} bays</span><span>{cap.staff} staff capacity</span></div>
@@ -200,6 +202,7 @@ export function StationDetail({ id }: { id: string }) {
           </div>
         )}
         <p className="hint">Level 1 costs {money(game.levelCost(1))}, level 2 {money(game.levelCost(2))}, then {money(game.levelCost(3))} per level.</p>
+      </Group>
       </Section>
     </div>
   );
