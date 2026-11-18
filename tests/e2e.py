@@ -231,6 +231,12 @@ def main():
             shot('08-finances')
             page.click('[data-testid=tab-vehicles]')
             shot('09-vehicles')
+            page.locator('[data-testid=vehicle-row]').first.click()
+            page.click('[data-testid=vehicle-name]')
+            page.fill('[data-testid=vehicle-name-input]', 'Big Red')
+            page.keyboard.press('Enter')
+            check(game('g.city.vehicles.some(v => v.name === "Big Red")'), 'vehicle renamed')
+            page.click('.back')
 
             # --- Persistence: wait for autosave, reload, verify
             page.evaluate('() => new Promise(r => setTimeout(r, 10500))')

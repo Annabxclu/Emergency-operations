@@ -401,6 +401,12 @@ export class Game {
     this.changed();
   }
 
+  renameVehicle(id: string, name: string) {
+    const v = this.vehicle(id);
+    const n = name.trim().slice(0, 40);
+    if (v && n) { v.name = n; this.changed(); }
+  }
+
   renameStation(id: string, name: string) {
     const s = this.station(id);
     if (s && name.trim()) { s.name = name.trim(); this.changed(); }

@@ -58,6 +58,8 @@ export function VehiclesList() {
 export function VehicleDetail({ id }: { id: string }) {
   const { game, act, push, focus, back } = useCtx();
   const v = game.vehicle(id);
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState('');
   useEffect(() => { if (v) focus(v.pos, 15); }, [id]);
   if (!v) return <div><Header title="Vehicle not found" /></div>;
   const t = vehicleType(v.typeId);
@@ -73,7 +75,12 @@ export function VehicleDetail({ id }: { id: string }) {
 
   return (
     <div>
-      <Header title={v.name} sub={`${t.name} · ${st?.name ?? ''}`} right={<StatusCode status={v.status} />} />
+      <Header title={renaming ? (
+        <form onSubmit={(e: Event) => { e.preventDefault(); game.renameVehicle(v.id, name); setRenaming(false); }}>
+          <input className="inline-input" value={name} autoFocus maxLength={40} onChange={(e: any) => setName(e.target.value)}
+            onBlur={() => { game.renameVehicle(v.id, name); setRenaming(false); }} data-testid="vehicle-name-input" />
+        </form>) : <span onClick={() => { setName(v.name); setRenaming(true); }} data-testid="vehicle-name">{v.name} <span className="muted small">✎</span></span>}
+        sub={`${t.name} · ${st?.name ?? ''}`} right={<StatusCode status={v.status} />} />
       {inc && (
         <button className="callout" onClick={() => push({ kind: 'incident', id: inc.id })}>
           Assigned to <b>{inc.name}</b> · {inc.address}{eta != null ? ` · ETA ${dur(eta)}` : ''}
