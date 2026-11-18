@@ -347,3 +347,4 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .missing-table tr:nth-child(even) td { background: #1d2631; }
 .missing-table td.still { color: #ff8a8a; font-weight: 700; }
 .missing-table tr.done td.still { color: var(--ok); }
+.missing-table.covered table { outline-color: #3fb950; }

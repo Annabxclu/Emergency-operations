@@ -174,6 +174,7 @@ def main():
             for cap_btn in page.locator('[data-testid=aao] button.needed').all(): cap_btn.click()
             checked = page.locator('[data-testid=dispatch-candidate] input:checked').count()
             check(checked == 2, f'quick-add picks ambulance + police ({checked})')
+            check('covered' in page.get_attribute('[data-testid=missing]', 'class'), 'missing-units box turns green once everything is selected')
             check(page.inner_text('[data-testid=dispatch-btn]').strip() == 'Dispatch', 'button reads "Dispatch"')
             check('Missing' in page.inner_text('[data-testid=missing]'), '"Missing" line shown')
             check(page.locator('[data-testid=aao] button').count() >= 2, 'quick-add unit buttons shown')

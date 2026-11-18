@@ -241,7 +241,7 @@ export function IncidentDetail({ id }: { id: string }) {
               return { cap: m.cap, miss, enroute: miss - stillAll, selected: stillAll - still, still };
             });
             return (
-              <div className="missing-table" data-testid="missing">
+              <div className={`missing-table ${rows.every(r => r.still === 0) ? 'covered' : ''}`} data-testid="missing">
                 <table>
                   <thead><tr><th>Missing</th><th>On mission</th><th>En route</th><th>Selected</th><th>Still needed</th></tr></thead>
                   <tbody>
