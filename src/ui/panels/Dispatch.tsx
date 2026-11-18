@@ -57,20 +57,6 @@ export function DispatchList() {
           );
         })}
       </div>
-      {c.resolved.length > 0 && (
-        <Section title="Recent calls">
-          <div className="list">
-            {c.resolved.slice(0, 12).map(inc => (
-              <button key={inc.id} className="row compact" onClick={() => push({ kind: 'incident', id: inc.id })}>
-                <IncIcon inc={inc} />
-                <div className="grow"><div className="row-title">{inc.name}</div><div className="row-sub">{inc.number} · {inc.district}</div></div>
-                <div className="row-right"><Chip tone={OUTCOME[inc.outcome!].tone}>{OUTCOME[inc.outcome!].label}</Chip>
-                  <div className={`amt ${inc.payout < 0 ? 'bad' : 'ok'}`}>{money(inc.payout)}</div></div>
-              </button>
-            ))}
-          </div>
-        </Section>
-      )}
     </div>
   );
 }
