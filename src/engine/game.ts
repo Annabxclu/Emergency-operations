@@ -1012,7 +1012,7 @@ export class Game {
       this.progressGoal(cg.kind === 'patient' ? 'patients' : 'prisoners', cg.count);
       this.post(cg.fee, cg.kind === 'patient' ? 'patient transport' : 'prisoner transport', vehicleType(v.typeId).dept, `${v.name} → ${cg.destName}`);
       v.status = 'handover';
-      v.busyUntil = this.state.time + (cg.kind === 'patient' ? rand(5, 10) : rand(4, 8)) * 60;
+      v.busyUntil = this.state.time + TUNING.handoverSeconds;
       this.emit({ type: 'transport_done', id: v.id, kind: cg.kind, count: cg.count, fee: cg.fee, dest: cg.destName });
     } else if (v.status === 'returning') {
       const st = this.station(v.stationId);

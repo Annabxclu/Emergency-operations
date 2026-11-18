@@ -18,6 +18,9 @@ export const TUNING = {
   /** When false, calls wait as long as you need: no countdown, escalation or failure. */
   responseTimeLimit: false,
 
+  /** Seconds a unit spends handing over a patient (hospital) or suspect (jail). */
+  handoverSeconds: 5,
+
   /** Multiplier on every call reward (also adjustable in Settings > Tuning). */
   defaultRewardMultiplier: 1,
 };
