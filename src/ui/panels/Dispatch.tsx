@@ -180,7 +180,8 @@ export function IncidentDetail({ id }: { id: string }) {
         </>
       )}
 
-      <Section title="Required">
+      {/* While units are still missing, the missing-units table below shows this instead. */}
+      {!(!closed && inc.status !== 'working' && missingOnScene.length > 0) && <Section title="Required">
         <div className="reqs">
           {reqRows.map(r => (
             <div key={r.cap} className={`req ${r.onScene >= r.count ? 'met' : r.short > 0 ? 'short' : 'coming'}`}>
@@ -190,7 +191,7 @@ export function IncidentDetail({ id }: { id: string }) {
             </div>
           ))}
         </div>
-      </Section>
+      </Section>}
 
       {(responding.length > 0 || onScene.length > 0) && (
         <Section title="Assigned units">
