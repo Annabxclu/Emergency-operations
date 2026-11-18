@@ -18,6 +18,13 @@ export const TUNING = {
   /** When false, calls wait as long as you need: no countdown, escalation or failure. */
   responseTimeLimit: false,
 
+  /** Default driving speed multiplier (Settings > Tuning can change it per game). */
+  defaultTravelMult: 2,
+  /** Default on-scene work time multiplier (1 = full mission times listed in data). */
+  defaultWorkMult: 0.1,
+  /** Turnout (time to leave the station) multiplier. */
+  turnoutMultiplier: 0.25,
+
   /** Seconds a unit spends handing over a patient (hospital) or suspect (jail). */
   handoverSeconds: 5,
 

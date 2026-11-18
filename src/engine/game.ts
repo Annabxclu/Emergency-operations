@@ -51,7 +51,7 @@ export function newGameState(def: CityDef = CITIES[0]): GameState {
     cities: { [cityId]: newCityState(cityId) },
     cityDefs: CITIES.some(c => c.id === cityId) ? {} : { [cityId]: def },
     seq: 1,
-    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter, sound: true, autoDispatch: 'off', shifts: false, travelModel: 'fixed', callIntervalMin: TUNING.defaultCallIntervalMin, runningCosts: TUNING.runningCostsDefault, rewardMult: TUNING.defaultRewardMultiplier },
+    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter, sound: true, autoDispatch: 'off', shifts: false, travelModel: 'fixed', callIntervalMin: TUNING.defaultCallIntervalMin, runningCosts: TUNING.runningCostsDefault, rewardMult: TUNING.defaultRewardMultiplier, travelMult: TUNING.defaultTravelMult, workMult: TUNING.defaultWorkMult },
     research: { active: null, done: [] },
   };
 }
@@ -70,6 +70,8 @@ export function migrate(raw: unknown): GameState {
   if (s.settings && !s.settings.callIntervalMin) s.settings.callIntervalMin = 3;
   if (s.settings.runningCosts === undefined) s.settings.runningCosts = TUNING.runningCostsDefault;
   if (!s.settings.rewardMult) s.settings.rewardMult = TUNING.defaultRewardMultiplier;
+  if (!s.settings.travelMult) s.settings.travelMult = TUNING.defaultTravelMult;
+  if (!s.settings.workMult) s.settings.workMult = TUNING.defaultWorkMult;
   if (!s.cityDefs[s.activeCity] && !CITIES.some(c => c.id === s.activeCity)) throw new Error('This save references an unknown city.');
   const fresh = newGameState();
   s.settings = { ...fresh.settings, ...(s.settings || {}) };
@@ -655,14 +657,14 @@ export class Game {
   travelSeconds(t: VehicleTypeDef, distanceM: number, roadDurationS: number) {
     const fixed = this.state.settings.travelModel !== 'roads' || t.air;
     const secs = fixed ? distanceM / ((t.mph ?? 45) * 0.44704) : roadDurationS / t.speedFactor;
-    return Math.max(15, secs / this.mod('speed'));
+    return Math.max(10, secs / this.mod('speed') / (this.state.settings.travelMult ?? TUNING.defaultTravelMult));
   }
 
   etaEstimate(v: Vehicle, to: LatLng) {
     const t = vehicleType(v.typeId);
     const d = distanceM(v.pos, to) * (t.air ? 1 : 1.35);
-    const turnout = v.status === 'returning' ? 0 : t.turnoutSec * this.mod('turnout');
-    return turnout + (this.state.settings.travelModel !== 'roads' || t.air ? this.travelSeconds(t, d, 0) : estimateEtaS(v.pos, to, t.speedFactor) / this.mod('speed'));
+    const turnout = v.status === 'returning' ? 0 : t.turnoutSec * this.mod('turnout') * TUNING.turnoutMultiplier;
+    return turnout + (this.state.settings.travelModel !== 'roads' || t.air ? this.travelSeconds(t, d, 0) : estimateEtaS(v.pos, to, t.speedFactor) / this.mod('speed') / (this.state.settings.travelMult ?? TUNING.defaultTravelMult));
   }
 
   /** Remaining game seconds until arrival for a vehicle heading to a scene. */
@@ -691,7 +693,7 @@ export class Game {
     if (!sent.length) throw new ActionError('Select at least one vehicle.');
     for (const v of sent) {
       const t = vehicleType(v.typeId);
-      v.turnoutUntil = this.state.time + (v.status === 'returning' ? 5 : t.turnoutSec * this.mod('turnout'));
+      v.turnoutUntil = this.state.time + (v.status === 'returning' ? 5 : t.turnoutSec * this.mod('turnout') * TUNING.turnoutMultiplier);
       v.status = 'dispatched';
       v.incidentId = inc.id;
       v.route = null;
@@ -1076,7 +1078,7 @@ export class Game {
     const t = incidentType(inc.typeId);
     inc.status = 'working';
     inc.workStartedAt = this.state.time;
-    inc.workUntil = this.state.time + rand(t.workMin[0], t.workMin[1]) * 60 * (inc.partial ? 1.4 : 1);
+    inc.workUntil = this.state.time + Math.max(20, rand(t.workMin[0], t.workMin[1]) * 60 * (this.state.settings.workMult ?? TUNING.defaultWorkMult) * (inc.partial ? 1.4 : 1));
     this.changed();
   }
 

@@ -232,6 +232,8 @@ export interface Settings {
   callIntervalMin?: number; // minutes between new calls (1, 3 or 5)
   runningCosts?: boolean;   // payroll, upkeep, maintenance, fuel
   rewardMult?: number;
+  travelMult?: number;
+  workMult?: number;
 }
 
 export interface GameState {

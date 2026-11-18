@@ -88,6 +88,16 @@ export function SettingsPanel(p: Props) {
       <Section title="Tuning">
         <label className="check"><input type="checkbox" checked={s.runningCosts !== false} onChange={(e: any) => { s.runningCosts = e.target.checked; game.changed(); }} data-testid="running-costs" /> Running costs (payroll, upkeep, fuel, maintenance)</label>
         <p className="hint">Off: you only spend money when you build, buy, hire or train.</p>
+        <div className="field"><label>Driving speed</label>
+          <div className="seg">
+            {[1, 2, 3, 4].map(m => <button key={m} className={(s.travelMult ?? 2) === m ? 'on' : ''} onClick={() => { s.travelMult = m; game.changed(); }} data-testid={`travel-${m}`}>{m}×</button>)}
+          </div></div>
+        <div className="field"><label>Time on scene</label>
+          <div className="seg">
+            {[[0.05, 'Very short'], [0.1, 'Short'], [0.25, 'Medium'], [0.5, 'Long'], [1, 'Full']].map(([m, l]) =>
+              <button key={m} className={(s.workMult ?? 0.1) === m ? 'on' : ''} onClick={() => { s.workMult = m as number; game.changed(); }}>{l}</button>)}
+          </div></div>
+        <p className="hint">Changes apply to new trips and to calls that start work after the change.</p>
         <div className="field"><label>Call rewards</label>
           <div className="seg">
             {[0.5, 1, 1.5, 2, 3].map(m => <button key={m} className={(s.rewardMult ?? 1) === m ? 'on' : ''} onClick={() => { s.rewardMult = m; game.changed(); }}>{m}×</button>)}
