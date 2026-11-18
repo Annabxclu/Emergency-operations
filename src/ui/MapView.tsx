@@ -177,9 +177,10 @@ export function MapView(props: Props) {
         let m = markers.incidents.get(inc.id);
         if (!m) { m = clickable(L.marker(inc.pos, { zIndexOffset: 300 }), { kind: 'incident', id: inc.id }); layers.incidents.addLayer(m); markers.incidents.set(inc.id, m); }
         const isSel = selected?.kind === 'incident' && selected.id === inc.id;
-        setIcon(m, `${inc.status}${inc.severity}${isSel}`, () => L.divIcon({
+        const shown = game.shownStatus(inc);
+        setIcon(m, `${shown}${inc.severity}${isSel}`, () => L.divIcon({
           className: '', iconSize: [34, 34], iconAnchor: [17, 17],
-          html: `<div class="mk inc sev${inc.severity} ${inc.status}${isSel ? ' sel' : ''}" data-id="${inc.id}">${glyph(inc.category, 17)}</div>`,
+          html: `<div class="mk inc sev${inc.severity} ${shown}${isSel ? ' sel' : ''}" data-id="${inc.id}">${glyph(inc.category, 17)}</div>`,
         }));
       }
       sync(markers.incidents, layers.incidents, iIds);

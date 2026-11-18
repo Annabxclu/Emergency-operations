@@ -820,6 +820,12 @@ export class Game {
     if (v) { v.followUp = null; this.changed(); }
   }
 
+  /** Status to show the player: a call with only follow-ups queued is no longer "No units". */
+  shownStatus(inc: Incident): Incident['status'] | 'followup' {
+    if (inc.status === 'pending' && this.city.vehicles.some(v => v.followUp === inc.id)) return 'followup';
+    return inc.status;
+  }
+
   followUpsFor(incId: string) { return this.city.vehicles.filter(v => v.followUp === incId); }
 
   /** Release a unit from a call and send it back to quarters. */

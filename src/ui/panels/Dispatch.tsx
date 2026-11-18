@@ -9,7 +9,7 @@ import { INCIDENT_STATUS, OUTCOME, SEVERITY, dur, money } from '../format';
 import { glyph } from '../icons';
 
 function IncIcon({ inc }: { inc: Incident }) {
-  return <span className={`inc-ico st-${inc.status}${inc.severity >= 3 ? ' major' : ''}`} dangerouslySetInnerHTML={{ __html: glyph(inc.category, 15) }} />;
+  return <span className={`inc-ico st-${useCtx().game.shownStatus(inc)}${inc.severity >= 3 ? ' major' : ''}`} dangerouslySetInnerHTML={{ __html: glyph(inc.category, 15) }} />;
 }
 
 function workPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
@@ -61,9 +61,9 @@ export function DispatchList() {
       )}
       <div className="list">
         {active.map(inc => {
-          const st = INCIDENT_STATUS[inc.status];
+          const st = INCIDENT_STATUS[game.shownStatus(inc)];
           return (
-            <button key={inc.id} className={`row mission-row st-${inc.status}`} onClick={() => push({ kind: 'incident', id: inc.id })} data-testid="incident-row">
+            <button key={inc.id} className={`row mission-row st-${game.shownStatus(inc)}`} onClick={() => push({ kind: 'incident', id: inc.id })} data-testid="incident-row">
               <IncIcon inc={inc} />
               <div className="grow">
                 <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}</div>
@@ -154,7 +154,7 @@ export function IncidentDetail({ id }: { id: string }) {
   return (
     <div>
       <Header title={<><span className="inc-title-dot" style={{ background: deptColor }} />{inc.name}</>}
-        sub={<span className="sub-row">{inc.number} · {SEVERITY[inc.severity]} {!closed ? <Chip tone={INCIDENT_STATUS[inc.status].tone}>{INCIDENT_STATUS[inc.status].label}</Chip> : <Chip tone={OUTCOME[inc.outcome!].tone}>{OUTCOME[inc.outcome!].label}</Chip>}</span>} />
+        sub={<span className="sub-row">{inc.number} · {SEVERITY[inc.severity]} {!closed ? <Chip tone={INCIDENT_STATUS[game.shownStatus(inc)].tone}>{INCIDENT_STATUS[game.shownStatus(inc)].label}</Chip> : <Chip tone={OUTCOME[inc.outcome!].tone}>{OUTCOME[inc.outcome!].label}</Chip>}</span>} />
       <div className="inc-info">
         <div className="addr" onClick={() => focus(inc.pos, 16)}>{inc.address}<span className="muted"> · {inc.district}</span></div>
         <p className="desc">{inc.description}</p>
@@ -232,22 +232,29 @@ export function IncidentDetail({ id }: { id: string }) {
       {!closed && inc.status !== 'working' && (
         <Section title="Dispatch units">
           {missingOnScene.length > 0 && (() => {
-            const selVehicles = allUnits.filter(v => sel.has(v.id));
-            const missingAfterSel = missingRequirements(inc.requirements, [...game.responding(inc), ...selVehicles]);
+            const selDirect = candidates.filter(c => sel.has(c.v.id)).map(c => c.v);
+            const selFollowV = followCands.filter(c => sel.has(c.v.id)).map(c => c.v);
+            const base = game.responding(inc);
+            const afterSel = missingRequirements(inc.requirements, [...base, ...selDirect]);
+            const afterFollow = missingRequirements(inc.requirements, [...base, ...selDirect, ...selFollowV, ...queued]);
             const rows = missingOnScene.map(m => {
               const miss = m.count;
-              const stillAll = missingAll.find(x => x.cap === m.cap)?.count ?? 0;
-              const still = missingAfterSel.find(x => x.cap === m.cap)?.count ?? 0;
-              return { cap: m.cap, miss, enroute: miss - stillAll, selected: stillAll - still, still };
+              const a = missingAll.find(x => x.cap === m.cap)?.count ?? 0;
+              const b = afterSel.find(x => x.cap === m.cap)?.count ?? 0;
+              const still = afterFollow.find(x => x.cap === m.cap)?.count ?? 0;
+              return { cap: m.cap, miss, enroute: miss - a, selected: a - b, follow: b - still, still };
             });
+            const anyFollow = rows.some(r => r.follow > 0);
+            const allCovered = rows.every(r => r.still === 0);
+            const tone = allCovered && !anyFollow ? 'covered' : anyFollow ? 'follow' : '';
             return (
-              <div className={`missing-table ${rows.every(r => r.still === 0) ? 'covered' : ''}`} data-testid="missing">
+              <div className={`missing-table ${tone}`} data-testid="missing">
                 <table>
-                  <thead><tr><th>Missing</th><th>On mission</th><th>En route</th><th>Selected</th><th>Still needed</th></tr></thead>
+                  <thead><tr><th>Missing</th><th>On mission</th><th>En route</th><th>Selected</th><th>Follow-up</th><th>Still needed</th></tr></thead>
                   <tbody>
                     {rows.map(r => (
                       <tr key={r.cap} className={r.still === 0 ? 'done' : ''}>
-                        <td>{capability(r.cap).name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td className="still">{r.still}</td>
+                        <td>{capability(r.cap).name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td>{r.follow}</td><td className="still">{r.still}</td>
                       </tr>
                     ))}
                   </tbody>

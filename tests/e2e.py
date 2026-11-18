@@ -226,6 +226,12 @@ def main():
             page.wait_for_selector('[data-testid=queued-followup]')
             shot('15-followup')
             check(game('g.city.vehicles.filter(v => v.followUp).length') == 1, 'busy unit queued as a follow-up from the dispatch window')
+            st = game('(() => { const v = g.city.vehicles.find(v => v.followUp); const i = g.incident(v.followUp); return [i.status, g.shownStatus(i)]; })()')
+            check(st[0] != 'pending' or st[1] == 'followup', f'a call with only a follow-up queued shows "Follow-up coming", not "No units" ({st})')
+            if st[1] == 'followup':
+                check('Follow-up coming' in page.inner_text('[data-testid=sheet]'), 'call screen shows "Follow-up coming"')
+                if page.locator('[data-testid=missing]').count():
+                    check('follow' in page.get_attribute('[data-testid=missing]', 'class'), 'missing-units box is yellow with a follow-up queued')
             if page.locator('.close').count(): page.click('.close')
 
             game('(g.state.settings.speed = 0, 0)')

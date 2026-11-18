@@ -38,8 +38,9 @@ export const VEHICLE_STATUS: Record<VehicleStatus, { label: string; tone: string
 };
 
 // Mission colors: red = nobody assigned, yellow = units on the way or still missing, green = all required units on scene.
-export const INCIDENT_STATUS: Record<IncidentStatus, { label: string; tone: string }> = {
+export const INCIDENT_STATUS: Record<IncidentStatus | 'followup', { label: string; tone: string }> = {
   pending: { label: 'No units', tone: 'bad' },
+  followup: { label: 'Follow-up coming', tone: 'warn' },
   responding: { label: 'Units en route', tone: 'warn' },
   onscene: { label: 'On scene — missing units', tone: 'warn' },
   working: { label: 'In progress', tone: 'ok' },

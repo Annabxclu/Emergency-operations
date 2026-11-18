@@ -265,16 +265,16 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 /* ---------- mission colors */
 .mk.inc { background: #dc2626; }
 .mk.inc.pending { background: #dc2626; }
-.mk.inc.responding { background: #e3a008; }
+.mk.inc.responding, .mk.inc.followup { background: #e3a008; }
 .mk.inc.onscene { background: #e3a008; border-color: #fff; }
 .mk.inc.working { background: #16a34a; border-color: #fff; }
 .mk.inc.sev3 { width: 38px; height: 38px; border-radius: 19px; }
 .mk.inc.pending::after { border-color: #dc2626 !important; }
-.inc-ico.st-pending { background: #dc2626; } .inc-ico.st-responding { background: #d59b00; }
+.inc-ico.st-pending { background: #dc2626; } .inc-ico.st-responding, .inc-ico.st-followup { background: #d59b00; }
 .inc-ico.st-onscene { background: #d59b00; } .inc-ico.st-working { background: #16a34a; } .inc-ico.st-resolved { background: #475569; }
 .inc-ico.major { box-shadow: 0 0 0 2px #fff3; }
 .mission-row { box-shadow: inset 4px 0 0 #dc2626; }
-.mission-row.st-responding { box-shadow: inset 4px 0 0 #e3a008; }
+.mission-row.st-responding, .mission-row.st-followup { box-shadow: inset 4px 0 0 #e3a008; }
 .mission-row.st-onscene { box-shadow: inset 4px 0 0 #e3a008; }
 .mission-row.st-working { box-shadow: inset 4px 0 0 #16a34a; }
 .progress { height: 5px; border-radius: 3px; background: #2a3441; margin-top: 6px; overflow: hidden; }
@@ -356,3 +356,6 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .set-group.open .set-group-head { border-bottom: 1px solid var(--border); }
 .set-group-body { padding: 4px 14px 14px; }
 .set-group-body .field:first-child, .set-group-body .hint:first-child { margin-top: 8px; }
+.missing-table.follow table { outline-color: #e3a008; }
+.missing-table th { font-size: 10.5px; padding: 7px 4px; }
+.missing-table td { padding: 7px 4px; }
