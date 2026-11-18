@@ -338,6 +338,19 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(amb >= Math.min(inc!.patients, 10, owned) && amb <= Math.max(owned, 1), `patients drive ambulances, never more than you own (${owned} owned, (${inc!.patients} patients -> ${amb} ambulances)`);
   }
 
+  // A slow routing service must not hold units at the station.
+  {
+    const stuck: RoutingProvider = { route: () => new Promise(() => undefined), nearest: async p => ({ pos: p, name: 'Peachtree St NE' }) };
+    const gs = new Game(JSON.parse(JSON.stringify(g.state)), stuck);
+    const free = gs.city.vehicles.find(v => v.status === 'available' && vehicleType(v.typeId).caps.includes('police'))!;
+    const target = gs.city.incidents[0] ?? (await gs.spawnIncident('theft'))!;
+    const start = [...free.pos];
+    gs.dispatch(target.id, [free.id]);
+    for (let i = 0; i < 120 && free.status !== 'enroute'; i++) gs.tick(1);
+    gs.tick(5);
+    assert(free.status === 'enroute' && (free.pos[0] !== start[0] || free.pos[1] !== start[1]), 'units start driving even while the road route is still loading');
+  }
+
   // Save round trip.
   const json = JSON.stringify(g.state);
   const g2 = new Game(JSON.parse(json), fake);

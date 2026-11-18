@@ -856,11 +856,23 @@ export class Game {
       this.changed();
       return;
     }
+    // Start moving right away on a straight-line estimate; swap in the road route
+    // when the routing service answers (it is rate limited, so that can take a while).
+    v.route = build(directRoute(from, to));
+    v.route.provisional = true;
     this.routing.route(from, to)
       .catch(() => directRoute(from, to))
       .then(data => {
         if (this.state !== stateRef || v.routeReq !== req) return; // stale (state reloaded or re-routed)
-        v.route = build(data);
+        const old = v.route;
+        if (!old) return; // already arrived on the estimate
+        const next = build(data);
+        if (old.startAt >= 0) {
+          // Keep the share of the trip already driven.
+          const frac = Math.min(0.99, (this.state.time - old.startAt) / old.durationS);
+          next.startAt = this.state.time - frac * next.durationS;
+        }
+        v.route = next;
         if (data.approximate) this.emit({ type: 'routing_fallback' });
         this.changed();
       });

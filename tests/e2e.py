@@ -180,8 +180,8 @@ def main():
 
             # --- Run the simulation at 8x and watch units drive along the route
             game('(g.state.settings.speed = 8, 0)')  # test-only fast-forward
-            page.wait_for_function('() => window.__game.city.vehicles.some(v => v.status === "enroute")', timeout=20000)
-            v = game('(() => { const v = g.city.vehicles.find(v => v.status === "enroute"); return { n: v.route.coords.length, approx: v.route.approximate, pos: v.pos }; })()')
+            page.wait_for_function('() => window.__game.city.vehicles.some(v => v.status === "enroute" && v.route && !v.route.provisional)', timeout=20000)
+            v = game('(() => { const v = g.city.vehicles.find(v => v.status === "enroute" && !v.route.provisional); return { n: v.route.coords.length, approx: v.route.approximate, pos: v.pos }; })()')
             check(v['n'] > 2 and not v['approx'], f'vehicle following road geometry ({v["n"]} points, not straight-line)')
             page.wait_for_timeout(1500)
             v2 = game('g.city.vehicles.find(v => v.status === "enroute" || v.status === "onscene").pos')

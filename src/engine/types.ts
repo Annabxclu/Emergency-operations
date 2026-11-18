@@ -104,6 +104,7 @@ export interface Route {
   durationS: number;      // game seconds for this vehicle
   approximate: boolean;   // true if routing failed and a direct path was used
   startAt: number;        // game time the vehicle started driving; -1 = not started
+  provisional?: boolean;  // straight-line estimate used until the road route arrives
 }
 
 export interface Vehicle {
