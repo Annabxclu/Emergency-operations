@@ -102,9 +102,7 @@ def main():
             check(game('g.cityDef.name') == 'Tulsa' and game('g.cityDef.state') == 'OK', 'started a new game in Tulsa, OK via city search')
             check(game('g.cityDef.districts.length') >= 4, 'neighborhoods loaded for districts')
             shot('01-welcome')
-            page.wait_for_selector('[data-testid=real-station]', timeout=10000)
-            check(game('g.city.realStations.length') == 3, 'real fire/police/EMS stations loaded from OpenStreetMap')
-            shot('01b-real-stations')
+            check(page.locator('[data-testid=real-toggle]').count() == 0, 'no "Real stations" button on the map')
             # --- Setup: place fire, police, EMS by tapping the map
             for (x, y) in [(170, 360), (250, 300), (215, 470)]:
                 page.mouse.click(x, y)
@@ -116,12 +114,6 @@ def main():
             check(game('g.city.vehicles.length') == 4, 'starter fleet created (engine, 2 patrol, ambulance)')
             shot('02-after-setup')
 
-            # --- Build at a real station's location
-            page.locator('[data-testid=real-station]').first.click()
-            page.wait_for_selector('[data-testid=build-real]')
-            shot('03b-real-panel')
-            check(page.locator('[data-testid=build-real]').count() == 1, 'tapping a real station offers to build there')
-            page.click('.close')
             # --- Build a second fire station
             page.click('[data-testid=tab-stations]')
             check(page.locator('[data-testid=station-row]').count() == 3, 'All tab lists every station')

@@ -220,7 +220,6 @@ export interface CityState {
   setupStep: number; // 0..2 placing starter stations, 3 = running
   goals?: { day: number; list: Goal[] };
   agreements?: string[];
-  realStations?: { id: string; dept: 'fire' | 'police' | 'ems'; name: string; pos: LatLng; address?: string }[];
   lastAutoCheck?: number;
   stats: { calls: number; successful: number; failed: number };
 }
@@ -235,7 +234,6 @@ export interface Settings {
   sound: boolean;
   autoDispatch: 'off' | 'low' | 'all';
   shifts: boolean;
-  showReal?: boolean;
   travelModel?: 'fixed' | 'roads';
   callIntervalMin?: number; // minutes between new calls (1, 3 or 5)
   runningCosts?: boolean;   // payroll, upkeep, maintenance, fuel

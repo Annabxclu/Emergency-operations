@@ -152,6 +152,7 @@ export class Game {
     for (const id of Object.keys(this.state.cities)) {
       const c = this.state.cities[id];
       if (!c?.incidents || !c.vehicles) continue;
+      delete (c as { realStations?: unknown }).realStations; // removed feature
       c.incidents = c.incidents.filter(inc =>
         inc.status !== 'pending' || inc.parentId != null ||
         c.vehicles.some(v => v.incidentId === inc.id || v.followUp === inc.id) ||
