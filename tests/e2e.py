@@ -169,7 +169,7 @@ def main():
             check(game('g.city.vehicles.filter(v => v.status === "dispatched").length') == 2, 'two units dispatched')
 
             # --- Run the simulation at 8x and watch units drive along the route
-            page.click('.gear'); page.click('[data-testid=speed-8]'); page.click('.close')
+            game('(g.state.settings.speed = 8, 0)')  # test-only fast-forward
             page.wait_for_function('() => window.__game.city.vehicles.some(v => v.status === "enroute")', timeout=20000)
             v = game('(() => { const v = g.city.vehicles.find(v => v.status === "enroute"); return { n: v.route.coords.length, approx: v.route.approximate, pos: v.pos }; })()')
             check(v['n'] > 2 and not v['approx'], f'vehicle following road geometry ({v["n"]} points, not straight-line)')
@@ -192,7 +192,7 @@ def main():
             print('   other calls generated meanwhile:', game('g.city.resolved.map(i => i.name + ":" + i.outcome).join(", ")'))
             check(game('g.state.xp') > 0, 'player earned XP')
 
-            page.click('.gear'); page.click('[data-testid=speed-0]'); page.click('.close')
+            game('(g.state.settings.speed = 0, 0)')
             page.click('[data-testid=tab-dispatch]')
             page.wait_for_selector('[data-testid=goals]')
             shot('07-dispatch-list')

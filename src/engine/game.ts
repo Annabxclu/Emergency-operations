@@ -66,6 +66,7 @@ export function migrate(raw: unknown): GameState {
   s.cityDefs ||= {};
   s.research ||= { active: null, done: [] };
   if (s.settings && !s.settings.travelModel) s.settings.travelModel = 'fixed';
+  s.settings.speed = 1; // game always runs in real time (speed options removed)
   if (s.settings && !s.settings.callIntervalMin) s.settings.callIntervalMin = 3;
   if (s.settings.runningCosts === undefined) s.settings.runningCosts = TUNING.runningCostsDefault;
   if (!s.settings.rewardMult) s.settings.rewardMult = TUNING.defaultRewardMultiplier;

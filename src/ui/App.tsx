@@ -340,8 +340,6 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
           </button>
           <div className="topcity">
             <span>{game.cityDef.name}, {game.cityDef.state}</span>
-            {game.state.settings.speed === 0 && !setup && <span className="chip warn">Paused</span>}
-            {game.state.settings.speed > 1 && <span className="chip info">{game.state.settings.speed}×</span>}
           </div>
           <button className="gear" aria-label="Settings" onClick={() => openRoot({ kind: 'settings' })}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6c-.6.3-1.2.6-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" /></svg>

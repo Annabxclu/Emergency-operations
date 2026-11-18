@@ -43,12 +43,6 @@ export function SettingsPanel(p: Props) {
       <div className="actions"><Btn kind="primary" onClick={p.onMenu} testid="to-menu">Main menu</Btn><span className="muted small">Game pauses while the menu is open.</span></div>
 
       <Section title="Gameplay">
-        <div className="field"><label>Game speed</label>
-          <div className="seg" role="group" aria-label="Simulation speed">
-            {[0, 1, 4, 8].map(sp => (
-              <button key={sp} className={s.speed === sp ? 'on' : ''} data-testid={`speed-${sp}`} onClick={() => { s.speed = sp; game.changed(); }}>{sp === 0 ? 'Paused' : `${sp}×`}</button>
-            ))}
-          </div></div>
         <div className="field"><label>New call every</label>
           <div className="seg" role="group" aria-label="Call frequency">
             {[1, 3, 5].map(m => (
@@ -56,7 +50,7 @@ export function SettingsPanel(p: Props) {
                 onClick={() => { s.callIntervalMin = m; const c = game.city; c.nextIncidentAt = Math.min(c.nextIncidentAt, game.state.time + m * 60); game.changed(); }}>{m} min</button>
             ))}
           </div></div>
-        <p className="hint">Game minutes (real minutes at 1×). Active calls are capped at your largest department's station count + 1 — right now that's {game.activeCap()} calls.</p>
+        <p className="hint">Real minutes. Active calls are capped at your largest department's station count + 1 — right now that's {game.activeCap()} calls.</p>
         <div className="field"><label>Travel times</label>
           <select value={s.travelModel ?? 'fixed'} onChange={(e: any) => { s.travelModel = e.target.value; game.changed(); }} data-testid="travel-model">
             <option value="fixed">Fixed vehicle speeds (Mission Chief style)</option>
