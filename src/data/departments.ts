@@ -173,7 +173,8 @@ export const STARTER_KITS: Record<string, { vehicles: string[]; staff: number }>
   ems: { vehicles: ['bls'], staff: 3 },
 };
 
-export const STARTING_MONEY = 100000;
+import { TUNING } from './tuning';
+export const STARTING_MONEY = TUNING.startingMoney;
 
 export const dept = (id: string) => DEPARTMENTS.find(d => d.id === id)!;
 export const stationType = (id: string) => STATION_TYPES.find(s => s.id === id)!;

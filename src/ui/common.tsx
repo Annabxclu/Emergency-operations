@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { Game } from '../engine/game';
 import type { LatLng } from '../engine/types';
+import { VEHICLE_STATUS } from './format';
 
 export type Route =
   | { kind: 'dispatch' } | { kind: 'incident'; id: string }
@@ -78,4 +79,11 @@ export function ConfirmBtn(p: { onConfirm: () => void; children: any; confirmTex
       {armed ? p.confirmText || 'Tap again to confirm' : p.children}
     </button>
   );
+}
+
+/** Mission Chief-style numbered radio status badge. */
+export function StatusCode(p: { status: string; label?: boolean }) {
+  const st = (VEHICLE_STATUS as any)[p.status];
+  if (!st) return null;
+  return <span className="scode-wrap"><span className="scode" style={{ background: st.color }}>{st.code}</span>{p.label !== false && <span className="scode-l">{st.label}</span>}</span>;
 }

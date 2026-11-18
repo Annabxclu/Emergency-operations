@@ -77,6 +77,16 @@ export function SettingsPanel(p: Props) {
         <p className="hint">With shifts on, each vehicle needs a crew for every shift, so you need about three times the staff. Station staff capacity is tripled to match. Currently shift {game.currentShift()}.</p>
       </Section>
 
+      <Section title="Tuning">
+        <label className="check"><input type="checkbox" checked={s.runningCosts !== false} onChange={(e: any) => { s.runningCosts = e.target.checked; game.changed(); }} data-testid="running-costs" /> Running costs (payroll, upkeep, fuel, maintenance)</label>
+        <p className="hint">Off = Mission Chief style: you only spend money when you build, buy, hire or train.</p>
+        <div className="field"><label>Call rewards</label>
+          <div className="seg">
+            {[0.5, 1, 1.5, 2, 3].map(m => <button key={m} className={(s.rewardMult ?? 1) === m ? 'on' : ''} onClick={() => { s.rewardMult = m; game.changed(); }}>{m}×</button>)}
+          </div></div>
+        <p className="hint">Other numbers (starting money, daily bonus, call cap) live in src/data/tuning.ts.</p>
+      </Section>
+
       <Section title="Research">
         <button className="row" onClick={() => push({ kind: 'research' })} data-testid="research-open">
           <div className="grow"><div className="row-title">Research projects</div>

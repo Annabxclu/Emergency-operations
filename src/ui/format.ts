@@ -24,23 +24,25 @@ export function dur(sec: number) {
 
 export const km = (m: number) => `${(m / 1000).toFixed(1)} km`;
 
-export const VEHICLE_STATUS: Record<VehicleStatus, { label: string; tone: string }> = {
-  available: { label: 'Available', tone: 'ok' },
-  dispatched: { label: 'Dispatched', tone: 'warn' },
-  enroute: { label: 'En route', tone: 'warn' },
-  onscene: { label: 'On scene', tone: 'info' },
-  transporting: { label: 'Transporting', tone: 'info' },
-  handover: { label: 'At hospital / jail', tone: 'info' },
-  returning: { label: 'Returning', tone: 'muted' },
-  out_of_service: { label: 'Out of service', tone: 'bad' },
-  maintenance: { label: 'Maintenance', tone: 'bad' },
+// Mission Chief-style radio status codes.
+export const VEHICLE_STATUS: Record<VehicleStatus, { label: string; tone: string; code: number; color: string }> = {
+  available: { label: 'Available at station', tone: 'ok', code: 2, color: '#3fb950' },
+  dispatched: { label: 'Alerted', tone: 'warn', code: 3, color: '#e3a008' },
+  enroute: { label: 'En route', tone: 'warn', code: 3, color: '#e3a008' },
+  onscene: { label: 'On scene', tone: 'bad', code: 4, color: '#f05252' },
+  transporting: { label: 'Transporting', tone: 'info', code: 7, color: '#f97316' },
+  handover: { label: 'At hospital / jail', tone: 'info', code: 8, color: '#a855f7' },
+  returning: { label: 'Available on radio', tone: 'info', code: 1, color: '#5aa2ff' },
+  out_of_service: { label: 'Out of service', tone: 'muted', code: 6, color: '#6b7280' },
+  maintenance: { label: 'In maintenance', tone: 'muted', code: 6, color: '#6b7280' },
 };
 
+// Mission Chief colors: red = nobody assigned, yellow = units on the way, green = units on scene.
 export const INCIDENT_STATUS: Record<IncidentStatus, { label: string; tone: string }> = {
-  pending: { label: 'Awaiting units', tone: 'bad' },
-  responding: { label: 'Units responding', tone: 'warn' },
-  onscene: { label: 'Units on scene', tone: 'info' },
-  working: { label: 'Working', tone: 'ok' },
+  pending: { label: 'No units', tone: 'bad' },
+  responding: { label: 'Units en route', tone: 'warn' },
+  onscene: { label: 'On scene — missing units', tone: 'ok' },
+  working: { label: 'In progress', tone: 'ok' },
   resolved: { label: 'Closed', tone: 'muted' },
 };
 

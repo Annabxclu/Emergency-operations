@@ -229,6 +229,8 @@ export interface Settings {
   showReal?: boolean;
   travelModel?: 'fixed' | 'roads';
   callIntervalMin?: number; // minutes between new calls (1, 3 or 5)
+  runningCosts?: boolean;   // payroll, upkeep, maintenance, fuel
+  rewardMult?: number;
 }
 
 export interface GameState {
@@ -243,6 +245,7 @@ export interface GameState {
   seq: number;
   settings: Settings;
   research: { active: { id: string; until: number } | null; done: string[] };
+  login?: { last: string; step: number };
 }
 
 export interface RouteData { coords: LatLng[]; distanceM: number; durationS: number; approximate: boolean }

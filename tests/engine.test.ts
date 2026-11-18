@@ -24,6 +24,7 @@ async function run(g: Game, seconds: number, step = 1) {
 
 (async () => {
   const g = new Game(newGameState(), fake);
+  g.state.settings.runningCosts = true; // exercise the full economy
   const c = () => g.city;
   // Setup: place starter stations in required order.
   let threw = false;
@@ -182,6 +183,23 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(times.length >= 5 && times.slice(1).every((t, i) => Math.abs(t - times[i] - 60) <= 2), `1-minute setting: calls every 60s (${times.length} in 400s)`);
     for (let i = 0; i < 600; i++) { g3.tick(1); if (i % 10 === 0) await flush(); }
     assert(g3.city.incidents.length <= 6, `active calls never exceed the cap (${g3.city.incidents.length})`);
+  }
+
+  // Daily login bonus: 1000 x day, up to 7, then back to day 1; once per calendar day.
+  {
+    const g4 = new Game(newGameState(), fake);
+    const m0 = g4.city.money;
+    const amounts: number[] = [];
+    for (let d = 1; d <= 9; d++) amounts.push(g4.claimDailyBonus(`2026-11-${String(d).padStart(2, '0')}`));
+    assert(amounts.join(',') === '1000,2000,3000,4000,5000,6000,7000,1000,2000', `daily bonus cycle ${amounts.join(', ')}`);
+    assert(g4.city.money === m0 + 31000, 'bonuses credited');
+    let threw = false; try { g4.claimDailyBonus('2026-11-09'); } catch { threw = true; }
+    assert(threw && g4.dailyBonus('2026-11-09') === null, 'only one claim per day');
+    // Mission Chief-style economy: no running costs by default.
+    g4.placeStation('fire_station', [33.755, -84.39]); g4.placeStation('police_precinct', [33.77, -84.385]); g4.placeStation('ems_station', [33.76, -84.37]);
+    const m1 = g4.city.money;
+    for (let i = 0; i < 3 * 3600; i += 30) { g4.tick(30); }
+    assert(!(g4.city.finance.total.expense['payroll']) && g4.city.money >= m1, 'no payroll or upkeep with running costs off');
   }
 
   // Save round trip.

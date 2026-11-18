@@ -256,3 +256,43 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .mk.real { width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,.92); color: var(--c); border: 2px dashed var(--c); box-shadow: 0 1px 3px rgba(0,0,0,.25); opacity: .9; }
 .st-ico.inline { display: inline-grid; width: 22px; height: 22px; vertical-align: -4px; margin-right: 4px; }
 .clock { align-items: flex-end; }
+
+/* ---------- Mission Chief-style mission colors */
+.mk.inc { background: #dc2626; }
+.mk.inc.pending { background: #dc2626; }
+.mk.inc.responding { background: #e3a008; }
+.mk.inc.onscene, .mk.inc.working { background: #16a34a; border-color: #fff; }
+.mk.inc.sev3 { width: 38px; height: 38px; border-radius: 19px; }
+.mk.inc.pending::after { border-color: #dc2626 !important; }
+.inc-ico.st-pending { background: #dc2626; } .inc-ico.st-responding { background: #d59b00; }
+.inc-ico.st-onscene, .inc-ico.st-working { background: #16a34a; } .inc-ico.st-resolved { background: #475569; }
+.inc-ico.major { box-shadow: 0 0 0 2px #fff3; }
+.mission-row { box-shadow: inset 4px 0 0 #dc2626; }
+.mission-row.st-responding { box-shadow: inset 4px 0 0 #e3a008; }
+.mission-row.st-onscene, .mission-row.st-working { box-shadow: inset 4px 0 0 #16a34a; }
+.progress { height: 5px; border-radius: 3px; background: #2a3441; margin-top: 6px; overflow: hidden; }
+.progress span { display: block; height: 100%; background: #16a34a; border-radius: 3px; transition: width .25s linear; }
+.progress.big { height: 8px; margin: 10px 0 0; }
+.missing { margin-top: 10px; padding: 9px 11px; border-radius: 10px; background: rgba(240,82,82,.12); color: #ff8a8a; font-size: 13.5px; font-weight: 600; }
+.aao { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.aao-btn { padding: 7px 10px; border-radius: 9px; background: var(--surface2); font-size: 13px; font-weight: 600; }
+.aao-btn.needed { background: rgba(61,130,246,.22); color: #b9d6ff; box-shadow: inset 0 0 0 1px #3d82f6; }
+.aao-btn:disabled { opacity: .4; }
+.scode-wrap { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+.scode { display: inline-grid; place-items: center; width: 19px; height: 19px; border-radius: 5px; color: #fff; font-size: 11.5px; font-weight: 800; }
+.scode-l { color: #c3ccd6; }
+.row-sub .scode { width: 15px; height: 15px; font-size: 10px; border-radius: 4px; vertical-align: -2px; }
+.row-status { display: inline-flex; align-items: center; gap: 6px; }
+.topcity { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 13px; font-weight: 600; color: #c3ccd6; }
+
+/* ---------- daily bonus */
+.modal-backdrop { position: absolute; inset: 0; z-index: 1900; background: rgba(5,8,12,.6); display: grid; place-items: center; padding: 16px; }
+.modal { width: min(440px, 100%); background: var(--panel); border-radius: 18px; padding: 20px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.modal h2 { margin: 0; font-size: 22px; }
+.modal p { margin: 0; font-size: 13.5px; }
+.bonus-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 6px 0; }
+.bonus-day { background: var(--surface); border-radius: 9px; padding: 7px 2px; text-align: center; }
+.bonus-day.past { opacity: .5; }
+.bonus-day.today { background: rgba(61,130,246,.25); box-shadow: inset 0 0 0 2px #3d82f6; }
+.bd-label { font-size: 10px; color: var(--muted); font-weight: 700; }
+.bd-amt { font-size: 11px; font-weight: 800; margin-top: 3px; }

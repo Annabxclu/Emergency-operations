@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { MIN_CONDITION } from '../../engine/game';
 import { DEPARTMENTS, capability, dept, qualification, vehicleType } from '../../data/departments';
-import { Btn, Chip, ConfirmBtn, Dot, Empty, Header, Section, Stat, useCtx } from '../common';
-import { VEHICLE_STATUS, dur, money } from '../format';
+import { Btn, Chip, ConfirmBtn, StatusCode, Dot, Empty, Header, Section, Stat, useCtx } from '../common';
+import { dur, money } from '../format';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -43,7 +43,7 @@ export function VehiclesList() {
                     <span className="veh-badge" style={{ borderColor: d.color }}>{t.short}</span>
                     <div className="grow"><div className="row-title">{v.name}</div>
                       <div className="row-sub">{prob || `${t.name} · ${game.station(v.stationId)?.name ?? ''}`}</div></div>
-                    <div className="row-right"><Chip tone={prob ? 'bad' : VEHICLE_STATUS[v.status].tone}>{prob ? 'Not ready' : VEHICLE_STATUS[v.status].label}{eta != null ? ` · ${dur(eta)}` : ''}</Chip></div>
+                    <div className="row-right">{prob ? <Chip tone="bad">Not ready</Chip> : <StatusCode status={v.status} />}{eta != null && <span className="eta">{dur(eta)}</span>}</div>
                   </button>
                 );
               })}
@@ -73,7 +73,7 @@ export function VehicleDetail({ id }: { id: string }) {
 
   return (
     <div>
-      <Header title={v.name} sub={`${t.name} · ${st?.name ?? ''}`} right={<Chip tone={VEHICLE_STATUS[v.status].tone}>{VEHICLE_STATUS[v.status].label}</Chip>} />
+      <Header title={v.name} sub={`${t.name} · ${st?.name ?? ''}`} right={<StatusCode status={v.status} />} />
       {inc && (
         <button className="callout" onClick={() => push({ kind: 'incident', id: inc.id })}>
           Assigned to <b>{inc.name}</b> · {inc.address}{eta != null ? ` · ETA ${dur(eta)}` : ''}

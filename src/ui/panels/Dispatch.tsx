@@ -4,12 +4,17 @@ import { distanceM } from '../../engine/geo';
 import type { Incident, Vehicle } from '../../engine/types';
 import { capability, dept, vehicleType } from '../../data/departments';
 import { CATEGORY_DEPT } from '../../data/incidents';
-import { Btn, Chip, Dot, Empty, Header, Section, useCtx } from '../common';
-import { INCIDENT_STATUS, OUTCOME, SEVERITY, VEHICLE_STATUS, dur, money } from '../format';
+import { Btn, Chip, Dot, Empty, Header, Section, StatusCode, useCtx } from '../common';
+import { INCIDENT_STATUS, OUTCOME, SEVERITY, dur, money } from '../format';
 import { glyph } from '../icons';
 
 function IncIcon({ inc }: { inc: Incident }) {
-  return <span className={`inc-ico sev${inc.severity}`} dangerouslySetInnerHTML={{ __html: glyph(inc.category, 15) }} />;
+  return <span className={`inc-ico st-${inc.status}${inc.severity >= 3 ? ' major' : ''}`} dangerouslySetInnerHTML={{ __html: glyph(inc.category, 15) }} />;
+}
+
+function workPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
+  if (inc.status !== 'working' || inc.workUntil == null || inc.workStartedAt == null) return 0;
+  return Math.min(100, Math.max(0, ((game.state.time - inc.workStartedAt) / (inc.workUntil - inc.workStartedAt)) * 100));
 }
 
 export function timerText(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
@@ -44,11 +49,12 @@ export function DispatchList() {
         {active.map(inc => {
           const st = INCIDENT_STATUS[inc.status];
           return (
-            <button key={inc.id} className="row" onClick={() => push({ kind: 'incident', id: inc.id })} data-testid="incident-row">
+            <button key={inc.id} className={`row mission-row st-${inc.status}`} onClick={() => push({ kind: 'incident', id: inc.id })} data-testid="incident-row">
               <IncIcon inc={inc} />
               <div className="grow">
                 <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}</div>
                 <div className="row-sub">{inc.address} · {inc.district}</div>
+                {inc.status === 'working' && <div className="progress"><span style={{ width: `${workPct(game, inc)}%` }} /></div>}
               </div>
               <div className="row-right">
                 <Chip tone={st.tone}>{st.label}</Chip>
@@ -77,7 +83,7 @@ export function DispatchList() {
 }
 
 export function IncidentDetail({ id }: { id: string }) {
-  const { game, act, push, focus } = useCtx();
+  const { game, act, push, back, focus } = useCtx();
   const inc = game.incident(id);
   const [sel, setSel] = useState(() => new Set<string>());
   const [touched, setTouched] = useState(false);
@@ -115,9 +121,24 @@ export function IncidentDetail({ id }: { id: string }) {
     if (n.has(v.id)) n.delete(v.id); else n.add(v.id);
     setSel(n);
   };
-  const dispatch = () => {
+  const selCount = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem)).length;
+  const addVehicle = (v: Vehicle) => { setTouched(true); setSel(new Set([...sel, v.id])); };
+  // Mission Chief-style quick buttons: add the nearest available unit of a type.
+  const capsInFleet = [...new Set(candidates.filter(c => !c.problem).flatMap(c => vehicleType(c.v.typeId).caps))];
+  const quick = capsInFleet.map(cap => {
+    const pool = candidates.filter(c => !c.problem && vehicleType(c.v.typeId).caps.includes(cap));
+    const next = pool.find(c => !sel.has(c.v.id))?.v ?? null;
+    return { cap, next, left: pool.filter(c => !sel.has(c.v.id)).length, needed: missingAll.some(m => m.cap === cap) };
+  }).sort((a, b) => Number(b.needed) - Number(a.needed));
+  const dispatch = (andNext: boolean) => {
     const ids = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem));
-    if (act(() => game.dispatch(inc.id, ids), `Dispatched ${ids.length} unit${ids.length === 1 ? '' : 's'}`)) { setTouched(false); setSel(new Set()); }
+    if (!act(() => game.dispatch(inc.id, ids), `Alarmed ${ids.length} unit${ids.length === 1 ? '' : 's'}`)) return;
+    setTouched(false); setSel(new Set());
+    if (andNext) {
+      const next = [...game.city.incidents].filter(i => i.id !== inc.id && i.status === 'pending').sort((a, b) => a.deadline - b.deadline)[0];
+      back();
+      if (next) push({ kind: 'incident', id: next.id });
+    }
   };
   const deptColor = dept(CATEGORY_DEPT[inc.category]).color;
 
@@ -139,6 +160,13 @@ export function IncidentDetail({ id }: { id: string }) {
           <button className="linkish parent-link" onClick={() => push({ kind: 'incident', id: inc.parentId! })}>Part of major event: {game.incident(inc.parentId)!.name} ›</button>
         )}
       </div>
+
+      {!closed && inc.status === 'working' && (
+        <div className="progress big"><span style={{ width: `${workPct(game, inc)}%` }} /></div>
+      )}
+      {!closed && inc.status !== 'working' && missingAll.length > 0 && (
+        <div className="missing" data-testid="missing">Missing: {missingAll.map(m => `${m.count}× ${capability(m.cap).name}`).join(', ')}</div>
+      )}
 
       <Section title="Required">
         <div className="reqs">
@@ -166,7 +194,7 @@ export function IncidentDetail({ id }: { id: string }) {
                     <div className="row-title">{v.name}</div><div className="row-sub">{t.name}</div>
                   </button>
                   <div className="row-right">
-                    <Chip tone={VEHICLE_STATUS[v.status].tone}>{VEHICLE_STATUS[v.status].label}{eta != null ? ` · ${dur(eta)}` : ''}</Chip>
+                    <span className="row-status"><StatusCode status={v.status} />{eta != null && <span className="eta">{dur(eta)}</span>}</span>
                     {!closed && <button className="mini" onClick={() => act(() => game.recall(v.id))}>Release</button>}
                   </div>
                 </div>
@@ -182,6 +210,15 @@ export function IncidentDetail({ id }: { id: string }) {
             <div className="warnbox">No available unit for: {rec.unfilled.map(u => `${u.count}× ${capability(u.cap).name}`).join(', ')}</div>
           )}
           {!candidates.length && <Empty>No units at stations. Buy vehicles in Stations.</Empty>}
+          {quick.length > 0 && (
+            <div className="aao" data-testid="aao">
+              {quick.map(q => (
+                <button key={q.cap} className={`aao-btn ${q.needed ? 'needed' : ''}`} disabled={!q.next} onClick={() => q.next && addVehicle(q.next)}>
+                  + {capability(q.cap).name} <span className="muted">{q.left}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="list">
             {candidates.map(({ v, eta, problem }) => {
               const t = vehicleType(v.typeId);
@@ -192,7 +229,7 @@ export function IncidentDetail({ id }: { id: string }) {
                   <Dot color={dept(t.dept).color} />
                   <div className="grow">
                     <div className="row-title">{v.name}{useful && !problem && <span className="tag ok">Needed</span>}</div>
-                    <div className="row-sub">{problem || `${t.name} · ${game.station(v.stationId)?.name ?? ''}`}</div>
+                    <div className="row-sub"><StatusCode status={v.status} label={false} /> {problem || `${t.name} · ${game.station(v.stationId)?.name ?? ''}`}</div>
                   </div>
                   <div className="row-right"><span className="eta">~{dur(eta)}</span><span className="muted small">{(distanceM(v.pos, inc.pos) * (t.air ? 1 : 1.35) / 1609).toFixed(1)} mi</span></div>
                 </label>
@@ -200,9 +237,8 @@ export function IncidentDetail({ id }: { id: string }) {
             })}
           </div>
           <div className="actions sticky">
-            <Btn kind="primary" onClick={dispatch} disabled={![...sel].some(i => candidates.some(c => c.v.id === i && !c.problem))} testid="dispatch-btn">
-              Dispatch {[...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem)).length || ''}
-            </Btn>
+            <Btn kind="primary" onClick={() => dispatch(false)} disabled={!selCount} testid="dispatch-btn">Alarm {selCount || ''}</Btn>
+            <Btn onClick={() => dispatch(true)} disabled={!selCount} testid="dispatch-next">Alarm & next</Btn>
           </div>
         </Section>
       )}

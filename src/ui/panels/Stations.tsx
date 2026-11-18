@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, dept, qualification, stationType } from '../../data/departments';
-import { Btn, Chip, Dot, Empty, Header, Section, Stat, useCtx } from '../common';
+import { Btn, Chip, Dot, Empty, Header, Section, Stat, StatusCode, useCtx } from '../common';
 import { extensionsFor } from '../../data/progression';
-import { VEHICLE_STATUS, money } from '../format';
+import { money } from '../format';
 import { glyph } from '../icons';
 
 export function StationsList() {
@@ -107,7 +107,7 @@ export function StationDetail({ id }: { id: string }) {
               <button key={v.id} className="row compact" onClick={() => push({ kind: 'vehicle', id: v.id })}>
                 <span className="veh-badge" style={{ borderColor: d.color }}>{vt.short}</span>
                 <div className="grow"><div className="row-title">{v.name}</div><div className="row-sub">{prob || `${vt.name} · crew ${game.crew(v.id).length}/${vt.maxCrew}`}</div></div>
-                <div className="row-right"><Chip tone={prob ? 'bad' : VEHICLE_STATUS[v.status].tone}>{prob ? 'Unstaffed' : VEHICLE_STATUS[v.status].label}</Chip></div>
+                <div className="row-right">{prob ? <Chip tone="bad">Unstaffed</Chip> : <StatusCode status={v.status} />}</div>
               </button>
             );
           })}

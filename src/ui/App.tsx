@@ -7,7 +7,7 @@ import { clearSave, importJson, saveGame } from '../services/storage';
 import { fetchHospitals, fetchRealStations, reverseAddress, searchAddress, type AddressResult } from '../services/geocode';
 import { GameCtx, type Ctx, type Route } from './common';
 import { MapView, type MapApi, type Selection } from './MapView';
-import { OUTCOME, clock, money, moneyShort } from './format';
+import { OUTCOME, money, moneyShort } from './format';
 import { tabIcon } from './icons';
 import { DispatchList, IncidentDetail } from './panels/Dispatch';
 import { BuildChooser, StationDetail, StationsList } from './panels/Stations';
@@ -22,6 +22,7 @@ import { RESEARCH } from '../data/progression';
 import { playAlert, unlockAudio } from './sound';
 import { CityPicker } from './CityPicker';
 import { StartMenu } from './StartMenu';
+import { DailyBonus, todayKey } from './DailyBonus';
 import type { CityDef } from '../engine/types';
 
 const TABS = [
@@ -53,6 +54,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const [picker, setPicker] = useState(null as null | 'new' | 'add');
   const [menu, setMenu] = useState(true);
   const [hasSave, setHasSave] = useState(!firstRun);
+  const [bonusHidden, setBonusHidden] = useState(false);
   const blocked = useRef(true);
   blocked.current = menu || !!picker;
   const mapApi = useRef(null as MapApi | null);
@@ -226,7 +228,6 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const setup = !game.setupDone;
   const setupType = setup ? stationTypeForDept(SETUP_ORDER[c.setupStep]).id : null;
   const activeBuild = picker || menu ? null : setup ? setupType : buildType;
-  const t = clock(game.state.time);
   const lvl = game.state.level;
   const xpFrac = Math.min(1, (game.state.xp - xpForLevel(lvl)) / Math.max(1, xpForLevel(lvl + 1) - xpForLevel(lvl)));
   const pendingCount = c.incidents.filter(i => i.status === 'pending').length;
@@ -311,7 +312,11 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
             <span className={c.money < 0 ? 'bad' : ''}>{moneyShort(c.money)}</span>
             <span className="lvl">Lv {lvl}<span className="xpbar"><span style={{ width: `${xpFrac * 100}%` }} /></span></span>
           </button>
-          <div className="clock"><span className="day">{game.cityDef.name} · Day {t.day}{game.state.settings.speed === 0 && !setup ? ' · Paused' : game.state.settings.speed > 1 ? ` · ${game.state.settings.speed}×` : ''}</span><span className="hm">{t.hm}</span></div>
+          <div className="topcity">
+            <span>{game.cityDef.name}, {game.cityDef.state}</span>
+            {game.state.settings.speed === 0 && !setup && <span className="chip warn">Paused</span>}
+            {game.state.settings.speed > 1 && <span className="chip info">{game.state.settings.speed}×</span>}
+          </div>
           <button className="gear" aria-label="Settings" onClick={() => openRoot({ kind: 'settings' })}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6c-.6.3-1.2.6-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" /></svg>
           </button>
@@ -389,6 +394,10 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
             <button className="close" aria-label="Close panel" onClick={() => openRoot(null)}>×</button>
             <div className="sheet-body">{renderSheet(top)}</div>
           </div>
+        )}
+
+        {!menu && !picker && !bonusHidden && game.dailyBonus(todayKey()) && (
+          <DailyBonus game={game} onClaim={() => { const amt = game.claimDailyBonus(todayKey()); toast(`Daily bonus claimed: +${money(amt)}`, 'ok'); saveGame(game.state); }} onLater={() => setBonusHidden(true)} />
         )}
 
         {menu && !picker && (

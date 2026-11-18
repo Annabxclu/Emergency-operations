@@ -11,6 +11,7 @@ import {
   dept, qualification, stationType, stationTypeForDept, vehicleType,
 } from '../data/departments';
 import { INCIDENT_TYPES, incidentType, CATEGORY_DEPT } from '../data/incidents';
+import { TUNING } from '../data/tuning';
 import { AGREEMENTS, GOAL_TEMPLATES, RESEARCH, extensionsFor, type ModKey } from '../data/progression';
 import { CITIES, CITY_SLOT_LEVELS } from '../data/cities';
 import { FIRST_NAMES, LAST_NAMES } from '../data/names';
@@ -50,7 +51,7 @@ export function newGameState(def: CityDef = CITIES[0]): GameState {
     cities: { [cityId]: newCityState(cityId) },
     cityDefs: CITIES.some(c => c.id === cityId) ? {} : { [cityId]: def },
     seq: 1,
-    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter, sound: true, autoDispatch: 'off', shifts: false, travelModel: 'fixed', callIntervalMin: 3 },
+    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter, sound: true, autoDispatch: 'off', shifts: false, travelModel: 'fixed', callIntervalMin: TUNING.defaultCallIntervalMin, runningCosts: TUNING.runningCostsDefault, rewardMult: TUNING.defaultRewardMultiplier },
     research: { active: null, done: [] },
   };
 }
@@ -66,6 +67,8 @@ export function migrate(raw: unknown): GameState {
   s.research ||= { active: null, done: [] };
   if (s.settings && !s.settings.travelModel) s.settings.travelModel = 'fixed';
   if (s.settings && !s.settings.callIntervalMin) s.settings.callIntervalMin = 3;
+  if (s.settings.runningCosts === undefined) s.settings.runningCosts = TUNING.runningCostsDefault;
+  if (!s.settings.rewardMult) s.settings.rewardMult = TUNING.defaultRewardMultiplier;
   if (!s.cityDefs[s.activeCity] && !CITIES.some(c => c.id === s.activeCity)) throw new Error('This save references an unknown city.');
   const fresh = newGameState();
   s.settings = { ...fresh.settings, ...(s.settings || {}) };
@@ -225,6 +228,24 @@ export class Game {
     this.spend(r.cost, 'research', null, `Research: ${r.name}`);
     rs.active = { id, until: this.state.time + r.hours * 3600 };
     this.changed();
+  }
+
+  // ------------------------------------------------------------ daily login bonus
+  /** Which day of the 7-day cycle is claimable today (null if already claimed). */
+  dailyBonus(today: string): { step: number; amount: number } | null {
+    const l = this.state.login;
+    if (l && l.last === today) return null;
+    const step = l ? (l.step % TUNING.dailyBonusDays) + 1 : 1;
+    return { step, amount: step * TUNING.dailyBonusBase };
+  }
+
+  claimDailyBonus(today: string): number {
+    const b = this.dailyBonus(today);
+    if (!b) throw new ActionError('Already claimed today.');
+    this.post(b.amount, 'daily login bonus', null, `Daily bonus — day ${b.step}`);
+    this.state.login = { last: today, step: b.step };
+    this.changed();
+    return b.amount;
   }
 
   // ------------------------------------------------------------ shifts
@@ -742,6 +763,7 @@ export class Game {
     const t = vehicleType(v.typeId);
     const km = meters / 1000;
     v.odometerKm += km;
+    if (this.state.settings.runningCosts === false) return;
     v.condition = Math.max(0, v.condition - km * 0.35 * this.mod('wear'));
     const fuel = km * t.fuelPerKm;
     v.costs.fuel += fuel;
@@ -825,10 +847,11 @@ export class Game {
     const h = dt / 3600;
     const add = (k: string, n: number) => (c.accrual[k] = (c.accrual[k] || 0) + n);
     const salary = this.mod('salary'), contract = this.mod('contract'), maintM = this.mod('maintenance');
-    for (const e of c.employees) add(`payroll|${e.dept}`, e.salaryPerHour * salary * h);
+    const costs = this.state.settings.runningCosts !== false;
+    if (costs) for (const e of c.employees) add(`payroll|${e.dept}`, e.salaryPerHour * salary * h);
     for (const s of c.stations) {
       const t = stationType(s.typeId);
-      add(`station upkeep|${s.dept}`, t.upkeepPerHour * (1 + s.level * 0.35) * h);
+      if (costs) add(`station upkeep|${s.dept}`, t.upkeepPerHour * (1 + s.level * 0.35) * h);
       if (this.setupDone) add(`city contract|${s.dept}`, -t.contractPerHour * contract * h);
     }
     for (const id of c.agreements || []) {
@@ -837,6 +860,7 @@ export class Game {
     }
     for (const v of c.vehicles) {
       const t = vehicleType(v.typeId);
+      if (!costs) continue;
       const m = t.maintenancePerHour * maintM * h;
       v.costs.maintenance += m;
       add(`maintenance|${t.dept}`, m);
@@ -994,7 +1018,7 @@ export class Game {
       payout = -fine;
       c.stats.failed++;
     } else {
-      const base = Math.round(inc.reward * mult[outcome] * this.mod('reward'));
+      const base = Math.round(inc.reward * mult[outcome] * this.mod('reward') * (this.state.settings.rewardMult ?? 1));
       this.post(base, 'incident rewards', primary, `${inc.name} ${inc.number}`);
       payout = base;
       if (outcome === 'successful') {
@@ -1052,7 +1076,7 @@ export class Game {
   activeCap() {
     const counts: Record<string, number> = {};
     for (const s of this.city.stations) counts[s.dept] = (counts[s.dept] || 0) + 1;
-    return Math.max(0, ...Object.values(counts)) + 1;
+    return Math.max(0, ...Object.values(counts)) + TUNING.callCapBonus;
   }
 
   /** A new call every 1, 3 or 5 game minutes (Settings). */
@@ -1205,6 +1229,7 @@ export class Game {
     });
     for (const id of c.agreements || []) { const a = AGREEMENTS.find(x => x.id === id); if (a && this.agreementActive(id)) contract += a.incomePerHour * this.mod('contract'); }
     c.vehicles.forEach(v => (maint += vehicleType(v.typeId).maintenancePerHour * this.mod('maintenance')));
+    if (this.state.settings.runningCosts === false) { payroll = 0; upkeep = 0; maint = 0; }
     return { payroll, upkeep, maint, contract, net: contract - payroll - upkeep - maint };
   }
 }
