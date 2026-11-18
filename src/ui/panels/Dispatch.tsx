@@ -25,7 +25,13 @@ export function timerText(game: ReturnType<typeof useCtx>['game'], inc: Incident
   const now = game.state.time;
   if (inc.status === 'working') return `Working · ${dur((inc.workUntil ?? now) - now)} left`;
   if (inc.workRemaining != null) return `Paused · ${dur(inc.workRemaining)} left`;
-  return `Open ${dur(now - inc.createdAt)}`;
+  return `Received ${receivedText(game, inc)}`;
+}
+
+/** Date and time the call came in, e.g. "Nov 18, 7:12 AM". */
+export function receivedText(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
+  const at = inc.receivedAt ?? Date.now() - (game.state.time - inc.createdAt) * 1000;
+  return new Date(at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 export function DispatchList() {
@@ -169,7 +175,6 @@ export function IncidentDetail({ id }: { id: string }) {
               <span className="n">{r.onScene}/{r.count}</span>
               <span className="grow">{capability(r.cap).name}</span>
               {r.coming > 0 && <span className="muted">{r.coming} en route</span>}
-              {r.short > 0 && !closed && <span className="bad">{r.short} needed</span>}
             </div>
           ))}
         </div>
@@ -232,13 +237,12 @@ export function IncidentDetail({ id }: { id: string }) {
           <div className="list">
             {candidates.filter(c => inTab(c.v)).map(({ v, eta, problem }) => {
               const t = vehicleType(v.typeId);
-              const useful = t.caps.some(cp => missingAll.some(m => m.cap === cp));
               return (
                 <label key={v.id} className={`row compact pick ${problem ? 'disabled' : ''}`} data-testid="dispatch-candidate">
                   <input type="checkbox" disabled={!!problem} checked={sel.has(v.id) && !problem} onChange={() => toggle(v)} />
                   <Dot color={dept(t.dept).color} />
                   <div className="grow">
-                    <div className="row-title">{v.name}{useful && !problem && <span className="tag ok">Needed</span>}</div>
+                    <div className="row-title">{v.name}</div>
                     <div className="row-sub"><StatusCode status={v.status} label={false} /> {problem || `${t.name} · ${game.station(v.stationId)?.name ?? ''}`}</div>
                   </div>
                   <div className="row-right"><span className="eta">~{dur(eta)}</span><span className="muted small">{(distanceM(v.pos, inc.pos) * (t.air ? 1 : 1.35) / 1609).toFixed(1)} mi</span></div>
@@ -258,7 +262,7 @@ export function IncidentDetail({ id }: { id: string }) {
                       <input type="checkbox" checked={sel.has(v.id)} onChange={() => toggle(v)} />
                       <Dot color={dept(t.dept).color} />
                       <div className="grow">
-                        <div className="row-title">{v.name}{t.caps.some(cp => missingAll.some(m => m.cap === cp)) && <span className="tag ok">Needed</span>}</div>
+                        <div className="row-title">{v.name}</div>
                         <div className="row-sub"><StatusCode status={v.status} label={false} /> {cur ? `At ${cur.name}` : v.cargo ? `Transporting to ${v.cargo.destName}` : t.name}</div>
                       </div>
                       <div className="row-right"><span className="muted small">{(d * 1.35 / 1609).toFixed(1)} mi</span></div>

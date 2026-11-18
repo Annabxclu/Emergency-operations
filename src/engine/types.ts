@@ -173,6 +173,7 @@ export interface Incident {
   description: string;
   requirements: Requirement[];
   createdAt: number;
+  receivedAt?: number;    // real-world time (ms) the call came in
   deadline: number;
   escalated: boolean;
   late: boolean;

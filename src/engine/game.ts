@@ -1370,7 +1370,7 @@ export class Game {
       id: this.id('i'), number: `${def.prefix}-${String(c.incidentCounter).padStart(5, '0')}`,
       typeId: t.id, name: t.name, category: t.category, pos, address, district, severity: t.severity,
       description: pick(t.descriptions), requirements: t.requirements.map(r => ({ ...r })),
-      createdAt: this.state.time, deadline: this.state.time + t.deadlineMin * 60,
+      createdAt: this.state.time, receivedAt: Date.now(), deadline: this.state.time + t.deadlineMin * 60,
       escalated: false, late: false, partial: false, status: 'pending', workUntil: null, workStartedAt: null,
       reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
       patients: range(t.patients), prisoners: range(t.prisoners), parentId,
