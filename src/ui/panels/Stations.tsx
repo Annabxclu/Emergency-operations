@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, capability, dept, qualification, stationType } from '../../data/departments';
 import { Btn, Chip, Dot, Empty, Header, Section, Stat, StatusCode, useCtx } from '../common';
 import { extensionsFor } from '../../data/progression';
-import { money } from '../format';
+import { mi, money } from '../format';
 import { glyph } from '../icons';
 
 let rememberedTab = 'all'; // keeps the chosen tab when you open a station and come back
@@ -69,7 +69,7 @@ export function BuildChooser() {
             <button key={t.id} className="row" disabled={!!need || game.city.money < price} onClick={() => startBuild(t.id)} data-testid={`build-${t.id}`}>
               <span className="st-ico" style={{ background: d.color }} dangerouslySetInnerHTML={{ __html: glyph(d.id, 15) }} />
               <div className="grow"><div className="row-title">{t.name}</div>
-                <div className="row-sub wrap">1 bay, expandable to {t.maxLevel + 1}{t.small ? ' · no extensions · can convert to full later' : ''} · {t.coverageKm} km coverage</div></div>
+                <div className="row-sub wrap">1 bay, expandable to {t.maxLevel + 1}{t.small ? ' · no extensions · can convert to full later' : ''} · {mi(t.coverageKm)} coverage</div></div>
               <div className="row-right"><div className="amt">{need ?? money(price)}</div></div>
             </button>
           );
@@ -182,7 +182,7 @@ export function StationDetail({ id }: { id: string }) {
       </Section>
 
       <Section title="Building">
-        <div className="kv">{game.state.settings.runningCosts !== false && <span>Upkeep {money(upkeep)}/h</span>}<span>City contract +{money(t.contractPerHour)}/h</span><span>Coverage {t.coverageKm} km</span></div>
+        <div className="kv">{game.state.settings.runningCosts !== false && <span>Upkeep {money(upkeep)}/h</span>}<span>City contract +{money(t.contractPerHour)}/h</span><span>Coverage {mi(t.coverageKm)}</span></div>
         <div className="level-bar"><span style={{ width: `${(s.level / t.maxLevel) * 100}%` }} /></div>
         <div className="kv"><span>Level {s.level} of {t.maxLevel}</span><span>{cap.bays} bays</span><span>{cap.staff} staff capacity</span></div>
         {canLevel ? (

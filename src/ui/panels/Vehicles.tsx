@@ -103,7 +103,7 @@ export function VehicleDetail({ id }: { id: string }) {
         <div className="kv">
           <span>Crew {t.minCrew}–{t.maxCrew}</span>
           {t.quals.map(q => <span key={q.qual}>Needs {q.count}× {qualification(q.qual).name}</span>)}
-          <span>Maintenance {money(t.maintenancePerHour)}/h</span><span>Fuel {money(t.fuelPerKm)}/km</span>
+          <span>Maintenance {money(t.maintenancePerHour)}/h</span><span>Fuel {money(t.fuelPerKm * 1.609344)}/mi</span>
         </div>
       </Section>
 
@@ -131,7 +131,7 @@ export function VehicleDetail({ id }: { id: string }) {
       </Section>
 
       <Section title="Costs">
-        <div className="kv"><span>Purchase {money(v.costs.purchase)}</span><span>Fuel {money(v.costs.fuel)}</span><span>Maintenance {money(v.costs.maintenance)}</span><span>{v.odometerKm.toFixed(1)} km driven</span></div>
+        <div className="kv"><span>Purchase {money(v.costs.purchase)}</span><span>Fuel {money(v.costs.fuel)}</span><span>Maintenance {money(v.costs.maintenance)}</span><span>{(v.odometerKm / 1.609344).toFixed(1)} mi driven</span></div>
       </Section>
 
       <Section title="Actions">

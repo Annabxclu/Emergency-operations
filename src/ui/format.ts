@@ -22,7 +22,8 @@ export function dur(sec: number) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export const km = (m: number) => `${(m / 1000).toFixed(1)} km`;
+export const km = (m: number) => `${(m / 1609.344).toFixed(1)} mi`; // shown in miles
+export const mi = (kmVal: number) => `${(kmVal / 1.609344).toFixed(1)} mi`;
 
 // Numbered radio status codes.
 export const VEHICLE_STATUS: Record<VehicleStatus, { label: string; tone: string; code: number; color: string }> = {
