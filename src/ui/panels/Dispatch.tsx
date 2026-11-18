@@ -116,7 +116,12 @@ export function IncidentDetail({ id }: { id: string }) {
     if (n.has(v.id)) n.delete(v.id); else n.add(v.id);
     setSel(n);
   };
-  const selCount = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem)).length;
+  const followCands = game.followUpCandidates(inc.id)
+    .map(v => ({ v, d: distanceM(v.pos, inc.pos) }))
+    .sort((a, b) => a.d - b.d).slice(0, 20);
+  const queued = game.followUpsFor(inc.id);
+  const selFollow = [...sel].filter(i => followCands.some(c => c.v.id === i));
+  const selCount = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem)).length + selFollow.length;
   const addVehicle = (v: Vehicle) => { setSel(new Set([...sel, v.id])); };
   // Quick buttons: add the nearest available unit of a type.
   const capsInFleet = [...new Set(candidates.filter(c => !c.problem).flatMap(c => vehicleType(c.v.typeId).caps))];
@@ -127,7 +132,8 @@ export function IncidentDetail({ id }: { id: string }) {
   }).sort((a, b) => Number(b.needed) - Number(a.needed));
   const dispatch = (andNext: boolean) => {
     const ids = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem));
-    if (!act(() => game.dispatch(inc.id, ids), `Dispatched ${ids.length} unit${ids.length === 1 ? '' : 's'}`)) return;
+    const msg = [ids.length ? `Dispatched ${ids.length} unit${ids.length === 1 ? '' : 's'}` : '', selFollow.length ? `${selFollow.length} will follow up` : ''].filter(Boolean).join(' · ');
+    if (!act(() => { if (ids.length) game.dispatch(inc.id, ids); if (selFollow.length) game.queueFollowUp(inc.id, selFollow); }, msg)) return;
     setSel(new Set());
     if (andNext) {
       const next = [...game.city.incidents].filter(i => i.id !== inc.id && i.status === 'pending').sort((a, b) => a.createdAt - b.createdAt)[0];
@@ -199,6 +205,20 @@ export function IncidentDetail({ id }: { id: string }) {
         </Section>
       )}
 
+      {!closed && queued.length > 0 && (
+        <Section title="Following up">
+          <div className="list">
+            {queued.map(v => (
+              <div key={v.id} className="row compact" data-testid="queued-followup">
+                <Dot color={dept(vehicleType(v.typeId).dept).color} />
+                <div className="grow"><div className="row-title">{v.name}</div><div className="row-sub">Coming after its current call</div></div>
+                <button className="mini" onClick={() => act(() => game.cancelFollowUp(v.id))}>Cancel</button>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
       {!closed && inc.status !== 'working' && (
         <Section title="Dispatch units" right={<button className="mini" onClick={() => setSel(new Set(rec.ids))} data-testid="select-recommended">Select recommended</button>}>
           {rec.unfilled.length > 0 && (
@@ -231,6 +251,28 @@ export function IncidentDetail({ id }: { id: string }) {
               );
             })}
           </div>
+          {followCands.length > 0 && (
+            <>
+              <div className="subhead">Follow up — busy units go here straight after their current call</div>
+              <div className="list">
+                {followCands.map(({ v, d }) => {
+                  const t = vehicleType(v.typeId);
+                  const cur = v.incidentId ? game.incident(v.incidentId) : null;
+                  return (
+                    <label key={v.id} className="row compact pick" data-testid="followup-candidate">
+                      <input type="checkbox" checked={sel.has(v.id)} onChange={() => toggle(v)} />
+                      <Dot color={dept(t.dept).color} />
+                      <div className="grow">
+                        <div className="row-title">{v.name}{t.caps.some(cp => missingAll.some(m => m.cap === cp)) && <span className="tag ok">Needed</span>}</div>
+                        <div className="row-sub"><StatusCode status={v.status} label={false} /> {cur ? `At ${cur.name}` : v.cargo ? `Transporting to ${v.cargo.destName}` : t.name}</div>
+                      </div>
+                      <div className="row-right"><span className="muted small">{(d * 1.35 / 1609).toFixed(1)} mi</span></div>
+                    </label>
+                  );
+                })}
+              </div>
+            </>
+          )}
           <div className="actions sticky">
             <Btn kind="primary" onClick={() => dispatch(false)} disabled={!selCount} testid="dispatch-btn">Dispatch</Btn>
             <Btn onClick={() => dispatch(true)} disabled={!selCount} testid="dispatch-next">Dispatch & next</Btn>

@@ -123,6 +123,7 @@ export interface Vehicle {
   calls: number;
   cargo?: { kind: 'patient' | 'prisoner'; count: number; dest: string; destName: string; fee: number } | null;
   busyUntil?: number;
+  followUp?: string | null; // incident to drive to straight after the current job
 }
 
 export interface Station {

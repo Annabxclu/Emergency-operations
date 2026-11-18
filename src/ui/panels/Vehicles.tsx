@@ -80,6 +80,9 @@ export function VehicleDetail({ id }: { id: string }) {
         </button>
       )}
       {v.cargo && <div className="callout">{v.status === 'handover' ? 'Handing over' : 'Transporting'} {v.cargo.count} {v.cargo.kind}{v.cargo.count > 1 ? 's' : ''} → {v.cargo.destName}{eta != null ? ` · ${dur(eta)}` : ''}</div>}
+      {v.followUp && game.incident(v.followUp) && (
+        <div className="callout">Follow-up queued: {game.incident(v.followUp)!.name} · <button className="linkish" onClick={() => act(() => game.cancelFollowUp(v.id))}>cancel</button></div>
+      )}
       {v.status === 'maintenance' && <div className="callout">In the shop · back in {dur(v.maintenanceUntil - game.state.time)}</div>}
       <div className="stats">
         <Stat label="Condition" value={`${Math.round(v.condition)}%`} tone={v.condition < MIN_CONDITION ? 'bad' : v.condition < 50 ? 'warn' : ''} />

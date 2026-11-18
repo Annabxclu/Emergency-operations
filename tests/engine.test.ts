@@ -165,6 +165,8 @@ async function run(g: Game, seconds: number, step = 1) {
   g.state.settings.autoDispatch = 'off';
   g.state.settings.shifts = true;
   const someEngine = c().vehicles.find(v => v.typeId === 'engine' && v.status === 'available')!;
+  const offShift = (['A', 'B', 'C'] as const).find(x => x !== g.currentShift())!;
+  g.crew(someEngine.id).forEach(e => (e.shift = offShift));
   assert(g.staffingProblem(someEngine) !== null, 'with shifts on, a single-shift crew is not enough');
   g.state.settings.shifts = false;
 
@@ -219,6 +221,31 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(r!.calls === 1 && g5.state.time >= 8 * 3600 + 3 * 3600, `offline summary: ${r!.calls} calls, ${r!.successful} successful, money ${r!.money}`);
     g5.tick(g5.state.settings.callIntervalMin! * 60 + 1); await flush();
     assert(g5.city.incidents.length === 2, 'calls resume after returning');
+  }
+
+  // Follow-up: a busy unit goes straight to a queued call when its current one ends.
+  {
+    const g6 = new Game(newGameState(), fake);
+    g6.placeStation('fire_station', [33.755, -84.39]); g6.placeStation('police_precinct', [33.77, -84.385]); g6.placeStation('ems_station', [33.76, -84.37]);
+    const a = await g6.spawnIncident('suspicious');
+    const b = await g6.spawnIncident('suspicious');
+    const car = g6.city.vehicles.find(v => v.typeId === 'patrol')!;
+    g6.dispatch(a!.id, [car.id]);
+    assert(g6.followUpCandidates(b!.id).some(v => v.id === car.id), 'busy unit offered as a follow-up');
+    g6.queueFollowUp(b!.id, [car.id]);
+    let threw = false; try { g6.queueFollowUp(b!.id, [car.id]); } catch { threw = true; }
+    assert(threw && !g6.followUpCandidates(b!.id).some(v => v.id === car.id), 'a unit can only be queued for one follow-up');
+    let returnedHome = false, wentToB = false;
+    for (let i = 0; i < 5000; i++) {
+      g6.tick(1); if (i % 10 === 0) await flush();
+      if (g6.city.resolved.some(x => x.id === a!.id) && !wentToB) {
+        if (car.status === 'returning' || car.status === 'available') returnedHome = true;
+        if (car.incidentId === b!.id) wentToB = true;
+      }
+      if (g6.city.resolved.some(x => x.id === b!.id)) break;
+    }
+    assert(wentToB && !returnedHome, 'after finishing call A the car drove straight to call B');
+    assert(g6.city.resolved.find(x => x.id === b!.id)?.outcome === 'successful', 'follow-up call completed');
   }
 
   // Save round trip.

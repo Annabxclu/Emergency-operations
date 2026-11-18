@@ -300,3 +300,4 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .seg.tabs button { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px; }
 .seg.tabs .cnt { font-size: 11px; color: var(--muted); font-weight: 700; }
 .seg.tabs button.on .cnt { color: var(--text); }
+.subhead { font-size: 12px; font-weight: 700; color: var(--muted); margin: 14px 0 6px; }

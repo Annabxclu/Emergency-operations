@@ -701,6 +701,36 @@ export class Game {
     this.changed();
   }
 
+  /** Units busy on another job that could be queued to follow up to this call. */
+  followUpCandidates(incId: string): Vehicle[] {
+    return this.city.vehicles.filter(v =>
+      !v.followUp && v.incidentId !== incId &&
+      (['dispatched', 'enroute', 'onscene'].includes(v.status) && v.incidentId != null || v.status === 'transporting' || v.status === 'handover') &&
+      !this.staffingProblem(v) && v.condition >= MIN_CONDITION);
+  }
+
+  /** Queue busy units to go straight to this call when their current job ends. Once per unit. */
+  queueFollowUp(incId: string, vehicleIds: string[]) {
+    const inc = this.city.incidents.find(i => i.id === incId);
+    if (!inc) throw new ActionError('This call is closed.');
+    const ok = this.followUpCandidates(incId).map(v => v.id);
+    for (const id of vehicleIds) {
+      const v = this.vehicle(id);
+      if (!v) continue;
+      if (v.followUp) throw new ActionError(`${v.name} already has a follow-up.`);
+      if (!ok.includes(id)) throw new ActionError(`${v.name} can't follow up right now.`);
+      v.followUp = inc.id;
+    }
+    this.changed();
+  }
+
+  cancelFollowUp(vehicleId: string) {
+    const v = this.vehicle(vehicleId);
+    if (v) { v.followUp = null; this.changed(); }
+  }
+
+  followUpsFor(incId: string) { return this.city.vehicles.filter(v => v.followUp === incId); }
+
   /** Release a unit from a call and send it back to quarters. */
   recall(vehicleId: string) {
     const v = this.vehicle(vehicleId);
@@ -749,6 +779,21 @@ export class Game {
   }
 
   private sendHome(v: Vehicle) {
+    // Follow-up: go straight to the queued call instead of returning to quarters.
+    if (v.followUp) {
+      const target = this.city.incidents.find(i => i.id === v.followUp);
+      v.followUp = null;
+      if (target && !this.staffingProblem(v)) {
+        v.incidentId = target.id;
+        v.status = 'dispatched';
+        v.turnoutUntil = this.state.time + 5;
+        v.route = null;
+        this.requestRoute(v, target.pos);
+        if (target.status === 'pending') target.status = 'responding';
+        this.emit({ type: 'notice', text: `${v.name} is following up to ${target.name}.` });
+        return;
+      }
+    }
     const st = this.station(v.stationId);
     v.incidentId = null;
     if (!st || distanceM(v.pos, st.pos) < 25) {
@@ -1083,6 +1128,7 @@ export class Game {
     inc.outcome = outcome;
     inc.resolvedAt = this.state.time;
     inc.payout = payout;
+    for (const v of c.vehicles) if (v.followUp === inc.id) v.followUp = null;
     if (outcome !== 'failed') this.assignTransports(inc);
     for (const v of this.incidentVehicles(inc.id)) {
       if (v.status === 'enroute') this.chargeTravel(v, this.travelledM(v));
