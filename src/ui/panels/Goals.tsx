@@ -15,7 +15,7 @@ export function GoalsPanel() {
             <div key={g.id} className={`goal-card ${g.done ? 'done' : ''}`} data-testid="goal">
               <div className="goal-top"><span className="goal-label">{g.done ? '✓ ' : ''}{g.label}</span><span className="goal-count">{g.progress}/{g.target}</span></div>
               <div className="xpbar wide"><span style={{ width: `${(g.progress / g.target) * 100}%` }} /></div>
-              <div className="goal-reward">{g.done ? 'Reward paid: ' : 'Reward: '}{money(g.reward)} · {g.xp} XP</div>
+              <div className="goal-reward">{g.done ? 'Reward paid: ' : 'Reward: '}{money(g.reward)}</div>
             </div>
           ))}
         </div>

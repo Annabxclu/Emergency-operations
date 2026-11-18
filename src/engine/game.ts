@@ -1378,17 +1378,23 @@ export class Game {
       reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
       patients: range(t.patients), prisoners: range(t.prisoners), parentId,
     };
-    // One ambulance per patient (capped), like the real game.
-    const ambOwned = this.city.vehicles.filter(v => vehicleType(v.typeId).caps.includes('ambulance')).length;
-    if (ambOwned === 0) inc.patients = 0;
-    if (inc.patients > 0 && ambOwned > 0) {
-      // Never ask for more ambulances than the player owns.
-      const need = Math.min(inc.patients, TUNING.maxPatientAmbulances, ambOwned);
-      const have = inc.requirements.filter(r => ['ambulance', 'als', 'ccu'].includes(r.cap)).reduce((n, r) => n + r.count, 0);
-      if (have < need) {
-        const amb = inc.requirements.find(r => r.cap === 'ambulance');
-        if (amb) amb.count += need - have; else inc.requirements.push({ cap: 'ambulance', count: need - have });
-      }
+    // Each ambulance carries one patient and each police car one suspect, so a call needs
+    // one of each per person. Never generate more people than the player can move.
+    const owned = (cap: string) => this.city.vehicles.filter(v => vehicleType(v.typeId).caps.includes(cap)).length;
+    const carriers = this.city.vehicles.filter(v => { const t = vehicleType(v.typeId); return t.caps.includes('police') && t.transport?.kind === 'prisoner'; }).length;
+    inc.patients = Math.min(inc.patients, owned('ambulance'), TUNING.maxPatientAmbulances);
+    inc.prisoners = Math.min(inc.prisoners, carriers, TUNING.maxPatientAmbulances);
+    const raise = (caps: string[], add: string, need: number) => {
+      const have = inc.requirements.filter(r => caps.includes(r.cap)).reduce((n, r) => n + r.count, 0);
+      if (have >= need) return;
+      const r = inc.requirements.find(x => x.cap === add);
+      if (r) r.count += need - have; else inc.requirements.push({ cap: add, count: need - have });
+    };
+    if (inc.patients > 0) raise(['ambulance', 'als', 'ccu'], 'ambulance', inc.patients);
+    if (inc.prisoners > 0) raise(['police'], 'police', inc.prisoners);
+    // Calls with no other work left can't ask for more units than the player owns.
+    if (!this.fleetCovers(inc.requirements)) {
+      for (const r of inc.requirements) if (r.cap === 'ambulance' || r.cap === 'police') r.count = Math.max(1, Math.min(r.count, owned(r.cap)));
     }
     c.incidents.push(inc);
     this.emit({ type: 'incident_new', id: inc.id }, c.cityId);

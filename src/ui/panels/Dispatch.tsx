@@ -41,7 +41,7 @@ export function DispatchList() {
   return (
     <div>
       <div className="sheet-head"><div className="grow"><div className="title">Dispatch</div>
-        <div className="sub">{active.length}/{game.activeCap()} active · new call every {game.state.settings.callIntervalMin ?? 3} min · {c.stats.successful}/{c.stats.calls} successful</div></div></div>
+        <div className="sub">{active.length}/{game.activeCap()} active · new call every {game.state.settings.callIntervalMin ?? 3} min</div></div></div>
       {!game.setupDone && <Empty>Place your three starter stations to begin receiving calls.</Empty>}
       {game.setupDone && !active.length && <Empty>No active calls. New calls will appear here and on the map.</Empty>}
       <div className="list">
@@ -145,7 +145,7 @@ export function IncidentDetail({ id }: { id: string }) {
         <p className="desc">{inc.description}</p>
         <div className="kv">
           {!closed && <span>{timerText(game, inc)}</span>}
-          {closed ? <span className={inc.payout < 0 ? 'bad' : 'ok'}>{money(inc.payout)}</span> : <span>Reward {money(inc.reward)} · {inc.xp} XP</span>}
+          {closed ? <span className={inc.payout < 0 ? 'bad' : 'ok'}>{money(inc.payout)}</span> : <span>Reward {money(inc.reward)}</span>}
           {inc.escalated && <span className="bad">Escalated</span>}
           {inc.patients > 0 && <span>🚑 {inc.patients} patient{inc.patients > 1 ? 's' : ''} to transport</span>}
           {inc.prisoners > 0 && <span>🚓 {inc.prisoners} suspect{inc.prisoners > 1 ? 's' : ''} to jail</span>}
@@ -218,7 +218,7 @@ export function IncidentDetail({ id }: { id: string }) {
       )}
 
       {!closed && inc.status !== 'working' && (
-        <Section title="Dispatch units" right={<button className="mini" onClick={() => setSel(new Set(rec.ids))} data-testid="select-recommended">Select recommended</button>}>
+        <Section title="Dispatch units">
           {rec.unfilled.length > 0 && (
             <div className="warnbox">No available unit for: {rec.unfilled.map(u => `${u.count}× ${capability(u.cap).name}`).join(', ')}</div>
           )}
