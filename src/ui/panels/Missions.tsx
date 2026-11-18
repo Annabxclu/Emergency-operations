@@ -12,6 +12,8 @@ export function MissionsPanel() {
   const [filter, setFilter] = useState('all');
   const [showCaps, setShowCaps] = useState(false);
   const [q, setQ] = useState('');
+  const [open, setOpen] = useState(() => new Set<string>());
+  const toggleCat = (id: string) => { const n = new Set(open); if (n.has(id)) n.delete(id); else n.add(id); setOpen(n); };
   const owned = game.stationCount();
   const wm = game.state.settings.workMult ?? 0.1;
   const fmtWork = (min: number) => { const sec = Math.max(20, min * 60 * wm); return sec < 90 ? `${Math.round(sec)}s` : `${Math.round(sec / 60)} min`; };
@@ -31,7 +33,11 @@ export function MissionsPanel() {
       </div>
 
       <input className="text" placeholder="Search missions or units (e.g. fire, foam, ambulance)" value={q} onChange={(e: any) => setQ(e.target.value)} data-testid="mission-search" />
-      <p className="muted small" style={{ margin: '6px 0 8px' }}>{list.length} shown</p>
+      <div className="actions" style={{ marginTop: 6 }}>
+        <span className="muted small grow">{list.length} missions{ql ? ' match' : ''}</span>
+        <button className="mini" onClick={() => setOpen(new Set(CATEGORIES.map(c => c.id)))}>Expand all</button>
+        <button className="mini" onClick={() => setOpen(new Set())}>Collapse all</button>
+      </div>
       <button className="callout" onClick={() => setShowCaps(!showCaps)}>
         {showCaps ? '▾' : '▸'} Which vehicles count for each requirement
       </button>
@@ -52,8 +58,14 @@ export function MissionsPanel() {
         const items = list.filter(t => t.category === cat.id);
         if (!items.length) return null;
         return (
-          <Section key={cat.id} title={<><span className="dot" style={{ background: dept(CATEGORY_DEPT[cat.id]).color }} /> {cat.name}</>}>
-            <div className="list">
+          <Section key={cat.id}>
+            <button className="cat-head" onClick={() => toggleCat(cat.id)} data-testid={`mission-cat-${cat.id}`}>
+              <span className="dot" style={{ background: dept(CATEGORY_DEPT[cat.id]).color }} />
+              <span className="grow">{cat.name}</span>
+              <span className="muted small">{items.length}</span>
+              <span className="chev">{open.has(cat.id) || ql ? '▾' : '▸'}</span>
+            </button>
+            {(open.has(cat.id) || ql) && <div className="list">
               {items.map(t => {
                 const locked = t.unlockLevel > owned;
                 const ready = t.requirements.every(r => have(r.cap) >= r.count);
@@ -84,7 +96,7 @@ export function MissionsPanel() {
                   </div>
                 );
               })}
-            </div>
+            </div>}
           </Section>
         );
       })}
