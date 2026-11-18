@@ -2,7 +2,7 @@
 // Change a value, rebuild (npm run build:pages), and push.
 
 export const TUNING = {
-  startingMoney: 100000,
+  startingMoney: 0,
 
   /** Daily login bonus: day N pays N × base, up to `days`, then starts over at day 1. */
   dailyBonusBase: 1000,

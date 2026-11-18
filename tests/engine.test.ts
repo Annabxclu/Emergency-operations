@@ -34,7 +34,8 @@ async function run(g: Game, seconds: number, step = 1) {
   g.placeStation('police_precinct', [33.77, -84.385]);
   g.placeStation('ems_station', [33.76, -84.37]);
   assert(g.setupDone, 'setup complete after three stations');
-  assert(c().money === 100000, 'starter stations are free; $100,000 remains');
+  assert(c().money === 0, 'new game starts at $0; starter stations are free');
+  c().money = 100000; // test funds for the purchases below
   assert(c().vehicles.length === 4 && c().employees.length === 12, 'starter kit: 4 vehicles, 12 personnel');
   assert(c().vehicles.every(v => g.staffingProblem(v) === null), 'all starter vehicles staffed');
 

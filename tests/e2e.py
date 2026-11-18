@@ -113,6 +113,8 @@ def main():
                 page.click('[data-testid=build-confirm]')
                 page.wait_for_timeout(150)
             check(game('g.setupDone'), 'three starter stations placed by tapping the map')
+            check(game('g.city.money') == 0, 'new game starts with $0')
+            game('(g.city.money = 100000, g.changed(), 0)')  # test funds
             check(game('g.city.vehicles.length') == 4, 'starter fleet created (engine, 2 patrol, ambulance)')
             shot('02-after-setup')
 
@@ -232,7 +234,7 @@ def main():
             page.click('[data-testid=city-go]')
             page.wait_for_selector('.buildbar')
             check(game('g.state.activeCity') == 'atlanta' and len(game('Object.keys(g.state.cities)')) == 2, 'second city added and active')
-            check(game('g.city.money') == 100000 and game('g.city.stations.length') == 0, 'new city has its own budget and network')
+            check(game('g.city.money') == 0 and game('g.city.stations.length') == 0, 'new city has its own budget ($0) and network')
             page.mouse.click(170, 360); page.click('[data-testid=build-confirm]')
             game('g.switchCity("tulsa-ok")')
             page.wait_for_timeout(200)
