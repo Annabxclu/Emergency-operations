@@ -301,3 +301,12 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .seg.tabs .cnt { font-size: 11px; color: var(--muted); font-weight: 700; }
 .seg.tabs button.on .cnt { color: var(--text); }
 .subhead { font-size: 12px; font-weight: 700; color: var(--muted); margin: 14px 0 6px; }
+
+.tabbar .tl { font-size: 9.5px; }
+.tabbar .badge.info { background: var(--accent); }
+.goal-card { background: var(--surface); border-radius: 12px; padding: 12px; }
+.goal-card.done .goal-label { color: var(--ok); }
+.goal-card.done .xpbar span { background: var(--ok); }
+.goal-label { font-size: 15px; font-weight: 600; }
+.goal-count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.goal-reward { font-size: 12.5px; color: var(--muted); margin-top: 6px; }

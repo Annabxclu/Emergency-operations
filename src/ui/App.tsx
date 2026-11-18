@@ -17,6 +17,7 @@ import { FinancesPanel } from './panels/Finances';
 import { SettingsPanel } from './panels/Settings';
 import { MissionsPanel } from './panels/Missions';
 import { ResearchPanel } from './panels/Research';
+import { GoalsPanel } from './panels/Goals';
 import { RealStationPanel } from './panels/RealStation';
 import { RESEARCH } from '../data/progression';
 import { playAlert, unlockAudio } from './sound';
@@ -26,11 +27,11 @@ import type { CityDef } from '../engine/types';
 
 const TABS = [
   { id: 'map', label: 'Map' }, { id: 'dispatch', label: 'Dispatch' }, { id: 'stations', label: 'Stations' },
-  { id: 'vehicles', label: 'Vehicles' }, { id: 'personnel', label: 'Personnel' }, { id: 'finances', label: 'Finances' },
+  { id: 'vehicles', label: 'Vehicles' }, { id: 'personnel', label: 'Personnel' }, { id: 'goals', label: 'Goals' }, { id: 'finances', label: 'Finances' },
 ];
 const TAB_OF: Record<string, string> = {
   dispatch: 'dispatch', incident: 'dispatch', stations: 'stations', station: 'stations', build: 'stations', hire: 'stations',
-  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'personnel', employee: 'personnel', finances: 'finances', settings: 'settings', missions: 'settings', research: 'settings', real: 'stations',
+  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'personnel', employee: 'personnel', finances: 'finances', settings: 'settings', missions: 'settings', research: 'settings', goals: 'goals', real: 'stations',
 };
 
 interface Toast { id: number; text: string; tone: string; action?: () => void }
@@ -257,6 +258,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const lvl = game.state.level;
   const xpFrac = Math.min(1, (game.state.xp - xpForLevel(lvl)) / Math.max(1, xpForLevel(lvl + 1) - xpForLevel(lvl)));
   const pendingCount = c.incidents.filter(i => i.status === 'pending').length;
+  const goalsLeft = c.goals ? c.goals.list.filter(g => !g.done).length : 0;
   const top = stack[stack.length - 1];
   const activeTab = stack.length ? TAB_OF[stack[0].kind] : 'map';
   const selected: Selection = top && (top.kind === 'incident' || top.kind === 'station' || top.kind === 'vehicle') ? { kind: top.kind, id: top.id } : null;
@@ -308,6 +310,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'settings': return <SettingsPanel onImport={onImport} onNewGame={() => setPicker('new')} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
       case 'missions': return <MissionsPanel />;
       case 'research': return <ResearchPanel />;
+      case 'goals': return <GoalsPanel />;
       case 'real': return <RealStationPanel key={r.id} id={r.id} />;
     }
   };
@@ -442,6 +445,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
               <span className="ti" dangerouslySetInnerHTML={{ __html: tabIcon(tab.id) }} />
               <span className="tl">{tab.label}</span>
               {tab.id === 'dispatch' && pendingCount > 0 && <span className="badge">{pendingCount}</span>}
+              {tab.id === 'goals' && goalsLeft > 0 && game.setupDone && <span className="badge info">{goalsLeft}</span>}
             </button>
           ))}
         </nav>

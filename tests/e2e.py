@@ -211,8 +211,11 @@ def main():
 
             game('(g.state.settings.speed = 0, 0)')
             page.click('[data-testid=tab-dispatch]')
-            page.wait_for_selector('[data-testid=goals]')
             shot('07-dispatch-list')
+            page.click('[data-testid=tab-goals]')
+            page.wait_for_selector('[data-testid=goal]')
+            check(page.locator('[data-testid=goal]').count() == 3, 'Goals tab lists today\'s 3 goals')
+            shot('07b-goals')
             page.click('[data-testid=tab-finances]')
             shot('08-finances')
             page.click('[data-testid=tab-vehicles]')
