@@ -50,6 +50,7 @@ export interface VehicleTypeDef {
   unlockLevel: number;
   air?: boolean;                                   // flies direct (helicopters)
   mph?: number;                                    // fixed driving speed (fixed-speed travel model)
+  needsExt?: boolean;                              // only stations with the matching extension can house it
   transport?: { kind: 'patient' | 'prisoner'; capacity: number };
 }
 

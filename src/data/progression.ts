@@ -29,6 +29,7 @@ export interface ExtensionDef {
   id: string; name: string; desc: string; cost: number;
   bays?: number;                        // extra vehicle bays
   allowsDept?: string;                  // lets this station house another department's vehicles
+  allowsVehicles?: string[];            // unlocks specific vehicle types at this station
   feature?: 'academy' | 'cells';
   perStations?: number;                 // limit: one per this many stations of the same type
 }
@@ -41,11 +42,18 @@ export const EXTENSIONS: Record<string, ExtensionDef[]> = {
     { id: 'ems_ext', name: 'Ambulance Extension', desc: 'House EMS vehicles (ambulances) at this fire station.', cost: 100000, allowsDept: 'ems' },
     { id: 'water_ext', name: 'Water Rescue Extension', desc: 'House rescue boats and dive teams here.', cost: 200000, allowsDept: 'water' },
     { id: 'pw_ext', name: 'Public Works Extension', desc: 'House public works crews here.', cost: 150000, allowsDept: 'public_works' },
+    { id: 'airport_ext', name: 'Airport Extension', desc: 'House airport crash tenders for aviation emergencies.', cost: 300000, allowsVehicles: ['arff'] },
+    { id: 'foam_ext', name: 'Foam Extension', desc: 'House foam tenders for fuel and industrial fires.', cost: 150000, allowsVehicles: ['foam_tender'] },
+    { id: 'fmo_ext', name: "Fire Marshal's Office", desc: 'House fire investigation units.', cost: 100000, allowsVehicles: ['fire_investigator'] },
+    { id: 'crane_ext', name: 'Crane Bay', desc: 'House a fire crane for heavy lifting rescues.', cost: 200000, allowsVehicles: ['fire_crane'] },
     LARGE, TRAINING,
   ],
   police_precinct: [
     { id: 'cells', name: 'Holding Cells', desc: 'Prisoner transports to this station pay 50% more.', cost: 25000, feature: 'cells' },
     { id: 'special_ext', name: 'Tactical Extension', desc: 'House Special Operations vehicles here.', cost: 250000, allowsDept: 'special' },
+    { id: 'riot_ext', name: 'Riot Police Extension', desc: 'House riot control units.', cost: 200000, allowsVehicles: ['riot_unit'] },
+    { id: 'warden_ext', name: 'Game Warden Office', desc: 'House game warden trucks.', cost: 80000, allowsVehicles: ['game_warden'] },
+    { id: 'water_police_ext', name: 'Water Police Extension', desc: 'House police boats.', cost: 150000, allowsVehicles: ['police_boat'] },
     LARGE, TRAINING,
   ],
   ems_station: [LARGE, TRAINING],

@@ -1,4 +1,5 @@
 import type { IncidentTypeDef } from '../engine/types';
+import { buildCatalogMissions } from './missions';
 
 // Fictional call types. Requirements are capabilities, so any vehicle that
 // provides the capability can fill the slot. `patients` need an ambulance ride to
@@ -222,7 +223,11 @@ export const INCIDENT_TYPES: IncidentTypeDef[] = [
   ]),
 ];
 
-export const incidentType = (id: string) => INCIDENT_TYPES.find(t => t.id === id)!;
+// The full catalog (several hundred calls) is appended after the hand-written ones above.
+INCIDENT_TYPES.push(...buildCatalogMissions(new Set(INCIDENT_TYPES.map(t => t.name.toLowerCase()))));
+
+const BY_ID = new Map(INCIDENT_TYPES.map(t => [t.id, t]));
+export const incidentType = (id: string) => BY_ID.get(id)!;
 
 export const CATEGORY_DEPT: Record<string, string> = {
   fire: 'fire', police: 'police', ems: 'ems', rescue: 'fire', hazmat: 'fire', water: 'water', public_works: 'public_works', disaster: 'emergency',

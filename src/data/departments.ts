@@ -75,6 +75,21 @@ export const CAPABILITIES: CapabilityDef[] = [
   { id: 'logistics', name: 'Logistics unit', dept: 'emergency' },
   { id: 'heavy_equipment', name: 'Heavy equipment', dept: 'disaster' },
   { id: 'relief', name: 'Relief & shelter unit', dept: 'disaster' },
+  { id: 'arff', name: 'Airport crash tender', dept: 'fire' },
+  { id: 'foam', name: 'Foam tender', dept: 'fire' },
+  { id: 'investigator', name: 'Fire investigator', dept: 'fire' },
+  { id: 'crane', name: 'Fire crane', dept: 'fire' },
+  { id: 'riot', name: 'Riot police', dept: 'police' },
+  { id: 'drone', name: 'Police drone', dept: 'police' },
+  { id: 'game_warden', name: 'Game warden', dept: 'police' },
+  { id: 'police_boat', name: 'Police boat', dept: 'police' },
+  { id: 'tow', name: 'Tow truck', dept: 'public_works' },
+  { id: 'rotator', name: 'Heavy rotator', dept: 'public_works' },
+  { id: 'flood', name: 'Flood control unit', dept: 'public_works' },
+  { id: 'fireboat', name: 'Fireboat', dept: 'water' },
+  { id: 'coastal', name: 'Coastal rescue boat', dept: 'water' },
+  { id: 'coast_heli', name: 'Coastal rescue helicopter', dept: 'air' },
+  { id: 'federal', name: 'Federal agents', dept: 'special' },
 ];
 
 export const QUALIFICATIONS: QualificationDef[] = [
@@ -151,6 +166,26 @@ export const VEHICLE_TYPES: VehicleTypeDef[] = [
   vt({ id: 'relief_unit', dept: 'disaster', name: 'Relief & Shelter Unit', callsign: 'Relief', short: 'RU', price: 40000, speedFactor: 1.0, minCrew: 2, maxCrew: 4, caps: ['relief'], maintenancePerHour: 8, fuelPerKm: 1.1, turnoutSec: 150, unlockLevel: 10 }),
 ];
 
+// Units added with the full mission catalog. Those marked needsExt can only be bought at a
+// station that has the matching extension (see EXTENSIONS in progression.ts).
+VEHICLE_TYPES.push(
+  vt({ id: 'arff', dept: 'fire', name: 'Airport Crash Tender', callsign: 'Crash', short: 'AR', price: 120000, speedFactor: 1.1, minCrew: 2, maxCrew: 3, caps: ['arff'], maintenancePerHour: 15, fuelPerKm: 2, turnoutSec: 45, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'foam_tender', dept: 'fire', name: 'Foam Tender', callsign: 'Foam', short: 'FT', price: 60000, speedFactor: 1.0, minCrew: 2, maxCrew: 3, caps: ['foam'], maintenancePerHour: 9, fuelPerKm: 1.5, turnoutSec: 70, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'fire_investigator', dept: 'fire', name: 'Fire Investigation Unit', callsign: 'Marshal', short: 'FI', price: 20000, speedFactor: 1.3, minCrew: 1, maxCrew: 2, caps: ['investigator'], maintenancePerHour: 3, fuelPerKm: 0.5, turnoutSec: 60, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'fire_crane', dept: 'fire', name: 'Fire Crane', callsign: 'Crane', short: 'CR', price: 90000, speedFactor: 0.9, minCrew: 2, maxCrew: 2, caps: ['crane'], maintenancePerHour: 14, fuelPerKm: 2.2, turnoutSec: 90, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'riot_unit', dept: 'police', name: 'Riot Control Unit', callsign: 'Riot', short: 'RT', price: 35000, speedFactor: 1.1, minCrew: 4, maxCrew: 8, caps: ['riot'], maintenancePerHour: 6, fuelPerKm: 0.9, turnoutSec: 90, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'police_drone', dept: 'police', name: 'Police Drone Unit', callsign: 'Drone', short: 'DR', price: 15000, speedFactor: 1.3, minCrew: 1, maxCrew: 2, caps: ['drone'], maintenancePerHour: 3, fuelPerKm: 0.4, turnoutSec: 45, unlockLevel: 3 }),
+  vt({ id: 'game_warden', dept: 'police', name: 'Game Warden Truck', callsign: 'Warden', short: 'GW', price: 18000, speedFactor: 1.2, minCrew: 1, maxCrew: 2, caps: ['game_warden'], maintenancePerHour: 3, fuelPerKm: 0.6, turnoutSec: 45, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'police_boat', dept: 'police', name: 'Police Boat', callsign: 'Marine Unit', short: 'PB', price: 40000, speedFactor: 1.05, minCrew: 2, maxCrew: 3, caps: ['police_boat'], maintenancePerHour: 8, fuelPerKm: 1.4, turnoutSec: 80, unlockLevel: 1, needsExt: true }),
+  vt({ id: 'tow_truck', dept: 'public_works', name: 'Tow Truck', callsign: 'Tow', short: 'TW', price: 20000, speedFactor: 1.05, minCrew: 1, maxCrew: 1, caps: ['tow'], maintenancePerHour: 4, fuelPerKm: 0.9, turnoutSec: 60, unlockLevel: 3 }),
+  vt({ id: 'rotator', dept: 'public_works', name: 'Heavy Rotator', callsign: 'Rotator', short: 'RO', price: 70000, speedFactor: 0.9, minCrew: 1, maxCrew: 2, caps: ['rotator'], maintenancePerHour: 10, fuelPerKm: 2, turnoutSec: 90, unlockLevel: 4 }),
+  vt({ id: 'flood_unit', dept: 'public_works', name: 'Flood Control Unit', callsign: 'Pumps', short: 'FL', price: 45000, speedFactor: 0.95, minCrew: 2, maxCrew: 3, caps: ['flood'], maintenancePerHour: 7, fuelPerKm: 1.3, turnoutSec: 90, unlockLevel: 4 }),
+  vt({ id: 'fireboat', dept: 'water', name: 'Fireboat', callsign: 'Fireboat', short: 'FB', price: 150000, speedFactor: 1.0, minCrew: 3, maxCrew: 4, caps: ['fireboat'], maintenancePerHour: 18, fuelPerKm: 3, turnoutSec: 100, unlockLevel: 5 }),
+  vt({ id: 'coastal_boat', dept: 'water', name: 'Coastal Rescue Boat', callsign: 'Coastal', short: 'CB', price: 120000, speedFactor: 1.1, minCrew: 3, maxCrew: 4, caps: ['coastal'], maintenancePerHour: 15, fuelPerKm: 2.5, turnoutSec: 90, unlockLevel: 4, transport: { kind: 'patient', capacity: 2 } }),
+  vt({ id: 'coast_heli', dept: 'air', name: 'Coastal Rescue Helicopter', callsign: 'Coast Air', short: 'CH', price: 400000, speedFactor: 5.5, minCrew: 3, maxCrew: 4, quals: [q('pilot')], caps: ['coast_heli'], maintenancePerHour: 60, fuelPerKm: 6, turnoutSec: 240, unlockLevel: 6, air: true, transport: { kind: 'patient', capacity: 1 } }),
+  vt({ id: 'federal_unit', dept: 'special', name: 'Federal Agents', callsign: 'Federal', short: 'FA', price: 30000, speedFactor: 1.3, minCrew: 2, maxCrew: 4, caps: ['federal'], maintenancePerHour: 5, fuelPerKm: 0.6, turnoutSec: 90, unlockLevel: 7 }),
+);
+
 // Fixed driving speeds used by the fixed-speed travel model (mph).
 const MPH: Record<string, number> = {
   engine: 45, ladder: 40, brush: 50, heavy_rescue: 45, chief: 60, hazmat: 40, tanker: 40,
@@ -158,6 +193,8 @@ const MPH: Record<string, number> = {
   bls: 55, als: 55, ems_supervisor: 60, ccu: 50, mci_unit: 40,
   road_crew: 40, tree_crew: 40, signal_crew: 45, rescue_boat: 45, dive_team: 50,
   med_heli: 150, police_heli: 160, bomb_squad: 50, usar: 40, mobile_command: 40, logistics: 45, heavy_equipment: 30, relief_unit: 45,
+  arff: 55, foam_tender: 40, fire_investigator: 60, fire_crane: 35, riot_unit: 55, police_drone: 60, game_warden: 55, police_boat: 45,
+  tow_truck: 50, rotator: 40, flood_unit: 40, fireboat: 40, coastal_boat: 45, coast_heli: 150, federal_unit: 60,
 };
 VEHICLE_TYPES.forEach(v => { v.mph = MPH[v.id] ?? 45; });
 

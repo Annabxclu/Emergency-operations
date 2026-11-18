@@ -224,6 +224,14 @@ export class Game {
     return Math.round(t.cost * TUNING.bigNetworkMultiplier + (n - TUNING.priceRiseAfter) * t.cost * 0.05);
   }
 
+  /** Null if this station can house the vehicle type, else the extension it still needs. */
+  vehicleExtNeeded(s: Station, vt: VehicleTypeDef): string | null {
+    if (!vt.needsExt) return null;
+    const exts = extensionsFor(s.typeId).filter(e => e.allowsVehicles?.includes(vt.id));
+    if (exts.some(e => s.extensions?.includes(e.id))) return null;
+    return exts.length ? `Needs ${exts[0].name}` : 'Not available at this station type';
+  }
+
   /** Can this station house vehicles of a department (own dept or via an extension)? */
   hostsDept(s: Station, deptId: string) {
     return s.dept === deptId || extensionsFor(s.typeId).some(e => e.allowsDept === deptId && s.extensions?.includes(e.id));
@@ -492,6 +500,7 @@ export class Game {
     const t = vehicleType(typeId);
     if (!this.hostsDept(st, t.dept)) throw new ActionError(`${t.name} needs a ${dept(t.dept).short} station (or a station extension that houses it).`);
     const needV = this.needStations(this.deptItemRequirement(t), t.dept); if (needV) throw new ActionError(needV + '.');
+    const needE = this.vehicleExtNeeded(st, t); if (needE) throw new ActionError(`${t.name}: ${needE.toLowerCase()}.`);
     if (this.stationVehicles(st.id).length >= this.stationCapacity(st).bays) throw new ActionError('No free vehicle bays. Upgrade the station.');
     this.spend(t.price, 'vehicles', t.dept, `Purchased ${t.name}`);
     const v = this.addVehicle(typeId, st, t.price);
@@ -1263,9 +1272,19 @@ export class Game {
 
   /** Incident types the player can currently be sent (unlocked and staffed departments). */
   eligibleTypes() {
-    return INCIDENT_TYPES.filter(t =>
-      this.stationCount() >= t.unlockLevel &&
-      t.requirements.every(r => this.hasDept(CAPABILITIES.find(c => c.id === r.cap)!.dept)));
+    return INCIDENT_TYPES.filter(t => this.stationCount() >= t.unlockLevel && t.requirements.every(r => this.canCover(r.cap)));
+  }
+
+  /**
+   * Could the player field this capability? Fire/police/EMS basics only need the department;
+   * specialist units (extension-only or from other departments) must actually be owned,
+   * so those calls only appear once you have the unit.
+   */
+  canCover(cap: string) {
+    const core = ['fire', 'police', 'ems'];
+    const providers = VEHICLE_TYPES.filter(v => v.caps.includes(cap));
+    if (providers.some(v => core.includes(v.dept) && !v.needsExt) && this.hasDept(CAPABILITIES.find(c => c.id === cap)!.dept)) return true;
+    return this.city.vehicles.some(v => vehicleType(v.typeId).caps.includes(cap));
   }
 
   async spawnIncident(typeId?: string): Promise<Incident | null> {
@@ -1282,7 +1301,7 @@ export class Game {
       const parent = await this.createIncident(t, c, def, anchor.pos, stationType(anchor.typeId).coverageKm * 1000, null);
       if (parent && t.children) {
         // Major event: related calls appear around the main scene.
-        const allowed = t.children.types.map(incidentType).filter(ct => ct.requirements.every(r => this.hasDeptIn(c, CAPABILITIES.find(x => x.id === r.cap)!.dept)));
+        const allowed = t.children.types.map(incidentType).filter(ct => ct.requirements.every(r => this.canCover(r.cap)));
         const room = this.activeCap() - c.incidents.length;
         const n = Math.min(room, Math.round(rand(t.children.count[0], t.children.count[1])));
         let made = 0;
@@ -1297,8 +1316,6 @@ export class Game {
       this.spawning = false;
     }
   }
-
-  private hasDeptIn(c: CityState, d: string) { return c.stations.some(s => s.dept === d); }
 
   private async createIncident(t: IncidentTypeDef, c: CityState, def: CityDef, around: LatLng, radius: number, parentId: string | null): Promise<Incident | null> {
     const stateRef = this.state;

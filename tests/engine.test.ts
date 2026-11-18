@@ -299,6 +299,22 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(m.cities[m.activeCity].stations[0].level === 4, 'old police level 2 (5 bays) becomes level 4 (5 bays)');
   }
 
+  // Mission catalog: early game only offers calls you can actually staff.
+  {
+    const g8 = new Game(newGameState(), fake);
+    g8.placeStation('fire_station', [33.755, -84.39]); g8.placeStation('police_precinct', [33.77, -84.385]); g8.placeStation('ems_station', [33.76, -84.37]);
+    const el = g8.eligibleTypes();
+    const special = ['arff', 'foam', 'investigator', 'crane', 'riot', 'tow', 'rotator', 'flood', 'fireboat', 'coastal', 'coast_heli', 'federal', 'boat', 'air_police', 'game_warden', 'police_boat', 'drone'];
+    assert(el.length > 60 && el.every(t => t.requirements.every(r => !special.includes(r.cap))), `${el.length} calls available at the start, none needing specialist units`);
+    const fs = g8.city.stations[0];
+    (g8.city as any).money = 1e7;
+    let threw = false; try { g8.buyVehicle('arff', fs.id); } catch { threw = true; }
+    assert(threw, 'airport crash tender needs the Airport Extension');
+    g8.upgradeStation(fs.id); g8.buildExtension(fs.id, 'airport_ext');
+    g8.buyVehicle('arff', fs.id);
+    assert(g8.eligibleTypes().some(t => t.requirements.some(r => r.cap === 'arff')), 'owning a crash tender unlocks airport calls');
+  }
+
   // Save round trip.
   const json = JSON.stringify(g.state);
   const g2 = new Game(JSON.parse(json), fake);

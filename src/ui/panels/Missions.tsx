@@ -11,13 +11,16 @@ export function MissionsPanel() {
   const { game } = useCtx();
   const [filter, setFilter] = useState('all');
   const [showCaps, setShowCaps] = useState(false);
+  const [q, setQ] = useState('');
   const owned = game.stationCount();
   const wm = game.state.settings.workMult ?? 0.1;
   const fmtWork = (min: number) => { const sec = Math.max(20, min * 60 * wm); return sec < 90 ? `${Math.round(sec)}s` : `${Math.round(sec / 60)} min`; };
   const fleet = game.city.vehicles;
   const have = (cap: string) => fleet.filter(v => vehicleType(v.typeId).caps.includes(cap)).length;
 
-  const list = INCIDENT_TYPES.filter(t => filter === 'all' || (filter === 'unlocked' ? t.unlockLevel <= owned : t.unlockLevel > owned));
+  const ql = q.trim().toLowerCase();
+  const list = INCIDENT_TYPES.filter(t => (filter === 'all' || (filter === 'unlocked' ? t.unlockLevel <= owned : t.unlockLevel > owned))
+    && (!ql || t.name.toLowerCase().includes(ql) || t.requirements.some(r => CAPABILITIES.find(c => c.id === r.cap)!.name.toLowerCase().includes(ql))));
 
   return (
     <div>
@@ -27,6 +30,8 @@ export function MissionsPanel() {
           <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>)}
       </div>
 
+      <input className="text" placeholder="Search missions or units (e.g. fire, foam, ambulance)" value={q} onChange={(e: any) => setQ(e.target.value)} data-testid="mission-search" />
+      <p className="muted small" style={{ margin: '6px 0 8px' }}>{list.length} shown</p>
       <button className="callout" onClick={() => setShowCaps(!showCaps)}>
         {showCaps ? '▾' : '▸'} Which vehicles count for each requirement
       </button>

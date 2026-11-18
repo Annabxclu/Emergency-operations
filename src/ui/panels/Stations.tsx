@@ -131,7 +131,7 @@ export function StationDetail({ id }: { id: string }) {
       <Section title="Buy vehicle" right={<span className="muted small">Balance {money(game.city.money)}</span>}>
         <div className="list">
           {VEHICLE_TYPES.filter(v => game.hostsDept(s, v.dept)).map(vt => {
-            const need = game.needStations(game.deptItemRequirement(vt), vt.dept);
+            const need = game.needStations(game.deptItemRequirement(vt), vt.dept) || game.vehicleExtNeeded(s, vt);
             const locked = !!need;
             const full = vehicles.length >= cap.bays;
             const quals = vt.quals.map(q => `${q.count}× ${qualification(q.qual).name}`).join(', ');
