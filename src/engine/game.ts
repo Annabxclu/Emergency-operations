@@ -1002,6 +1002,7 @@ export class Game {
       const prev = inc.status;
       inc.status = onScene.length ? 'onscene' : this.responding(inc).length ? 'responding' : 'pending';
       if (prev !== inc.status) this.changed();
+      if (!TUNING.responseTimeLimit) continue; // no time limit: the call waits for you
       if (now < inc.deadline) continue;
       const t = incidentType(inc.typeId);
       if (!inc.late && !inc.escalated && onScene.length === 0) {

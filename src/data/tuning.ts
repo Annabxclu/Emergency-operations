@@ -15,6 +15,9 @@ export const TUNING = {
   /** Running costs are off by default; set true to start new games with payroll/upkeep/fuel. */
   runningCostsDefault: false,
 
+  /** When false, calls wait as long as you need: no countdown, escalation or failure. */
+  responseTimeLimit: false,
+
   /** Multiplier on every call reward (also adjustable in Settings > Tuning). */
   defaultRewardMultiplier: 1,
 };

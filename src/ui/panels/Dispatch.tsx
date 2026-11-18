@@ -19,15 +19,14 @@ function workPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
 
 export function timerText(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
   const now = game.state.time;
-  if (inc.status === 'working') return `Working · ${dur((inc.workUntil ?? now) - now)}`;
-  const left = inc.deadline - now;
-  return `${inc.late ? 'Overdue' : 'Respond'} · ${dur(left)}`;
+  if (inc.status === 'working') return `Working · ${dur((inc.workUntil ?? now) - now)} left`;
+  return `Open ${dur(now - inc.createdAt)}`;
 }
 
 export function DispatchList() {
   const { game, push } = useCtx();
   const c = game.city;
-  const active = [...c.incidents].sort((a, b) => (a.status === 'working' ? 1 : 0) - (b.status === 'working' ? 1 : 0) || a.deadline - b.deadline);
+  const active = [...c.incidents].sort((a, b) => (a.status === 'working' ? 1 : 0) - (b.status === 'working' ? 1 : 0) || a.createdAt - b.createdAt);
   return (
     <div>
       <div className="sheet-head"><div className="grow"><div className="title">Dispatch</div>
@@ -58,7 +57,7 @@ export function DispatchList() {
               </div>
               <div className="row-right">
                 <Chip tone={st.tone}>{st.label}</Chip>
-                <div className={`timer ${inc.late ? 'bad' : ''}`}>{timerText(game, inc)}</div>
+                <div className="timer">{timerText(game, inc)}</div>
               </div>
             </button>
           );
@@ -131,7 +130,7 @@ export function IncidentDetail({ id }: { id: string }) {
     if (!act(() => game.dispatch(inc.id, ids), `Dispatched ${ids.length} unit${ids.length === 1 ? '' : 's'}`)) return;
     setSel(new Set());
     if (andNext) {
-      const next = [...game.city.incidents].filter(i => i.id !== inc.id && i.status === 'pending').sort((a, b) => a.deadline - b.deadline)[0];
+      const next = [...game.city.incidents].filter(i => i.id !== inc.id && i.status === 'pending').sort((a, b) => a.createdAt - b.createdAt)[0];
       back();
       if (next) push({ kind: 'incident', id: next.id });
     }
@@ -146,7 +145,7 @@ export function IncidentDetail({ id }: { id: string }) {
         <div className="addr" onClick={() => focus(inc.pos, 16)}>{inc.address}<span className="muted"> · {inc.district}</span></div>
         <p className="desc">{inc.description}</p>
         <div className="kv">
-          {!closed && <span className={inc.late ? 'bad' : ''}>{timerText(game, inc)}</span>}
+          {!closed && <span>{timerText(game, inc)}</span>}
           {closed ? <span className={inc.payout < 0 ? 'bad' : 'ok'}>{money(inc.payout)}</span> : <span>Reward {money(inc.reward)} · {inc.xp} XP</span>}
           {inc.escalated && <span className="bad">Escalated</span>}
           {inc.patients > 0 && <span>🚑 {inc.patients} patient{inc.patients > 1 ? 's' : ''} to transport</span>}

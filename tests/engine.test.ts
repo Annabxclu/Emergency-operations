@@ -94,8 +94,9 @@ async function run(g: Game, seconds: number, step = 1) {
   // Ignored call escalates then fails, but does not bankrupt.
   const ign = await g.spawnIncident('theft');
   await run(g, 60 * 60);
-  const ignDone = c().resolved.find(i => i.id === ign!.id);
-  assert(ignDone && ignDone.escalated && ignDone.outcome === 'failed', 'ignored call escalated then failed');
+  const ignOpen = c().incidents.find(i => i.id === ign!.id);
+  assert(ignOpen && !ignOpen.escalated && ignOpen.status === 'pending', 'no time limit: an ignored call waits (no escalation or failure)');
+  g.abandon(ign!.id);
 
   // Missing-requirement matching.
   const miss = missingRequirements([{ cap: 'ambulance', count: 1 }, { cap: 'als', count: 1 }], []);
@@ -213,12 +214,11 @@ async function run(g: Game, seconds: number, step = 1) {
     await flush();
     const r = g5.catchUp(3 * 3600);
     assert(g5.city.resolved.find(i => i.id === call!.id)?.outcome === 'successful', 'offline: dispatched call finished while away');
-    assert(g5.city.resolved.find(i => i.id === ignored!.id)?.outcome === 'failed', 'offline: unattended call ran out its timers');
-    assert(g5.city.incidents.length === 0, 'offline: no new calls were generated');
+    assert(g5.city.incidents.length === 1 && g5.city.incidents[0].id === ignored!.id, 'offline: unattended call still waiting; no new calls were generated');
     assert(g5.city.vehicles.every(v => v.status === 'available'), 'offline: all units returned to their stations');
-    assert(r!.calls === 2 && g5.state.time >= 8 * 3600 + 3 * 3600, `offline summary: ${r!.calls} calls, ${r!.successful} successful, money ${r!.money}`);
+    assert(r!.calls === 1 && g5.state.time >= 8 * 3600 + 3 * 3600, `offline summary: ${r!.calls} calls, ${r!.successful} successful, money ${r!.money}`);
     g5.tick(g5.state.settings.callIntervalMin! * 60 + 1); await flush();
-    assert(g5.city.incidents.length === 1, 'calls resume after returning');
+    assert(g5.city.incidents.length === 2, 'calls resume after returning');
   }
 
   // Save round trip.

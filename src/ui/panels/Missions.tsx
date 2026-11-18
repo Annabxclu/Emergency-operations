@@ -55,7 +55,7 @@ export function MissionsPanel() {
                     <div className="mission-head">
                       <span className={`inc-ico sev${t.severity}`} dangerouslySetInnerHTML={{ __html: glyph(t.category, 14) }} />
                       <div className="grow"><div className="row-title">{t.name}</div>
-                        <div className="row-sub">{SEVERITY[t.severity]} severity · respond within {t.deadlineMin} min · {t.workMin[0]}–{t.workMin[1]} min on scene</div></div>
+                        <div className="row-sub">{SEVERITY[t.severity]} severity · {t.workMin[0]}–{t.workMin[1]} min on scene</div></div>
                       {locked ? <Chip tone="muted">Level {t.unlockLevel}</Chip> : ready ? <Chip tone="ok">Ready</Chip> : <Chip tone="warn">Need units</Chip>}
                     </div>
                     <div className="mission-reqs">
@@ -71,7 +71,7 @@ export function MissionsPanel() {
                       </div>)}
                     {t.children && <div className="mission-foot"><span className="warn">Major event: also triggers {t.children.count[0]}–{t.children.count[1]} calls ({t.children.types.map(id => incidentType(id).name).join(', ')})</span></div>}
                     <div className="mission-foot">
-                      <span>If ignored, adds: {t.escalation.map(r => `${r.count}× ${CAPABILITIES.find(x => x.id === r.cap)!.name}`).join(', ')}</span>
+                      <span />
                       <span className="ok">≈{money(t.reward)} · {t.xp} XP</span>
                     </div>
                   </div>
