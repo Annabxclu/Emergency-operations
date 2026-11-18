@@ -50,7 +50,7 @@ export function newGameState(def: CityDef = CITIES[0]): GameState {
     cities: { [cityId]: newCityState(cityId) },
     cityDefs: CITIES.some(c => c.id === cityId) ? {} : { [cityId]: def },
     seq: 1,
-    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter, sound: true, autoDispatch: 'off', shifts: false, travelModel: 'fixed' },
+    settings: { speed: 1, routingUrl: 'https://router.project-osrm.org', tileStyle: 'osm', showCoverage: false, deptFilter, sound: true, autoDispatch: 'off', shifts: false, travelModel: 'fixed', callIntervalMin: 3 },
     research: { active: null, done: [] },
   };
 }
@@ -65,6 +65,7 @@ export function migrate(raw: unknown): GameState {
   s.cityDefs ||= {};
   s.research ||= { active: null, done: [] };
   if (s.settings && !s.settings.travelModel) s.settings.travelModel = 'fixed';
+  if (s.settings && !s.settings.callIntervalMin) s.settings.callIntervalMin = 3;
   if (!s.cityDefs[s.activeCity] && !CITIES.some(c => c.id === s.activeCity)) throw new Error('This save references an unknown city.');
   const fresh = newGameState();
   s.settings = { ...fresh.settings, ...(s.settings || {}) };
@@ -1047,17 +1048,22 @@ export class Game {
   }
 
   // ------------------------------------------------------------ incident generation
-  activeCap() { return Math.min(20, 3 + this.city.stations.length); }
+  /** Max active calls = the most stations any one department has, plus one. */
+  activeCap() {
+    const counts: Record<string, number> = {};
+    for (const s of this.city.stations) counts[s.dept] = (counts[s.dept] || 0) + 1;
+    return Math.max(0, ...Object.values(counts)) + 1;
+  }
 
+  /** A new call every 1, 3 or 5 game minutes (Settings). */
   private spawnInterval() {
-    const n = Math.max(1, this.city.stations.length);
-    return (420 / Math.sqrt(n)) * rand(0.5, 1.5);
+    return (this.state.settings.callIntervalMin ?? 3) * 60;
   }
 
   private maybeSpawn() {
     const c = this.city;
     if (this.spawning || this.state.time < c.nextIncidentAt) return;
-    if (c.incidents.length >= this.activeCap()) { c.nextIncidentAt = this.state.time + 30; return; }
+    if (c.incidents.length >= this.activeCap()) { c.nextIncidentAt = this.state.time + 10; return; }
     c.nextIncidentAt = this.state.time + this.spawnInterval();
     this.spawnIncident().catch(() => undefined);
   }
@@ -1084,7 +1090,8 @@ export class Game {
       if (parent && t.children) {
         // Major event: related calls appear around the main scene.
         const allowed = t.children.types.map(incidentType).filter(ct => ct.requirements.every(r => this.hasDeptIn(c, CAPABILITIES.find(x => x.id === r.cap)!.dept)));
-        const n = Math.round(rand(t.children.count[0], t.children.count[1]));
+        const room = this.activeCap() - c.incidents.length;
+        const n = Math.min(room, Math.round(rand(t.children.count[0], t.children.count[1])));
         let made = 0;
         for (let i = 0; i < n && allowed.length; i++) {
           const child = await this.createIncident(pick(allowed), c, def, parent.pos, t.children.radiusKm * 1000, parent.id);

@@ -26,7 +26,7 @@ export function DispatchList() {
   return (
     <div>
       <div className="sheet-head"><div className="grow"><div className="title">Dispatch</div>
-        <div className="sub">{active.length} active · {c.stats.calls} handled · {c.stats.successful} successful</div></div></div>
+        <div className="sub">{active.length}/{game.activeCap()} active · new call every {game.state.settings.callIntervalMin ?? 3} min · {c.stats.successful}/{c.stats.calls} successful</div></div></div>
       {!game.setupDone && <Empty>Place your three starter stations to begin receiving calls.</Empty>}
       {game.city.goals && game.setupDone && (
         <div className="goals" data-testid="goals">

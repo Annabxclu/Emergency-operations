@@ -228,6 +228,7 @@ export interface Settings {
   shifts: boolean;
   showReal?: boolean;
   travelModel?: 'fixed' | 'roads';
+  callIntervalMin?: number; // minutes between new calls (1, 3 or 5)
 }
 
 export interface GameState {

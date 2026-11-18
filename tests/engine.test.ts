@@ -122,6 +122,8 @@ async function run(g: Game, seconds: number, step = 1) {
   (g.city as any).money = 1e7;
   for (const d of ['emergency', 'public_works']) g.placeStation(d === 'emergency' ? 'eoc' : 'public_works_yard', [33.75, -84.38]);
   (g.city as any).money = 1e7;
+  c().incidents.length = 0;
+  for (let i = 0; i < 6; i++) g.placeStation('fire_station', [33.70 + i * 0.01, -84.45]);
   const before = c().incidents.length;
   const storm = await g.spawnIncident('severe_storm');
   assert(storm && c().incidents.length - before >= 3, `major event created ${c().incidents.length - before - 1} related calls`);
@@ -162,6 +164,25 @@ async function run(g: Game, seconds: number, step = 1) {
   const someEngine = c().vehicles.find(v => v.typeId === 'engine' && v.status === 'available')!;
   assert(g.staffingProblem(someEngine) !== null, 'with shifts on, a single-shift crew is not enough');
   g.state.settings.shifts = false;
+
+  // Call frequency and cap
+  {
+    const g3 = new Game(newGameState(), fake);
+    g3.placeStation('fire_station', [33.755, -84.39]); g3.placeStation('police_precinct', [33.77, -84.385]); g3.placeStation('ems_station', [33.76, -84.37]);
+    assert(g3.activeCap() === 2, 'cap with 1 station per department is 2');
+    (g3.city as any).money = 1e7;
+    for (let i = 0; i < 4; i++) g3.placeStation('fire_station', [33.7 + i * 0.01, -84.4]);
+    g3.placeStation('police_precinct', [33.73, -84.36]);
+    for (let i = 0; i < 3; i++) g3.placeStation('ems_station', [33.78 + i * 0.01, -84.35]);
+    assert(g3.activeCap() === 6, '5 fire / 2 police / 4 EMS stations -> max 6 active calls');
+    g3.state.settings.callIntervalMin = 1;
+    g3.city.nextIncidentAt = g3.state.time;
+    const times: number[] = [];
+    for (let i = 0; i < 400; i++) { const n = g3.city.incidents.length; g3.tick(1); await flush(); if (g3.city.incidents.length > n) times.push(g3.state.time); }
+    assert(times.length >= 5 && times.slice(1).every((t, i) => Math.abs(t - times[i] - 60) <= 2), `1-minute setting: calls every 60s (${times.length} in 400s)`);
+    for (let i = 0; i < 600; i++) { g3.tick(1); if (i % 10 === 0) await flush(); }
+    assert(g3.city.incidents.length <= 6, `active calls never exceed the cap (${g3.city.incidents.length})`);
+  }
 
   // Save round trip.
   const json = JSON.stringify(g.state);

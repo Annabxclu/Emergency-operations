@@ -49,6 +49,14 @@ export function SettingsPanel(p: Props) {
               <button key={sp} className={s.speed === sp ? 'on' : ''} data-testid={`speed-${sp}`} onClick={() => { s.speed = sp; game.changed(); }}>{sp === 0 ? 'Paused' : `${sp}×`}</button>
             ))}
           </div></div>
+        <div className="field"><label>New call every</label>
+          <div className="seg" role="group" aria-label="Call frequency">
+            {[1, 3, 5].map(m => (
+              <button key={m} className={(s.callIntervalMin ?? 3) === m ? 'on' : ''} data-testid={`interval-${m}`}
+                onClick={() => { s.callIntervalMin = m; const c = game.city; c.nextIncidentAt = Math.min(c.nextIncidentAt, game.state.time + m * 60); game.changed(); }}>{m} min</button>
+            ))}
+          </div></div>
+        <p className="hint">Game minutes (real minutes at 1×). Active calls are capped at your largest department's station count + 1 — right now that's {game.activeCap()} calls.</p>
         <div className="field"><label>Travel times</label>
           <select value={s.travelModel ?? 'fixed'} onChange={(e: any) => { s.travelModel = e.target.value; game.changed(); }} data-testid="travel-model">
             <option value="fixed">Fixed vehicle speeds (Mission Chief style)</option>
