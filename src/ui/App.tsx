@@ -36,6 +36,9 @@ const TAB_OF: Record<string, string> = {
 
 interface Toast { id: number; text: string; tone: string; action?: () => void }
 
+// Panels opened from the tab bar or top bar fill the screen on phones; map taps open a half sheet.
+const FULL_SCREEN = new Set(['dispatch', 'stations', 'vehicles', 'finances', 'settings', 'personnel', 'missions', 'research', 'goals']);
+
 export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRouting; firstRun: boolean }) {
   const [, setFrame] = useState(0);
   const [stack, setStack] = useState([] as Route[]);
@@ -411,7 +414,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
         )}
 
         {stack.length > 0 && !activeBuild && (
-          <div className={`sheet ${expanded ? 'expanded' : ''}`} data-testid="sheet">
+          <div className={`sheet ${expanded ? 'expanded' : ''} ${FULL_SCREEN.has(stack[0].kind) ? 'full' : ''}`} data-testid="sheet">
             <button className="grabber" aria-label={expanded ? 'Collapse panel' : 'Expand panel'} onClick={() => setExpanded(!expanded)}><span /></button>
             <button className="close" aria-label="Close panel" onClick={() => openRoot(null)}>×</button>
             <div className="sheet-body">{renderSheet(top)}</div>

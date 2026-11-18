@@ -65,6 +65,11 @@ input, select, textarea { font: inherit; color: var(--text); }
 .sheet { position: absolute; z-index: 1100; left: 0; right: 0; bottom: calc(var(--tab-h) + var(--sb)); max-height: 54vh; display: flex; flex-direction: column;
   background: var(--panel); border-radius: 16px 16px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.35); animation: sin .18s ease-out; }
 .sheet.expanded { max-height: calc(100vh - var(--st) - var(--top-h) - var(--tab-h) - var(--sb) - 8px); max-height: calc(100dvh - var(--st) - var(--top-h) - var(--tab-h) - var(--sb) - 8px); }
+/* Panels opened from the tab bar fill the screen on phones (no map behind them). */
+@media (max-width: 759px) {
+  .sheet.full { top: calc(var(--st) + var(--top-h)); max-height: none; border-radius: 0; background: rgb(17, 24, 33); box-shadow: none; animation: none; }
+  .sheet.full .grabber { visibility: hidden; height: 8px; }
+}
 @keyframes sin { from { transform: translateY(24px); opacity: .5; } }
 .grabber { height: 18px; display: grid; place-items: center; flex: none; }
 .grabber span { width: 38px; height: 5px; border-radius: 3px; background: #3a4655; }
