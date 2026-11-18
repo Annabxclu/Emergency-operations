@@ -213,6 +213,11 @@ def main():
             check(game('g.city.money') == m_before + 1000 and game('g.state.login.step') == 1, 'day-1 login bonus of $1,000 claimed')
             page.wait_for_timeout(400)
             check(game('g.city.stations.length') == 4, 'game restored from IndexedDB after reload')
+            t0 = game('g.state.time')
+            page.evaluate('() => { const g = window.__game; g.state.settings.speed = 1; g.state.lastSeen = Date.now() - 2 * 3600 * 1000; document.dispatchEvent(new Event("visibilitychange")); }')
+            page.wait_for_selector('text=While you were away', timeout=5000)
+            check(game('g.state.time') - t0 >= 2 * 3600 - 5, 'offline progress: 2 hours away advanced the game 2 hours')
+            shot('14-offline')
             check(game('g.city.resolved.length') >= 1, 'call history restored')
 
             # --- Settings / export

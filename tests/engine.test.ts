@@ -203,6 +203,24 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(!(g4.city.finance.total.expense['payroll']) && g4.city.money >= m1, 'no payroll or upkeep with running costs off');
   }
 
+  // Offline progress: everything keeps running except new calls.
+  {
+    const g5 = new Game(newGameState(), fake);
+    g5.placeStation('fire_station', [33.755, -84.39]); g5.placeStation('police_precinct', [33.77, -84.385]); g5.placeStation('ems_station', [33.76, -84.37]);
+    const call = await g5.spawnIncident('medical');
+    g5.dispatch(call!.id, g5.recommend(call!.id).ids);
+    const ignored = await g5.spawnIncident('theft');
+    await flush();
+    const r = g5.catchUp(3 * 3600);
+    assert(g5.city.resolved.find(i => i.id === call!.id)?.outcome === 'successful', 'offline: dispatched call finished while away');
+    assert(g5.city.resolved.find(i => i.id === ignored!.id)?.outcome === 'failed', 'offline: unattended call ran out its timers');
+    assert(g5.city.incidents.length === 0, 'offline: no new calls were generated');
+    assert(g5.city.vehicles.every(v => v.status === 'available'), 'offline: all units returned to their stations');
+    assert(r!.calls === 2 && g5.state.time >= 8 * 3600 + 3 * 3600, `offline summary: ${r!.calls} calls, ${r!.successful} successful, money ${r!.money}`);
+    g5.tick(g5.state.settings.callIntervalMin! * 60 + 1); await flush();
+    assert(g5.city.incidents.length === 1, 'calls resume after returning');
+  }
+
   // Save round trip.
   const json = JSON.stringify(g.state);
   const g2 = new Game(JSON.parse(json), fake);

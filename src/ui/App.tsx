@@ -92,6 +92,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       last = now;
       const speed = game.setupDone && !blocked.current ? game.state.settings.speed : 0;
       if (speed > 0) game.tick(dtReal * speed);
+      game.state.lastSeen = Date.now();
       if (now - lastUi > 250) { lastUi = now; if (speed > 0) rerender(); }
       raf = requestAnimationFrame(loop);
     };
@@ -177,6 +178,31 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     cs.realStations = [];
     fetchRealStations(game.cityDef.bounds).then(list => { cs.realStations = list; game.changed(); }).catch(() => { cs.realStations = undefined; });
   }, [game, game.state.activeCity, game.state]);
+
+  // ---------------------------------------------------------- offline progress
+  const catchUp = () => {
+    const last = game.state.lastSeen;
+    const now = Date.now();
+    game.state.lastSeen = now;
+    if (!last || !game.setupDone) return;
+    const away = (now - last) / 1000;
+    const speed = game.state.settings.speed;
+    if (away < 5 || speed <= 0) return;
+    const r = game.catchUp(away * speed);
+    if (!r) return;
+    saveGame(game.state);
+    const h = Math.floor(away / 3600), m = Math.round((away % 3600) / 60);
+    const parts = [`${h ? `${h}h ` : ''}${m}m away`];
+    if (r.calls) parts.push(`${r.calls} call${r.calls > 1 ? 's' : ''} closed (${r.successful} successful${r.failed ? `, ${r.failed} failed` : ''})`);
+    if (Math.abs(r.money) >= 1) parts.push(`${r.money >= 0 ? '+' : ''}${money(r.money)}`);
+    if (away >= 60) toast(`While you were away: ${parts.join(' · ')}`, r.failed ? 'warn' : 'info');
+  };
+  useEffect(() => {
+    if (!firstRun) catchUp();
+    const onVis = () => { if (document.visibilityState === 'visible') catchUp(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [game]);
 
   // ---------------------------------------------------------- persistence
   useEffect(() => {

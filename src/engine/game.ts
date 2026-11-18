@@ -125,6 +125,7 @@ export class Game {
   private listeners = new Set<() => void>();
   private eventListeners = new Set<(e: GameEvent) => void>();
   private spawning = false;
+  private noSpawn = false;
   version = 0;
 
   constructor(state: GameState, public routing: RoutingProvider) {
@@ -723,6 +724,12 @@ export class Game {
       r.durationS = this.travelSeconds(vt, data.distanceM, data.durationS);
       return r;
     };
+    if (this.noSpawn) {
+      // Catching up after time away: nobody is watching, so skip the network and
+      // use an estimated road distance for the trip.
+      v.route = build(directRoute(from, to));
+      return;
+    }
     if (vt.air) {
       // Helicopters fly straight to the destination.
       const d = distanceM(from, to);
@@ -782,6 +789,32 @@ export class Game {
       rs.active = null;
       this.changed();
     }
+  }
+
+  /**
+   * Offline progress: run the simulation forward for time spent away. Vehicles keep
+   * driving, calls keep counting down and resolve, training/research/maintenance
+   * finish and money moves — but no new calls are generated.
+   */
+  catchUp(gameSeconds: number) {
+    const total = Math.min(gameSeconds, 30 * DAY);
+    if (total < 1) return null;
+    const before = Object.values(this.state.cities).map(c => ({ c, money: c.money, calls: c.stats.calls, ok: c.stats.successful, failed: c.stats.failed }));
+    this.noSpawn = true;
+    try {
+      const step = total > 6 * 3600 ? 10 : 3;
+      let left = total;
+      while (left > 0) { const dt = Math.min(step, left); this.tick(dt); left -= dt; }
+    } finally {
+      this.noSpawn = false;
+    }
+    const sum = { seconds: total, money: 0, calls: 0, successful: 0, failed: 0 };
+    for (const b of before) {
+      sum.money += b.c.money - b.money; sum.calls += b.c.stats.calls - b.calls;
+      sum.successful += b.c.stats.successful - b.ok; sum.failed += b.c.stats.failed - b.failed;
+    }
+    this.changed();
+    return sum;
   }
 
   /** Send the recommended units to calls nobody is handling yet, when they can be fully covered. */
@@ -1086,6 +1119,7 @@ export class Game {
 
   private maybeSpawn() {
     const c = this.city;
+    if (this.noSpawn) { c.nextIncidentAt = Math.max(c.nextIncidentAt, this.state.time + this.spawnInterval()); return; }
     if (this.spawning || this.state.time < c.nextIncidentAt) return;
     if (c.incidents.length >= this.activeCap()) { c.nextIncidentAt = this.state.time + 10; return; }
     c.nextIncidentAt = this.state.time + this.spawnInterval();

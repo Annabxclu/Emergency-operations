@@ -246,6 +246,7 @@ export interface GameState {
   settings: Settings;
   research: { active: { id: string; until: number } | null; done: string[] };
   login?: { last: string; step: number };
+  lastSeen?: number; // wall-clock ms when the game was last running (for offline progress)
 }
 
 export interface RouteData { coords: LatLng[]; distanceM: number; durationS: number; approximate: boolean }
