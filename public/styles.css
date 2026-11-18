@@ -352,8 +352,12 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .cat-head .chev { color: var(--muted); width: 14px; text-align: center; }
 
 /* Dispatch: sort buttons, wrapping call names, sticky missing-units table */
-.seg.sort { margin-bottom: 8px; }
-.seg.sort button { font-size: 12px; padding: 7px 4px; }
+.list-tools { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+.list-tools .seg.views { flex: 1; min-width: 0; }
+.seg.views button { font-size: 12.5px; padding: 7px 4px; white-space: nowrap; }
+.seg.views button b { color: var(--muted); font-weight: 700; margin-left: 2px; }
+.seg.views button.on b { color: inherit; }
+.sort-select { flex: 0 0 auto; width: 112px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0 8px; font-size: 13px; }
 .mission-row .row-title, .mission-head .row-title { white-space: normal; display: block; overflow: visible; line-height: 1.25; }
 .mission-row .row-title .tag { margin-left: 6px; vertical-align: middle; }
 .mission-row .row-sub { white-space: normal; }

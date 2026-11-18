@@ -241,11 +241,15 @@ def main():
             page.click('[data-testid=tab-dispatch]')
             shot('07-dispatch-list')
             if page.locator('[data-testid=dispatch-sort]').count():
-                page.click('[data-testid=sort-max]')
+                page.select_option('[data-testid=dispatch-sort]', 'max')
                 rewards = game('[...g.city.incidents].sort((a, b) => b.reward - a.reward).map(i => i.name)')
                 first = page.locator('[data-testid=incident-row] .row-title').first.inner_text()
                 check(first.startswith(rewards[0]), 'sorting by most credits puts the best-paying call first')
-                page.click('[data-testid=sort-oldest]')
+                page.select_option('[data-testid=dispatch-sort]', 'oldest')
+                page.click('[data-testid=view-enroute]')
+                n_en = game('g.city.incidents.filter(i => ["responding","followup"].includes(g.shownStatus(i))).length')
+                check(page.locator('[data-testid=incident-row]').count() == n_en, f'En route view shows only calls with units on the way ({n_en})')
+                page.click('[data-testid=view-all]')
             swipe_js = '''() => { const el = document.querySelector('[data-testid=sheet] .sheet-body');
               const mk = (x) => new Touch({ identifier: 1, target: el, clientX: x, clientY: 400 });
               el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [mk(60)], changedTouches: [mk(60)] }));

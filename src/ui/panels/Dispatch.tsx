@@ -40,25 +40,41 @@ const SORTS = [
   { id: 'max', label: 'Most credits', cmp: (a: Incident, b: Incident) => b.reward - a.reward },
   { id: 'min', label: 'Fewest credits', cmp: (a: Incident, b: Incident) => a.reward - b.reward },
 ];
+const VIEWS = [
+  { id: 'all', label: 'All', test: (_s: string, _i: Incident) => true },
+  { id: 'enroute', label: '🚨 En route', test: (st: string) => st === 'responding' || st === 'followup' },
+  { id: 'missing', label: '⚠️ Missing', test: (st: string, i: Incident) => st === 'onscene' || (st === 'pending' && i.workRemaining != null) },
+];
 let lastSort = 'oldest'; // remembered while the app is open
+let lastView = 'all';
 
 export function DispatchList() {
   const { game, push } = useCtx();
   const c = game.city;
   const [sort, setSortState] = useState(lastSort);
   const setSort = (v: string) => { lastSort = v; setSortState(v); };
-  const active = [...c.incidents].sort(SORTS.find(x => x.id === sort)!.cmp);
+  const [view, setViewState] = useState(lastView);
+  const setView = (v: string) => { lastView = v; setViewState(v); };
+  const all = [...c.incidents].sort(SORTS.find(x => x.id === sort)!.cmp);
+  const count = (id: string) => all.filter(i => VIEWS.find(v => v.id === id)!.test(game.shownStatus(i), i)).length;
+  const active = all.filter(i => VIEWS.find(v => v.id === view)!.test(game.shownStatus(i), i));
   return (
     <div>
       <div className="sheet-head"><div className="grow"><div className="title">Dispatch</div>
         <div className="sub">{active.length}/{game.activeCap()} active · new call every {game.state.settings.callIntervalMin ?? 3} min</div></div></div>
       {!game.setupDone && <Empty>Place your three starter stations to begin receiving calls.</Empty>}
       {game.setupDone && !active.length && <Empty>No active calls. New calls will appear here and on the map.</Empty>}
-      {active.length > 1 && (
-        <div className="seg sort" data-testid="dispatch-sort">
-          {SORTS.map(o => <button key={o.id} className={sort === o.id ? 'on' : ''} onClick={() => setSort(o.id)} data-testid={`sort-${o.id}`}>{o.label}</button>)}
+      {all.length > 0 && (
+        <div className="list-tools">
+          <div className="seg views" data-testid="dispatch-views">
+            {VIEWS.map(o => <button key={o.id} className={view === o.id ? 'on' : ''} onClick={() => setView(o.id)} data-testid={`view-${o.id}`}>{o.label} <b>{count(o.id)}</b></button>)}
+          </div>
+          <select className="sort-select" value={sort} onChange={(e: any) => setSort(e.target.value)} data-testid="dispatch-sort" aria-label="Sort calls">
+            {SORTS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
         </div>
       )}
+      {all.length > 0 && !active.length && <Empty>No calls in this view.</Empty>}
       <div className="list">
         {active.map(inc => {
           const st = INCIDENT_STATUS[game.shownStatus(inc)];
