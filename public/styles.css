@@ -331,3 +331,19 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .level-bar span { display: block; height: 100%; background: var(--info); }
 .cat-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px; border-radius: 12px; background: var(--surface); font-size: 15px; font-weight: 700; text-align: left; margin-bottom: 6px; }
 .cat-head .chev { color: var(--muted); width: 14px; text-align: center; }
+
+/* Dispatch: sort buttons, wrapping call names, sticky missing-units table */
+.seg.sort { margin-bottom: 8px; }
+.seg.sort button { font-size: 12px; padding: 7px 4px; }
+.mission-row .row-title, .mission-head .row-title { white-space: normal; display: block; overflow: visible; line-height: 1.25; }
+.mission-row .row-title .tag { margin-left: 6px; vertical-align: middle; }
+.mission-row .row-sub { white-space: normal; }
+.sheet-head .title { overflow-wrap: anywhere; }
+.missing-table { position: sticky; top: 0; z-index: 5; margin: 0 -14px 10px; padding: 6px 14px 8px; background: rgb(17, 24, 33); box-shadow: 0 6px 10px -6px rgba(0,0,0,.6); }
+.missing-table table { width: 100%; border-collapse: collapse; font-size: 13px; border-radius: 10px; overflow: hidden; outline: 2px solid #d65a45; }
+.missing-table th { background: #26303b; color: #dfe6ee; font-weight: 700; font-size: 11.5px; text-align: left; padding: 7px 6px; line-height: 1.15; }
+.missing-table td { padding: 7px 6px; border-top: 1px solid #2f3a46; color: #e7edf3; font-variant-numeric: tabular-nums; }
+.missing-table td:first-child { font-weight: 600; }
+.missing-table tr:nth-child(even) td { background: #1d2631; }
+.missing-table td.still { color: #ff8a8a; font-weight: 700; }
+.missing-table tr.done td.still { color: var(--ok); }

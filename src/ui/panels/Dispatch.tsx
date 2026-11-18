@@ -34,16 +34,31 @@ export function receivedText(game: ReturnType<typeof useCtx>['game'], inc: Incid
   return new Date(at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
+const SORTS = [
+  { id: 'oldest', label: 'Oldest', cmp: (a: Incident, b: Incident) => a.createdAt - b.createdAt },
+  { id: 'newest', label: 'Newest', cmp: (a: Incident, b: Incident) => b.createdAt - a.createdAt },
+  { id: 'max', label: 'Most credits', cmp: (a: Incident, b: Incident) => b.reward - a.reward },
+  { id: 'min', label: 'Fewest credits', cmp: (a: Incident, b: Incident) => a.reward - b.reward },
+];
+let lastSort = 'oldest'; // remembered while the app is open
+
 export function DispatchList() {
   const { game, push } = useCtx();
   const c = game.city;
-  const active = [...c.incidents].sort((a, b) => (a.status === 'working' ? 1 : 0) - (b.status === 'working' ? 1 : 0) || a.createdAt - b.createdAt);
+  const [sort, setSortState] = useState(lastSort);
+  const setSort = (v: string) => { lastSort = v; setSortState(v); };
+  const active = [...c.incidents].sort(SORTS.find(x => x.id === sort)!.cmp);
   return (
     <div>
       <div className="sheet-head"><div className="grow"><div className="title">Dispatch</div>
         <div className="sub">{active.length}/{game.activeCap()} active · new call every {game.state.settings.callIntervalMin ?? 3} min</div></div></div>
       {!game.setupDone && <Empty>Place your three starter stations to begin receiving calls.</Empty>}
       {game.setupDone && !active.length && <Empty>No active calls. New calls will appear here and on the map.</Empty>}
+      {active.length > 1 && (
+        <div className="seg sort" data-testid="dispatch-sort">
+          {SORTS.map(o => <button key={o.id} className={sort === o.id ? 'on' : ''} onClick={() => setSort(o.id)} data-testid={`sort-${o.id}`}>{o.label}</button>)}
+        </div>
+      )}
       <div className="list">
         {active.map(inc => {
           const st = INCIDENT_STATUS[inc.status];
@@ -164,9 +179,6 @@ export function IncidentDetail({ id }: { id: string }) {
           <div className="warnbox" style={{ marginTop: 8 }}>Work paused — a required unit left the scene. It resumes where it stopped once all required units are back.</div>
         </>
       )}
-      {!closed && inc.status !== 'working' && missingAll.length > 0 && (
-        <div className="missing" data-testid="missing">Missing: {missingAll.map(m => `${m.count}× ${capability(m.cap).name}`).join(', ')}</div>
-      )}
 
       <Section title="Required">
         <div className="reqs">
@@ -219,6 +231,30 @@ export function IncidentDetail({ id }: { id: string }) {
 
       {!closed && inc.status !== 'working' && (
         <Section title="Dispatch units">
+          {missingOnScene.length > 0 && (() => {
+            const selVehicles = allUnits.filter(v => sel.has(v.id));
+            const missingAfterSel = missingRequirements(inc.requirements, [...game.responding(inc), ...selVehicles]);
+            const rows = missingOnScene.map(m => {
+              const miss = m.count;
+              const stillAll = missingAll.find(x => x.cap === m.cap)?.count ?? 0;
+              const still = missingAfterSel.find(x => x.cap === m.cap)?.count ?? 0;
+              return { cap: m.cap, miss, enroute: miss - stillAll, selected: stillAll - still, still };
+            });
+            return (
+              <div className="missing-table" data-testid="missing">
+                <table>
+                  <thead><tr><th>Missing</th><th>On mission</th><th>En route</th><th>Selected</th><th>Still needed</th></tr></thead>
+                  <tbody>
+                    {rows.map(r => (
+                      <tr key={r.cap} className={r.still === 0 ? 'done' : ''}>
+                        <td>{capability(r.cap).name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td className="still">{r.still}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
           {rec.unfilled.length > 0 && (
             <div className="warnbox">No available unit for: {rec.unfilled.map(u => `${u.count}× ${capability(u.cap).name}`).join(', ')}</div>
           )}

@@ -161,6 +161,14 @@ def main():
             page.wait_for_selector('[data-testid=dispatch-btn]')
             page.wait_for_timeout(200)
             shot('05-incident')
+            page.evaluate("document.querySelector('.sheet-body').scrollTop = 99999")
+            page.wait_for_timeout(150)
+            box = page.locator('[data-testid=missing]').bounding_box()
+            body = page.locator('.sheet-body').bounding_box()
+            pos = page.evaluate("getComputedStyle(document.querySelector('[data-testid=missing]')).position")
+            check(pos == 'sticky' and box and box['y'] >= body['y'] - 1, 'missing-units table is pinned (sticky) and stays visible while scrolling the unit list')
+            shot('05c-missing-sticky')
+            page.evaluate("document.querySelector('.sheet-body').scrollTop = 0")
             check(page.locator('[data-testid=dispatch-candidate] input:checked').count() == 0, 'no units are pre-selected')
             check(page.locator('[data-testid=select-recommended]').count() == 0, 'no "Select recommended" button')
             for cap_btn in page.locator('[data-testid=aao] button.needed').all(): cap_btn.click()
@@ -222,6 +230,12 @@ def main():
             game('(g.state.settings.speed = 0, 0)')
             page.click('[data-testid=tab-dispatch]')
             shot('07-dispatch-list')
+            if page.locator('[data-testid=dispatch-sort]').count():
+                page.click('[data-testid=sort-max]')
+                rewards = game('[...g.city.incidents].sort((a, b) => b.reward - a.reward).map(i => i.name)')
+                first = page.locator('[data-testid=incident-row] .row-title').first.inner_text()
+                check(first.startswith(rewards[0]), 'sorting by most credits puts the best-paying call first')
+                page.click('[data-testid=sort-oldest]')
             swipe_js = '''() => { const el = document.querySelector('[data-testid=sheet] .sheet-body');
               const mk = (x) => new Touch({ identifier: 1, target: el, clientX: x, clientY: 400 });
               el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [mk(60)], changedTouches: [mk(60)] }));
