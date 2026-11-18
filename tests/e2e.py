@@ -126,6 +126,11 @@ def main():
             page.click('.close')
             # --- Build a second fire station
             page.click('[data-testid=tab-stations]')
+            check(page.locator('[data-testid=station-row]').count() == 3, 'All tab lists every station')
+            page.click('[data-testid=station-tab-police]')
+            check(page.locator('[data-testid=station-row]').count() == 1, 'Police tab lists only police stations')
+            shot('02b-station-tabs')
+            page.click('[data-testid=station-tabs] >> text=All')
             page.click('[data-testid=build-open]')
             page.click('[data-testid=build-fire_station]')
             page.fill('[data-testid=addr-input]', '320 S Boston Ave')

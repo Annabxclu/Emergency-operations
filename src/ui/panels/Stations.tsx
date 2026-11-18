@@ -5,15 +5,30 @@ import { extensionsFor } from '../../data/progression';
 import { money } from '../format';
 import { glyph } from '../icons';
 
+let rememberedTab = 'all'; // keeps the chosen tab when you open a station and come back
+
 export function StationsList() {
   const { game, push } = useCtx();
   const c = game.city;
+  const depts = DEPARTMENTS.filter(d => c.stations.some(s => s.dept === d.id));
+  const [tab, setTabState] = useState(depts.some(d => d.id === rememberedTab) ? rememberedTab : 'all');
+  const setTab = (t: string) => { rememberedTab = t; setTabState(t); };
   return (
     <div>
       <div className="sheet-head"><div className="grow"><div className="title">Stations</div><div className="sub">{c.stations.length} buildings · {c.vehicles.length} vehicles</div></div>
         {game.setupDone && <Btn kind="primary" small onClick={() => push({ kind: 'build' })} testid="build-open">+ Build</Btn>}</div>
       {!c.stations.length && <Empty>No stations yet.</Empty>}
-      {DEPARTMENTS.map(d => {
+      {depts.length > 0 && (
+        <div className="seg tabs" data-testid="station-tabs">
+          <button className={tab === 'all' ? 'on' : ''} onClick={() => setTab('all')}>All <span className="cnt">{c.stations.length}</span></button>
+          {depts.map(d => (
+            <button key={d.id} className={tab === d.id ? 'on' : ''} onClick={() => setTab(d.id)} data-testid={`station-tab-${d.id}`}>
+              <span className="dot" style={{ background: d.color }} /> {d.short} <span className="cnt">{c.stations.filter(s => s.dept === d.id).length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {DEPARTMENTS.filter(d => tab === 'all' || d.id === tab).map(d => {
         const list = c.stations.filter(s => s.dept === d.id);
         if (!list.length) return null;
         return (
