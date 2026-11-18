@@ -77,6 +77,23 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   // ---------------------------------------------------------- navigation
   const push = (r: Route) => setStack((s: Route[]) => [...s, r]);
   const back = () => setStack((s: Route[]) => s.slice(0, -1));
+  // Swipe right on a panel to go back (or close it at the top level), like iOS.
+  const swipe = useRef(null as { x: number; y: number; t: number } | null);
+  const onTouchStart = (e: any) => {
+    const t = e.touches[0];
+    // Leave sideways-scrolling rows (tabs, quick-add buttons) and form fields alone.
+    if (e.touches.length !== 1 || (e.target as HTMLElement).closest('input, textarea, select, .seg, .aao, .filters, .tabs, .hscroll')) { swipe.current = null; return; }
+    swipe.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  };
+  const onTouchEnd = (e: any) => {
+    const s0 = swipe.current; swipe.current = null;
+    if (!s0) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s0.x, dy = t.clientY - s0.y;
+    if (dx > 80 && Math.abs(dy) < dx * 0.5 && Date.now() - s0.t < 700) {
+      if (stack.length > 1) back(); else openRoot(null);
+    }
+  };
   const openRoot = (r: Route | null) => { setStack(r ? [r] : []); setExpanded(false); };
   const focus = (p: LatLng, zoom?: number) => mapApi.current?.focus(p, zoom);
   const act = (fn: () => void, okText?: string) => {
@@ -414,7 +431,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
         )}
 
         {stack.length > 0 && !activeBuild && (
-          <div className={`sheet ${expanded ? 'expanded' : ''} ${FULL_SCREEN.has(stack[0].kind) ? 'full' : ''}`} data-testid="sheet">
+          <div className={`sheet ${expanded ? 'expanded' : ''} ${FULL_SCREEN.has(stack[0].kind) ? 'full' : ''}`} data-testid="sheet"
+            onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
             <button className="grabber" aria-label={expanded ? 'Collapse panel' : 'Expand panel'} onClick={() => setExpanded(!expanded)}><span /></button>
             <button className="close" aria-label="Close panel" onClick={() => openRoot(null)}>×</button>
             <div className="sheet-body">{renderSheet(top)}</div>

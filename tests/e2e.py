@@ -222,6 +222,18 @@ def main():
             game('(g.state.settings.speed = 0, 0)')
             page.click('[data-testid=tab-dispatch]')
             shot('07-dispatch-list')
+            swipe_js = '''() => { const el = document.querySelector('[data-testid=sheet] .sheet-body');
+              const mk = (x) => new Touch({ identifier: 1, target: el, clientX: x, clientY: 400 });
+              el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [mk(60)], changedTouches: [mk(60)] }));
+              el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [mk(260)] })); }'''
+            page.click('[data-testid=incident-row]')
+            page.wait_for_selector('[data-testid=dispatch-btn], [data-testid=missing], .sheet-head')
+            page.evaluate(swipe_js)
+            page.wait_for_timeout(200)
+            check(page.locator('[data-testid=incident-row]').count() > 0, 'swiping right on a call goes back to the Dispatch list')
+            page.evaluate(swipe_js)
+            page.wait_for_timeout(200)
+            check(page.locator('[data-testid=sheet]').count() == 0, 'swiping right on the list closes it back to the map')
             page.click('.gear')
             page.click('[data-testid=goals-open]')
             page.wait_for_selector('[data-testid=goal]')
