@@ -338,6 +338,22 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(amb >= Math.min(inc!.patients, 10, owned) && amb <= Math.max(owned, 1), `patients drive ambulances, never more than you own (${owned} owned, (${inc!.patients} patients -> ${amb} ambulances)`);
   }
 
+  // Spreadsheet vehicles: a double boat trailer counts as 2 boats, and trailers need a tow vehicle.
+  {
+    const mk = (typeId: string, id: string) => ({ ...g.city.vehicles[0], id, typeId, status: 'available' as const, incidentId: null, route: null, followUp: null });
+    assert(missingRequirements([{ cap: 'boat', count: 2 }], [mk('boat_trailer', 'bt1')]).length === 0, 'double light boat trailer covers 2 boats');
+    assert(missingRequirements([{ cap: 'k9', count: 8 }], [mk('k9_large_carrier', 'k1')]).length === 0, 'large K9 carrier counts as 8 dogs');
+    assert(VEHICLE_TYPES.length >= 85 && ['police_supervisor', 'fbi_wagon', 'crew_cab_semi', 'lifeguard_rescue', 'arff_small'].every(id => VEHICLE_TYPES.some(v => v.id === id)), 'spreadsheet vehicles are in the game');
+    const gt = new Game(JSON.parse(JSON.stringify(g.state)), fake);
+    const st = gt.city.stations.find(s => s.dept === 'fire')!;
+    const trailer = mk('tanker_trailer', 'tt1'); trailer.stationId = st.id; trailer.pos = [...st.pos] as any;
+    gt.city.vehicles.push(trailer as any);
+    const target = gt.city.incidents[0] ?? (await gt.spawnIncident('theft'))!;
+    let msg = '';
+    try { gt.dispatch(target.id, ['tt1']); } catch (e) { msg = String((e as Error).message); }
+    assert(/towing vehicle/i.test(msg), `a trailer can't be sent without its towing vehicle (${msg})`);
+  }
+
   // A slow routing service must not hold units at the station.
   {
     const stuck: RoutingProvider = { route: () => new Promise(() => undefined), nearest: async p => ({ pos: p, name: 'Peachtree St NE' }) };

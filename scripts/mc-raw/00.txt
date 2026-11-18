@@ -1,0 +1,90 @@
+0;Bin fire;110;firetrucks=1;-;-;1/-/-
+1;Container fire;170;firetrucks=1;-;-;1/-/-
+2;Burning car;370;firetrucks=1;-;-;1/-/-
+3;Burning motorbike;340;firetrucks=1;-;-;1/-/-
+4;Burning grass;200;firetrucks=1;-;-;1/-/-
+5;Room fire;1400;platform_trucks=1,firetrucks=2;0-1;-;2/-/-
+6;Garden shed fire;600;firetrucks=2;-;-;2/-/-
+7;Burning leaves;210;firetrucks=1;-;-;1/-/-
+8;Bulk trash fire;220;firetrucks=1;-;-;1/-/-
+9;Bale of straw fire;250;firetrucks=1;-;-;1/-/-
+10;Tractor fire;600;firetrucks=1;-;-;1/-/-
+11;Burning callbox;240;firetrucks=1;-;-;1/-/-
+12;Tree on the road;310;oneof_fire_engine_or_rescue_or_ladder=1,firetrucks=1;-;-;1/-/-
+13;Burning truck;980;firetrucks=2;-;-;2/-/-
+14;Little field fire;1000;firetrucks=2;-;-;2/-/-
+15;Little wildfire;1010;firetrucks=1;-;-;1/-/-
+16;Caravan fire;1100;firetrucks=2;-;-;2/-/-
+17;Mailbox on fire;340;firetrucks=1;-;-;1/-/-
+18;Brush pile;700;firetrucks=1;-;-;1/-/-
+19;Burning trailer;650;firetrucks=1;-;-;1/-/-
+20;Basement fire;2500;battalion_chief_vehicles=1,firetrucks=3;0-2;-;3/-/-
+21;Chimney fire;2400;platform_trucks=1,battalion_chief_vehicles=1,firetrucks=1;-;-;3/-/-
+22;Roof fire;2700;platform_trucks=1,battalion_chief_vehicles=1,firetrucks=3;-;-;3/-/-
+23;Grease Fire;1200;firetrucks=1;-;-;3/-/-
+24;Burning bus shelter;900;firetrucks=1;-;-;3/-/-
+25;Road accident;1000;firetrucks=1;0-1;-;3/-/-
+26;Garage fire;1400;firetrucks=2;-;-;4/-/-
+27;Gas Leak;400;oneof_fire_engine_or_rescue=1,firetrucks=1;-;-;1/-/-
+28;Fireplace fire;1310;platform_trucks=1,battalion_chief_vehicles=1,firetrucks=1;-;-;6/-/-
+29;Harvester fire;1200;firetrucks=2;-;-;6/-/-
+30;Wastebin fire;110;firetrucks=1;-;-;1/-/-
+34;Alcoholic intoxication;null;;1-1;-;-/1/-
+35;Nosebleed;null;;1-1;-;-/1/-
+36;Chest Pains;null;;1-1;-;-/3/-
+37;Acute asthma;null;;1-1;-;-/3/-
+38;Seizure;null;;1-1;-;-/3/-
+39;Fever;null;;1-1;-;-/3/-
+40;Fallen person;null;;1-1;-;-/1/-
+41;Major fire;10210;platform_trucks=2,battalion_chief_vehicles=2,mobile_command_vehicles=1,mobile_air_vehicles=1,water_tankers=1,heavy_rescue_vehicles=2,firetrucks=10;-;-;-/-/-
+42;Manhole Fire;210;battalion_chief_vehicles=1,firetrucks=2;-;-;2/-/-
+43;Diabetic problems;null;;0-1;-;-/1/-
+44;Burning machine;2470;battalion_chief_vehicles=1,mobile_air_vehicles=1,water_tankers=1,heavy_rescue_vehicles=1,firetrucks=3;-;-;5/-/-
+45;Burning locomotive;1800;battalion_chief_vehicles=1,mobile_air_vehicles=1,water_tankers=1,heavy_rescue_vehicles=1,firetrucks=4;0-1;-;7/1/-
+46;Gas station fire;3920;platform_trucks=1,battalion_chief_vehicles=1,mobile_command_vehicles=1,mobile_air_vehicles=1,hazmat_vehicles=1,heavy_rescue_vehicles=2,firetrucks=4;-;-;11/-/-
+47;Dangerous goods truck accident;2200;battalion_chief_vehicles=1,hazmat_vehicles=1,heavy_rescue_vehicles=1,firetrucks=3;0-1;-;11/1/-
+48;Shoplifting;100;police_cars=1;-;1;-/-/1
+50;Parked car accident;120;police_cars=1;-;-;-/-/1
+52;Metal burglary;150;police_cars=1;-;1;-/-/1
+53;Pickpocketing;150;police_cars=1;-;1;-/-/1
+54;Fare dodger;120;police_cars=1;-;-;-/-/1
+59;Brawl;700;police_cars=3;0-3;2;-/-/3
+60;Rioter;500;police_cars=2;-;1;-/-/2
+61;Unannounced demonstration;10020;police_cars=7;-;-;-/-/-
+62;Pile-up;10010;battalion_chief_vehicles=2,hazmat_vehicles=2,heavy_rescue_vehicles=5,firetrucks=10;10-12;-;-/-/-
+72;Person check;100;police_cars=1;-;1;-/-/3
+73;Obstruction of traffic;80;police_cars=1;-;-;-/-/1
+74;Theft of property from vehicles;150;police_cars=1;-;-;-/-/1
+75;Tree on bikeway;310;oneof_fire_engine_or_rescue_or_ladder=1,firetrucks=1;-;-;1/-/-
+76;Burning substation;1900;battalion_chief_vehicles=1,firetrucks=2;-;-;4/-/-
+78;Person under tree;1000;oneof_fire_engine_or_rescue_or_ladder=1,firetrucks=1;1-1;-;6/5/-
+82;Traffic accident - ice;1410;heavy_rescue_vehicles=1,firetrucks=1;0-3;-;4/-/-
+86;MVA Rollover;3000;platform_trucks=1,battalion_chief_vehicles=1,heavy_rescue_vehicles=1,firetrucks=3,police_cars=2;0-4;-;4/3/3
+87;Industrial Fire;5300;platform_trucks=2,battalion_chief_vehicles=2,mobile_command_vehicles=1,hazmat_vehicles=1,firetrucks=5;0-4;-;11/2/-
+88;Partial Building Collapse;7300;platform_trucks=2,battalion_chief_vehicles=2,heavy_rescue_vehicles=2,firetrucks=2;0-2;-;5/3/-
+89;Trench Rescue;2500;battalion_chief_vehicles=1,heavy_rescue_vehicles=2,firetrucks=3,police_cars=1;2-4;-;5/3/1
+90;Officer Down;1500;police_cars=6;1-1;-;-/-/6
+91;Concert;9600;ambulances=1,firetrucks=2,police_cars=7;-;-;3/1/4
+92;Soccer Game;4800;ambulances=2,firetrucks=1,police_cars=3;-;-;4/2/2
+93;Baseball Game;6600;ambulances=2,firetrucks=1,police_cars=2;-;-;2/2/4
+94;Prisoner Escape;4000;k9=1,police_helicopters=1,police_cars=10;-;1;-/-/7
+95;Fleeing Suspect;3000;police_helicopters=1,police_cars=5;-;1;-/-/4
+96;Missing Person;4500;battalion_chief_vehicles=1,police_helicopters=1,firetrucks=2,police_cars=5;0-1;1;6/1/4
+97;Warrant Standby;2000;police_helicopters=1,police_cars=3;-;1;-/-/2
+98;Large Unknown Tanker Spill;5300;battalion_chief_vehicles=2,mobile_command_vehicles=1,hazmat_vehicles=2,heavy_rescue_vehicles=2,firetrucks=4,police_cars=3;-;-;15/-/2
+99;Commercial Fire;4000;platform_trucks=2,battalion_chief_vehicles=2,mobile_command_vehicles=1,heavy_rescue_vehicles=2,firetrucks=6,police_cars=2;0-4;-;13/2/2
+100;Animal Attack;300;police_cars=1;1-1;-;-/1/1
+101;Unknown Tanker Spill;4300;battalion_chief_vehicles=2,mobile_command_vehicles=1,hazmat_vehicles=1,heavy_rescue_vehicles=2,firetrucks=4,police_cars=3;-;-;13/-/2
+102;High Rise Fire;4000;platform_trucks=2,battalion_chief_vehicles=2,mobile_command_vehicles=1,mobile_air_vehicles=2,water_tankers=1,heavy_rescue_vehicles=1,firetrucks=5;4-7;-;13/1/-
+103;Domestic Dispute;300;police_cars=2;-;-;-/-/3
+104;Hostage Taken;2000;police_cars=4;1-2;-;-/1/8
+105;Active Shooter;2800;police_helicopters=1,police_cars=4;1-10;-;-/2/9
+106;High-Risk Warrant;1400;oneof_police_patrol_or_swat=1,police_cars=1;-;-;-/-/9
+107;Drug Warrant;1000;oneof_police_patrol_or_swat=1,police_cars=1;-;-;-/-/8
+108;Anaphylaxis;null;;1-1;-;-/2/-
+109;Noise Complaint;400;police_cars=1;-;-;-/-/1
+110;Residential Fire;1750;platform_trucks=1,battalion_chief_vehicles=1,firetrucks=3,police_cars=2;0-4;-;6/2/2
+111;Stabbing;1500;police_cars=5;1-6;-;-/4/6
+112;Bomb Explosion;14000;platform_trucks=2,battalion_chief_vehicles=2,mobile_command_vehicles=1,police_helicopters=1,heavy_rescue_vehicles=2,firetrucks=6,police_cars=14;-;-;-/-/-
+113;Smoke in Cabin;1200;arff=1,firetrucks=2;-;-;2/-/-
+115;Braking Overheat;900;arff=1,battalion_chief_vehicles=1,oneof_airport_fire_engine_or_fire_engine=1,firetrucks=1;-;-;2/-/-

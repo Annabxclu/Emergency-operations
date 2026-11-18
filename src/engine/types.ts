@@ -34,6 +34,8 @@ export interface StationTypeDef {
 
 export interface VehicleTypeDef {
   id: string;
+  capCount?: Record<string, number>; // one unit counts as N of a capability (e.g. a double boat trailer = 2 boats)
+  towedBy?: string[];   // trailers: vehicle types that can tow it (must be dispatched together)
   dept: string;
   name: string;
   callsign: string;      // e.g. "Engine" -> "Engine 3"

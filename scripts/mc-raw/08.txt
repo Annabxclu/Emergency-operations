@@ -1,0 +1,43 @@
+747;Jetbridge Collapse (Small);3000;arff=1,platform_trucks=1,battalion_chief_vehicles=1,heavy_rescue_vehicles=2,firetrucks=3;1-10;-;5/3/-
+748;Jetbridge Collapse (Large);6000;arff=1,platform_trucks=1,battalion_chief_vehicles=2,mobile_command_vehicles=1,heavy_rescue_vehicles=2,firetrucks=5;10-30;-;7/5/-
+749;Faulty Heating Boiler;400;firetrucks=1;0-1;-;1/1/-
+750;Carbon Monoxide Leak (Small);1100;mobile_air_vehicles=1,firetrucks=4;1-6;-;5/2/-
+751;Carbon Monoxide Leak (Large);4700;battalion_chief_vehicles=1,mobile_air_vehicles=2,hazmat_vehicles=1,firetrucks=7;5-20;-;11/5/-
+752;Carbon Monoxide Leak (Major);9500;platform_trucks=2,battalion_chief_vehicles=2,mobile_command_vehicles=1,mobile_air_vehicles=4,hazmat_vehicles=2,firetrucks=17;20-100;-;15/10/-
+753;Sports Fan Brawl (Small);3000;police_cars=10;2-10;7;-/5/4
+754;Sports Fan Brawl (Medium);6000;sheriff=1,police_cars=15;7-20;12;-/8/7
+755;Sports Fan Brawl (Large);9500;k9=2,sheriff=2,police_cars=25;10-45;30;-/10/10
+756;Arborist Accident;500;platform_trucks=1,firetrucks=1;1-1;-;1/1/-
+757;Person Pinned Under Tank Trailer;1000;hazmat_vehicles=1,heavy_rescue_vehicles=1,firetrucks=1;1-1;-;11/1/-
+758;Methane Leak;1000;battalion_chief_vehicles=1,mobile_air_vehicles=1,hazmat_vehicles=1,heavy_rescue_vehicles=1,firetrucks=3,police_cars=2;0-1;-;3/1/1
+759;Methane Fire;4000;battalion_chief_vehicles=2,foam=1,mobile_air_vehicles=1,hazmat_vehicles=2,heavy_rescue_vehicles=2,firetrucks=6,police_cars=3;0-4;-;6/2/2
+760;Methane Explosion;9000;platform_trucks=2,battalion_chief_vehicles=3,mobile_command_vehicles=1,foam=3,mobile_air_vehicles=2,hazmat_vehicles=3,water_tankers=2,heavy_rescue_vehicles=4,firetrucks=10,police_cars=5;0-11;1;10/4/4
+761;Sinkhole - No Damage;750;platform_trucks=1,battalion_chief_vehicles=1,heavy_rescue_vehicles=1,firetrucks=2,police_cars=2;-;-;6/-/1
+762;Sinkhole - Person Injured;1500;platform_trucks=1,battalion_chief_vehicles=1,heavy_rescue_vehicles=2,firetrucks=2,police_cars=2;5-5;-;6/2/1
+763;Sinkhole - Roadway Damaged;1750;platform_trucks=2,battalion_chief_vehicles=1,heavy_rescue_vehicles=2,firetrucks=3,police_cars=2;0-5;-;6/2/1
+764;Vehicle Fallen Into Sinkhole;2000;platform_trucks=2,battalion_chief_vehicles=1,heavy_rescue_vehicles=2,firetrucks=4,police_cars=3;0-5;-;6/2/1
+765;Sinkhole - Structural Damage;2750;platform_trucks=3,battalion_chief_vehicles=2,heavy_rescue_vehicles=3,firetrucks=4,police_cars=3;0-5;-;6/2/1
+766;Light Aircraft Crash in Wildland;6500;brush_truck=4,battalion_chief_vehicles=2,hazmat_vehicles=1,water_tankers=3,heavy_rescue_vehicles=1,firetrucks=6,police_cars=2;0-4;-;11/1/1
+767;Large Aircraft Crash in Wildland;6500;brush_truck=6,battalion_chief_vehicles=4,mobile_command_vehicles=1,hazmat_vehicles=1,water_tankers=4,heavy_rescue_vehicles=1,sheriff=1,firetrucks=8,police_cars=4;10-40;-;11/10/7
+768;Confined Space Rescue;1500;heavy_rescue_vehicles=1,oneof_fire_engine_or_ladder=1,firetrucks=1;0-4;-;4/1/-
+769;Collision with Jackknifed Semi-Trailer (Small);1000;police_cars=2;-;-;-/-/1
+770;Collision with Jackknifed Semi-Trailer (Medium);4700;platform_trucks=1,battalion_chief_vehicles=1,heavy_rescue_vehicles=2,firetrucks=6,police_cars=6;0-10;-;6/3/2
+771;Collision with Jackknifed Semi-Trailer (Large);14500;platform_trucks=1,battalion_chief_vehicles=2,heavy_rescue_vehicles=3,sheriff=1,firetrucks=9,police_cars=9;0-20;-;15/8/7
+772;Collision with Jackknifed Semi-Trailer (Major);24000;platform_trucks=2,battalion_chief_vehicles=3,mobile_command_vehicles=1,heavy_rescue_vehicles=4,sheriff=2,firetrucks=11,police_cars=15;0-30;-;18/12/10
+773;Post-Surgical Complications;null;-;1-1;-;-/-/-
+778;Power Plant Fire - Major;22500;platform_trucks=5,battalion_chief_vehicles=8,mobile_command_vehicles=2,foam=1,mobile_air_vehicles=3,hazmat_vehicles=3,water_tankers=4,heavy_rescue_vehicles=6,sheriff=1,firetrucks=14,police_cars=7;10-20;1;30/12/8
+779;Power Plant Fire - Explosion;37500;platform_trucks=8,battalion_chief_vehicles=8,mobile_command_vehicles=2,foam=2,mobile_air_vehicles=4,hazmat_vehicles=5,water_tankers=6,heavy_rescue_vehicles=6,sheriff=2,firetrucks=20,police_cars=10;15-30;1;33/15/9
+780;Power Plant Fire - CBRNE;45000;platform_trucks=12,battalion_chief_vehicles=9,mobile_command_vehicles=2,foam=2,mobile_air_vehicles=4,hazmat_vehicles=6,water_tankers=10,heavy_rescue_vehicles=15,sheriff=4,firetrucks=30,police_cars=20;25-50;3;40/20/15
+781;Library Fire (Small);2250;firetrucks=2;0-5;-;1/1/-
+782;Library Fire (Medium);6500;platform_trucks=1,battalion_chief_vehicles=1,water_tankers=1,firetrucks=5;3-10;-;7/2/-
+783;Library Fire (Large);10000;platform_trucks=2,battalion_chief_vehicles=2,mobile_command_vehicles=1,mobile_air_vehicles=1,water_tankers=2,firetrucks=8,police_cars=2;8-15;-;10/10/1
+784;Library Fire (Major);20000;platform_trucks=4,battalion_chief_vehicles=4,mobile_command_vehicles=1,fire_investigation=3,mobile_air_vehicles=2,water_tankers=3,sheriff=1,firetrucks=15,police_cars=4;15-50;-;14/20/7
+785;Train Fire With Flammable Products;4300;battalion_chief_vehicles=2,mobile_command_vehicles=1,hazmat_vehicles=1,heavy_rescue_vehicles=2,firetrucks=5,police_cars=3;-;-;13/-/2
+786;Switchboard Fire;500;firetrucks=1;-;-;1/-/-
+787;Campside - Gas Canister Explosion;9800;platform_trucks=2,battalion_chief_vehicles=1,hazmat_vehicles=2,water_tankers=2,firetrucks=5,police_cars=3;-25;-;14/6/5
+798;Peaceful Demonstration (Small);5000;k9=1,police_cars=5;-;-;-/-/6
+799;Peaceful Demonstration (Large);10000;k9=1,police_cars=15;-;-;-/-/6
+800;Conflagration (Small);3000;platform_trucks=2,battalion_chief_vehicles=2,heavy_rescue_vehicles=2,firetrucks=5,police_cars=4;-;-;6/-/2
+801;Conflagration (Medium);8000;platform_trucks=3,battalion_chief_vehicles=2,water_tankers=1,heavy_rescue_vehicles=2,sheriff=1,firetrucks=7,police_cars=7;3-10;-;7/3/7
+802;Conflagration (Large);13000;platform_trucks=4,battalion_chief_vehicles=4,mobile_command_vehicles=1,mobile_air_vehicles=1,water_tankers=4,heavy_rescue_vehicles=3,sheriff=2,firetrucks=10,police_cars=10;8-20;-;13/10/10
+803;Conflagration (Major);20000;platform_trucks=10,battalion_chief_vehicles=6,mobile_command_vehicles=1,mobile_air_vehicles=2,water_tankers=6,heavy_rescue_vehicles=6,sheriff=4,firetrucks=20,police_cars=14;15-50;-;16/25/15

@@ -113,8 +113,8 @@ export function missingRequirements(reqs: Requirement[], vehicles: Vehicle[]): R
         if (caps.includes(r.cap) && caps.length < bestCaps) { best = i; bestCaps = caps.length; }
       });
       if (best < 0) break;
-      pool.splice(best, 1);
-      left--;
+      const [used] = pool.splice(best, 1);
+      left -= vehicleType(used.typeId).capCount?.[r.cap] ?? 1;
     }
     if (left > 0) missing.push({ cap: r.cap, count: left });
   }
@@ -782,6 +782,15 @@ export class Game {
       sent.push(v);
     }
     if (!sent.length) throw new ActionError('Select at least one vehicle.');
+    // Trailers go only with a towing vehicle sent at the same time (one trailer per tow vehicle).
+    const towers = sent.filter(v => !vehicleType(v.typeId).towedBy);
+    const usedTow = new Set<string>();
+    for (const tr of sent.filter(v => vehicleType(v.typeId).towedBy)) {
+      const t = vehicleType(tr.typeId);
+      const tow = towers.find(v => !usedTow.has(v.id) && t.towedBy!.includes(v.typeId));
+      if (!tow) throw new ActionError(`${tr.name} needs a towing vehicle: ${t.towedBy!.map(id => vehicleType(id).name).join(', ')}.`);
+      usedTow.add(tow.id);
+    }
     for (const v of sent) {
       const t = vehicleType(v.typeId);
       v.turnoutUntil = this.state.time + (v.status === 'returning' ? 5 : t.turnoutSec * this.mod('turnout') * TUNING.turnoutMultiplier);

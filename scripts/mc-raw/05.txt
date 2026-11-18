@@ -1,0 +1,86 @@
+427;Medical emergency on ship;700;platform_trucks=1,firetrucks=1;1-1;-;3/1/-
+428;Security Check;650;k9=1,police_cars=3;-;2;-/-/7
+429;Car vs Powerline;1000;heavy_rescue_vehicles=1,firetrucks=2,police_cars=2;-3;-;4/2/2
+430;Subway train derailment;4000;battalion_chief_vehicles=2,heavy_rescue_vehicles=2,firetrucks=4,police_cars=2;-15;-;10/7/1
+431;Electrocution from third rail;400;firetrucks=2;1-1;-;2/1/-
+432;Small Wildfire;2000;brush_truck=2,water_tankers=1;-;-;3/-/-
+433;Small Controlled Burn;800;brush_truck=1;-;-;2/-/-
+434;Restaurant fire;5000;platform_trucks=1,battalion_chief_vehicles=1,mobile_air_vehicles=1,water_tankers=1,heavy_rescue_vehicles=1,firetrucks=4,police_cars=2;-5;-;10/3/1
+435;Overturned tanker truck;3500;battalion_chief_vehicles=1,mobile_command_vehicles=1,hazmat_vehicles=1,heavy_rescue_vehicles=1,firetrucks=4,police_cars=2;1-1;-;13/2/2
+436;Concussion;null;;1-1;-;-/1/-
+437;Reported fraud;300;police_cars=1;-;1;-/-/1
+438;Serve court order;150;police_cars=1;-;-;-/-/3
+439;Serve eviction notice;150;police_cars=1;-;-;-/-/3
+440;Eviction standby;900;sheriff=1;-;-;-/-/7
+441;Office Investigation;500;fbi=1,oneof_fire_investigation_or_fbi_drone=1;-;-;-/-/-
+442;Office used for crypto attacks;1600;fbi=3,investigation=1,mcc=1,police_cars=2;-;2;-/-/-
+443;Office embedded in corruption;1900;fbi=3,investigation=1,mcc=1,police_cars=3;-;5;-/-/-
+444;Cyber-Criminal organization hideout;3600;fbi_bomb=1,fbi=5,fbi_drone=1,mcc=1,police_cars=5;-;8;-/-/-
+445;Restaurant Investigation;500;fbi=1,investigation=1;-;-;-/-/-
+446;Money laundry operations inside restaurant;1700;fbi=3,investigation=1,mcc=1,police_cars=2;-;3;-/-/-
+447;Criminal organization meeting;3700;fbi_bomb=1,fbi=5,fbi_drone=1,mcc=1,police_cars=6;-;10;-/-/-
+448;Notebook stolen from school;150;police_cars=1;-;1;-/-/1
+449;Burglary in basement;400;police_cars=1;-;-;-/-/1
+450;Property damaged;200;police_cars=1;-;1;-/-/1
+451;Disturbance of peace;250;police_cars=1;-;1;-/-/1
+452;Motorcycle accident;600;firetrucks=1,police_cars=1;1-1;-;1/-/1
+453;Drunk driving;150;police_cars=1;-;-;-/-/1
+454;Breakdown of vehicle;100;police_cars=1;-;-;-/-/1
+455;Robbery;1200;police_cars=3;-;3;-/-/6
+456;Domestic violence;750;police_cars=2;1-1;1;-/-/2
+457;Bicycle stolen;150;police_cars=1;-;-;-/-/1
+458;Safeguarding of musical parade;2000;police_cars=2;-;-;-/-/2
+459;Horse riding accident with vehicle;1200;police_cars=1;1-4;-;-/3/3
+460;Traffic surveillance;2500;police_cars=2;-;-;-/-/3
+461;Petrol fraud;300;police_cars=1;-;1;-/-/2
+462;Illegal gun withdrawal;1700;fbi=4,police_cars=4;-;1;-/-/3
+463;Silent alarm triggered inside bank;500;police_cars=2;-;-;-/-/2
+464;Warrant enforcement;550;police_cars=2;-;1;-/-/3
+465;Wrong-way driver;1000;police_cars=4;-;-;-/-/4
+466;Hunter accidently injured trespasser;200;police_cars=1;1-1;-;1/1/1
+467;Mass panic in discotheque;3500;police_cars=9;-17;2;-/10/9
+468;Abandoned luggage;150;police_cars=1;-;-;-/-/1
+470;Small wildfire cleanup;700;brush_truck=2;-;-;-/-/-
+471;Medium wildfire cleanup;2000;brush_truck=4,firetrucks=1;-;-;1/-/-
+472;Large wildfire cleanup;4500;brush_truck=7,battalion_chief_vehicles=1,firetrucks=2;-;-;6/-/-
+473;Major wildfire cleanup;9500;brush_truck=10,battalion_chief_vehicles=2,mobile_command_vehicles=1,firetrucks=4;-;-;12/-/-
+474;Carpentry workshop fire;4200;platform_trucks=2,battalion_chief_vehicles=4,mobile_command_vehicles=1,mobile_air_vehicles=1,water_tankers=1,firetrucks=10,police_cars=2;-3;-;13/2/2
+475;Person stuck on playground equipment;500;firetrucks=1;1-1;-;1/1/-
+476;Train station collapse (Small) (Fire alarm system);4000;battalion_chief_vehicles=1,heavy_rescue_vehicles=2,firetrucks=4;-5;-;8/5/-
+478;Train station collapse (Medium);6000;battalion_chief_vehicles=2,heavy_rescue_vehicles=4,firetrucks=6,police_cars=2;-10;-;12/8/2
+480;Train station collapse (Large);9800;platform_trucks=1,battalion_chief_vehicles=4,mobile_command_vehicles=1,heavy_rescue_vehicles=6,firetrucks=8,police_cars=4;-15;-;15/13/3
+482;Train station collapse (Major);15000;platform_trucks=1,battalion_chief_vehicles=6,mobile_command_vehicles=2,heavy_rescue_vehicles=8,firetrucks=12,police_cars=6;-20;-;20/18/5
+484;Accident with chainsaw;400;;1-1;-;-/1/-
+485;Burning freight car;1500;battalion_chief_vehicles=1,firetrucks=5;-;-;6/-/-
+486;Speed radar;2000;police_cars=2;-;-;-/-/2
+487;Bird strike;2500;arff=3,battalion_chief_vehicles=1,firetrucks=1;-;-;7/-/-
+489;Possible Cannabis Farm;1000;police_helicopters=1,police_cars=1;-;-;-/-/1
+490;Suspicious package;800;k9=1,police_cars=2;-;-;-/-/6
+491;Suspicious Person;300;police_cars=1;-;1;-/-/1
+492;Arrhythmia;null;;1-1;-;-/1/-
+493;Street market patrol;1500;police_cars=1;-;-;-/-/1
+494;Object stuck in person;null;;1-1;-;-/1/-
+495;Counterfeit Goods raid;1200;police_cars=4;-;3;-/-/4
+496;Debris on runway;350;firetrucks=1;-;-;1/-/-
+498;Landslide;1500;battalion_chief_vehicles=1,heavy_rescue_vehicles=2,firetrucks=4;-5;-;8/4/-
+499;Crushed person;null;heavy_rescue_vehicles=1,firetrucks=1;1-1;-;4/1/-
+510;Biker fell off mountain-road;null;;1-1;-;-/1/-
+511;Major road block;6000;police_cars=5;-;-;-/-/5
+512;Apartment fire in High Rise;2000;platform_trucks=1,battalion_chief_vehicles=1,mobile_air_vehicles=1,firetrucks=3;-6;-;8/6/-
+513;Transporter fell on side;null;platform_trucks=1,battalion_chief_vehicles=1,firetrucks=1;1-2;-;6/2/-
+514;Illegal internet activity;500;fbi=1;-;1;-/-/-
+515;Chlorine Exposure;2500;hazmat_vehicles=1,firetrucks=1;1-2;-;11/2/-
+516;Containment Breach at Lab;7500;battalion_chief_vehicles=2,mobile_command_vehicles=1,mobile_air_vehicles=1,hazmat_vehicles=1,firetrucks=5,police_cars=2;2-5;-;13/5/2
+517;Agricultural Chemical Leak;3500;battalion_chief_vehicles=1,hazmat_vehicles=1,firetrucks=2;1-1;-;11/1/-
+518;Container Leaking Unknown Substance;1500;hazmat_vehicles=1,firetrucks=1;-;-;11/-/-
+519;Aircraft Leaking Fuel;1500;arff=1,battalion_chief_vehicles=1,hazmat_vehicles=1,firetrucks=1;-;-;11/-/-
+521;Radioactive Exposure;2500;battalion_chief_vehicles=1,hazmat_vehicles=1,firetrucks=2;1-2;-;11/2/-
+522;Fuel Spill in Waterway;3000;battalion_chief_vehicles=1,hazmat_vehicles=1,firetrucks=3;-;-;11/-/-
+524;Cat stuck in tree;450;platform_trucks=1,firetrucks=1;-;-;3/-/-
+525;Jewelry store robbery;800;police_cars=2;-;-;-/-/2
+526;Glass shard embedded in hand;null;;1-1;-;-/1/-
+527;Observation of a suspect;6000;police_cars=2;-;1;-/-/2
+537;Welfare Check;900;police_cars=1;1-1;-;-/1/1
+538;Spinal injury;null;;1-1;-;-/2/-
+539;Bomb Explosion at Chemical Plant;35000;platform_trucks=10,battalion_chief_vehicles=10,mobile_command_vehicles=2,mobile_air_vehicles=4,hazmat_vehicles=4,water_tankers=6,heavy_rescue_vehicles=12,firetrucks=25,police_cars=12;30-80;-;25/20/8
+546;Chemical in water;1200;boats=1,battalion_chief_vehicles=1,hazmat_vehicles=1,heavy_rescue_vehicles=1,firetrucks=1;-;-;11/-/-

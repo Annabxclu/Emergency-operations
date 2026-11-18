@@ -104,6 +104,7 @@ const CODE_CAP: Record<string, string> = {
   arff: 'arff', am: 'ambulance', fwk: 'crane', bt: 'boat', fb: 'fireboat', br: 'brush', fd: 'federal', dn: 'drone',
   bo: 'bomb', iv: 'investigation', gw: 'game_warden', pb: 'police_boat', fo: 'foam', cs: 'coastal', cht: 'coast_heli',
   fl: 'flood', pv: 'prisoner_transport', rt: 'riot',
+  sv: 'supervisor', pm: 'police_command', csu: 'crime_scene', lg: 'lifeguard', cc: 'crew_carrier',
 };
 // Codes -> catalog "extras" keys, so new missions get a sensible category.
 const CODE_EXTRA: Record<string, string> = {
@@ -221,6 +222,7 @@ const slug = (s: string) => 'mc_' + s.toLowerCase().replace(/[^a-z0-9]+/g, '_').
 export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDef[] {
   const out: IncidentTypeDef[] = [];
   const seen = new Set<string>();
+  const seenIds = new Set<string>();
   const real = parseReal();
   const rows: { name: string; credits: number; f: number; a: number; p: number; extras: Record<string, number> }[] = [];
   for (const line of CATALOG.split('\n')) {
@@ -237,8 +239,8 @@ export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDe
   for (const row of rows) {
     const { name, f, a, p } = row;
     const key = name.toLowerCase();
-    if (existingNames.has(key) || seen.has(key)) continue;
-    seen.add(key);
+    if (existingNames.has(key) || seen.has(key) || seenIds.has(slug(name))) continue;
+    seen.add(key); seenIds.add(slug(name));
     const r = real.get(key) ?? real.get(ALIAS[key]);
     const extras = { ...row.extras, ...(r?.extras || {}) };
     const credits = row.credits || r?.credits || 0;

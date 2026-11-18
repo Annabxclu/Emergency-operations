@@ -1,0 +1,59 @@
+656;CBRN explosion on container ship;42000;atf_lab_vehicle=1,atf_unit=2,fbi_bomb=2,boats=4,platform_trucks=6,battalion_chief_vehicles=6,mobile_command_vehicles=2,fbi=4,fire_investigation=4,mobile_air_vehicles=3,hazmat_vehicles=4,investigation=2,k9=2,large_fire_boat=3,large_rescue_boat=3,mcc=1,police_boat=2,heavy_rescue_vehicles=5,sheriff=4,firetrucks=25,police_cars=22;5-30;-;25/10/10
+657;CBRN explosion on tanker ship;45000;atf_lab_vehicle=1,atf_unit=3,fbi_bomb=2,boats=4,platform_trucks=6,battalion_chief_vehicles=6,mobile_command_vehicles=2,fbi=6,fire_investigation=4,mobile_air_vehicles=4,hazmat_vehicles=4,investigation=2,k9=2,large_fire_boat=3,large_rescue_boat=3,mcc=1,police_boat=2,heavy_rescue_vehicles=6,sheriff=4,firetrucks=30,police_cars=25;5-30;-;25/10/10
+658;Prisoner bus accident;2000;k9=2,police_helicopters=1,police_cars=10;1-5;5;-/-/6
+659;Ranch fire;4500;brush_truck=4,battalion_chief_vehicles=1,water_tankers=1,firetrucks=5;-;-;7/-/-
+671;Off-Road Vehicle Collision;5000;brush_truck=1,game_warden=2,hazmat_vehicles=1,heavy_rescue_vehicles=2,firetrucks=2;2-4;1;4/-/2
+670;Ambulance accident;1500;heavy_rescue_vehicles=1,firetrucks=1,police_cars=2;4-6;-;4/2/1
+672;Allergic reaction to bee sting;550;none;1-1;-;-/1/-
+673;Allergic reaction to pollen;650;none;1-1;-;-/1/-
+674;Fall from ladder during spring cleaning;500;none;1-1;-;-/1/-
+675;Wild animal attack during spring picnic;600;police_cars=1;1-3;-;-/3/1
+676;Food poisoning from wild berries;800;none;1-1;-;-/1/-
+677;Picnic basket on fire;800;firetrucks=2;-;-;2/-/-
+678;Person is stealing baby cows;900;police_cars=2;-;1;-/-/1
+679;Cow Thief on the run;900;k9=2,police_helicopters=1,police_cars=5;-;1;-/-/10
+680;Thief attacked by a cow;860;ambulances=1;1-1;-;-/1/-
+681;Drive by shooting;2000;police_helicopters=1,police_cars=6;1-6;4;-/4/5
+682;Out of control argument;900;police_cars=2;-;2;-/-/2
+683;Hybrid Vehicle Fire;1500;firetrucks=2,police_cars=1;0-2;-;1/1/1
+688;Crane Collapse;4250;platform_trucks=3,battalion_chief_vehicles=3,mobile_command_vehicles=1,heavy_rescue_vehicles=2,firetrucks=7,police_cars=3;-13;-;15/10/3
+689;Cargo plane fire with oil leak;15500;arff=6,platform_trucks=6,battalion_chief_vehicles=6,mobile_command_vehicles=1,hazmat_vehicles=4,heavy_rescue_vehicles=4,firetrucks=13,police_cars=5;0-3;-;13/5/4
+690;Large cargo plane fire with oil leak;19000;arff=8,platform_trucks=8,battalion_chief_vehicles=8,mobile_command_vehicles=2,hazmat_vehicles=4,heavy_rescue_vehicles=6,firetrucks=16,police_cars=8;0-5;-;15/5/5
+691;Strip Mall Fire (Small);6000;platform_trucks=4,battalion_chief_vehicles=2,mobile_air_vehicles=1,firetrucks=10,police_cars=2;0-15;-;7/5/1
+692;Strip Mall Fire (Large);9000;platform_trucks=6,battalion_chief_vehicles=3,mobile_command_vehicles=1,mobile_air_vehicles=1,firetrucks=15,police_cars=4;0-15;-;10/15/1
+693;Fire Truck Accident;2000;firetrucks=2,police_cars=2;7-10;-;2/4/2
+694;Abdominal Pain;500;none;1-1;-;-/1/-
+696;Airplane Crash in Urban Area;15000;arff=3,platform_trucks=4,battalion_chief_vehicles=3,mobile_command_vehicles=1,mobile_air_vehicles=2,hazmat_vehicles=2,heavy_rescue_vehicles=4,sheriff=1,firetrucks=10,police_cars=6;10-25;-;7/10/2
+697;Airplane Crash in Urban Area with Fire;20000;arff=4,platform_trucks=5,battalion_chief_vehicles=4,mobile_command_vehicles=2,mobile_air_vehicles=2,hazmat_vehicles=2,water_tankers=3,heavy_rescue_vehicles=6,sheriff=2,firetrucks=13,police_cars=8;10-30;-;10/10/3
+698;Airplane Crash in Urban Area with Explosion;22500;arff=5,fbi_bomb=1,platform_trucks=5,battalion_chief_vehicles=5,mobile_command_vehicles=2,fbi=2,mobile_air_vehicles=3,hazmat_vehicles=3,investigation=2,mcc=1,heavy_rescue_vehicles=6,sheriff=2,firetrucks=15,police_cars=10;15-35;-;10/10/5
+699;Medium Cannabis Grow Operation;6000;dea_unit=1,hazmat_vehicles=1,k9=1,police_helicopters=1,sheriff=1,police_cars=3;-;5;-/-/2
+700;Large Cannabis Grow Operation;10000;dea_clan_lab=1,dea_unit=3,fbi=3,hazmat_vehicles=1,k9=2,police_helicopters=1,sheriff=5,oneof_fire_investigation_or_fbi_drone=1,police_cars=10;-;10;-/-/4
+701;Stolen Police Car;5000;police_helicopters=1,sheriff=1,police_cars=5;-;1;-/-/5
+702;Driving Under The Influence of Narcotics;900;police_cars=1;0-2;1;-/1/4
+720;Mattress Factory Fire;10500;platform_trucks=5,battalion_chief_vehicles=3,mobile_command_vehicles=1,mobile_air_vehicles=1,water_tankers=1,heavy_rescue_vehicles=1,firetrucks=14,police_cars=2;5-20;-;8/4/3
+721;Refinery Fire (Small);10000;platform_trucks=4,battalion_chief_vehicles=4,mobile_command_vehicles=1,foam=1,mobile_air_vehicles=1,hazmat_vehicles=2,water_tankers=1,heavy_rescue_vehicles=4,firetrucks=10,police_cars=4;5-15;2;10/5/5
+722;Refinery Fire (Medium);15000;platform_trucks=5,battalion_chief_vehicles=4,mobile_command_vehicles=1,foam=2,mobile_air_vehicles=1,hazmat_vehicles=3,water_tankers=2,heavy_rescue_vehicles=5,sheriff=1,firetrucks=12,police_cars=5;10-20;3;12/6/6
+723;Refinery Fire (Large);22000;platform_trucks=6,battalion_chief_vehicles=5,mobile_command_vehicles=1,fbi=1,foam=3,mobile_air_vehicles=2,hazmat_vehicles=4,water_tankers=3,heavy_rescue_vehicles=6,sheriff=2,firetrucks=15,police_cars=6;15-20;4;15/8/8
+724;Refinery Fire (Major);30000;platform_trucks=8,battalion_chief_vehicles=6,mobile_command_vehicles=1,fbi=2,foam=4,mobile_air_vehicles=3,hazmat_vehicles=5,water_tankers=4,investigation=1,heavy_rescue_vehicles=8,sheriff=3,firetrucks=20,police_cars=8;20-35;5;20/10/10
+725;Refinery Explosion (Major);40000;platform_trucks=10,battalion_chief_vehicles=7,mobile_command_vehicles=2,fbi=4,foam=5,mobile_air_vehicles=5,hazmat_vehicles=6,water_tankers=5,investigation=1,heavy_rescue_vehicles=10,sheriff=4,firetrucks=30,police_cars=10;30-50;8;25/15/15
+726;Area Evacuation;3500;sheriff=2,police_cars=10;-5;-;-/2/10
+727;Post-Fire Environmental Damage Assessment;2500;fire_investigation=2,game_warden=4,police_cars=1;-;-;2/-/2
+728;Overturned Small Vessel;8000;coastal_boat=1,coastal_helicopter=1;-2;-;-/3/-
+729;Overturned Large Vessel;14000;coastal_boat=4,coastal_helicopter=2,large_coastal_boat=1;-5;-;-/8/-
+730;Drowning Surfer;1000;water_rescue=1;1-1;-;-/1/-
+731;Missing Vessel;7000;coastal_boat=2,coastal_helicopter=1;-5;-;-/3/-
+732;Oil Rig Fire;10000;coastal_helicopter=2,large_coastal_boat=2,large_fire_boat=2;-10;-;8/6/-
+733;Oil Rig Explosion;35000;coastal_boat=2,coastal_helicopter=5,coastal_plane=1,large_coastal_boat=6,large_fire_boat=6;-20;-;20/16/-
+734;Shark Attack;1000;coastal_boat=1,water_rescue=1;1-1;-;-/2/-
+735;Smuggling via Boat;4000;coastal_helicopter=2,coastal_plane=1,large_coastal_boat=2;-;4;-/-/2
+736;Parasailing Accident;2500;coastal_boat=1,coastal_command=1,coastal_helicopter=1,water_rescue=2;1-4;-;-/2/-
+737;Deep Water Search & Rescue;4000;coastal_boat=2,coastal_helicopter=2;-3;-;-/2/-
+738;Hostage Rescue Aboard Cargo Ship;8500;coastal_boat=2,coastal_helicopter=2,large_coastal_boat=3;1-8;6;-/5/6
+739;Whaling Vessel Performing Illegal Operations;8000;coastal_boat=2,large_coastal_boat=1;-;8;-/-/6
+740;Multiple Whaling Vessels Performing Illegal Operations;10000;coastal_boat=6,coastal_helicopter=2,large_coastal_boat=3;10-24;24;-/-/14
+741;Sailors Trapped in Capsized Naval Vessel;9000;coastal_helicopter=1,large_coastal_boat=2;1-4;-;-/3/-
+742;Distressed Yacht Caught in Hurricane;5000;coastal_helicopter=1,coastal_plane=1,large_coastal_boat=1;1-4;-;-/3/-
+743;Oil Tanker on Fire in Ocean;15000;coastal_helicopter=2,coastal_plane=1,large_coastal_boat=3,large_fire_boat=4;3-12;-;12/10/-
+744;Stalker;500;police_cars=1;-;1;-/-/1
+745;Multi Vehicle Pile-up;3000;heavy_rescue_vehicles=1,firetrucks=1,police_cars=3;3-10;1;4/3/4
+746;Multi Vehicle Pile-up (Large);6000;heavy_rescue_vehicles=2,firetrucks=2,police_cars=4;6-15;1;5/4/6
