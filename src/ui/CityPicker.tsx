@@ -53,6 +53,7 @@ export function CityPicker(p: Props) {
     <div className="picker">
       <div className="picker-card">
         <div className="picker-brand">EMERGENCY OPERATIONS</div>
+        <div className="brand">Authority<span>: First Response</span></div>
         <h1>{p.title}</h1>
         <p className="muted">{p.subtitle}</p>
         <form className="picker-form" onSubmit={(e: Event) => { e.preventDefault(); search(cityName, stateName); }}>

@@ -274,6 +274,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const setup = !game.setupDone;
   const setupType = setup ? stationTypeForDept(SETUP_ORDER[c.setupStep]).id : null;
   const activeBuild = picker || menu ? null : setup ? setupType : buildType;
+  useEffect(() => { document.documentElement.dataset.theme = game.state.settings.theme ?? 'midnight'; }, [game.state.settings.theme]);
   const pendingCount = c.incidents.filter(i => game.shownStatus(i) === 'pending').length;
   const top = stack[stack.length - 1];
   const activeTab = stack.length ? TAB_OF[stack[0].kind] : 'map';
@@ -356,8 +357,9 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
           <button className="money" onClick={() => openRoot({ kind: 'finances' })} data-testid="money">
             <span className={c.money < 0 ? 'bad' : ''}>{moneyShort(c.money)}</span>
           </button>
-          <div className="topcity">
-            <span>{game.cityDef.name}, {game.cityDef.state}</span>
+          <div className="topbrand">
+            <div className="brand-name">Authority<span>: First Response</span></div>
+            <div className="brand-city">{game.cityDef.name}, {game.cityDef.state}</div>
           </div>
           <button className="gear" aria-label="Settings" onClick={() => openRoot({ kind: 'settings' })}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6c-.6.3-1.2.6-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" /></svg>

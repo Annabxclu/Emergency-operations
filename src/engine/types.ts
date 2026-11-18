@@ -226,6 +226,7 @@ export interface CityState {
 }
 
 export interface Settings {
+  theme?: string;          // background color theme
   speed: number;
   routingUrl: string;
   tileStyle: string;

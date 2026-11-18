@@ -244,7 +244,7 @@ export function IncidentDetail({ id }: { id: string }) {
               const still = afterFollow.find(x => x.cap === m.cap)?.count ?? 0;
               return { cap: m.cap, miss, enroute: miss - a, selected: a - b, follow: b - still, still };
             });
-            const anyFollow = rows.some(r => r.follow > 0);
+            const anyFollow = rows.some(r => r.follow > 0) || selFollowV.length > 0 || queued.length > 0;
             const allCovered = rows.every(r => r.still === 0);
             const tone = allCovered && !anyFollow ? 'covered' : anyFollow ? 'follow' : '';
             return (

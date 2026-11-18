@@ -6,6 +6,17 @@ import { money } from '../format';
 import { TILE_STYLES } from '../MapView';
 import { exportJson } from '../../services/storage';
 
+export const THEMES = [
+  { id: 'midnight', name: 'Midnight', bg: '#0e141b', surface: '#18212b' },
+  { id: 'navy', name: 'Navy', bg: '#0b1630', surface: '#15244a' },
+  { id: 'charcoal', name: 'Charcoal', bg: '#141414', surface: '#222222' },
+  { id: 'slate', name: 'Slate', bg: '#1b2330', surface: '#283345' },
+  { id: 'forest', name: 'Forest', bg: '#0c1a14', surface: '#163026' },
+  { id: 'crimson', name: 'Crimson', bg: '#1c0d10', surface: '#33171c' },
+  { id: 'purple', name: 'Purple', bg: '#140f24', surface: '#251c40' },
+  { id: 'black', name: 'Black', bg: '#000000', surface: '#141414' },
+];
+
 // Settings are grouped into buttons that expand when tapped. Open groups are
 // remembered while the app is open (e.g. after visiting Missions and coming back).
 const openGroups = new Set<string>();
@@ -152,6 +163,17 @@ export function SettingsPanel(p: Props) {
         <p className="hint">Each city has its own stations, staff, calls and budget. Cities you're not viewing keep running, but new calls only arrive in the city you're viewing.</p>
       </Group>
 
+      <Group id="appearance" title="Appearance" sub={`Background: ${(THEMES.find(t => t.id === (s.theme ?? 'midnight')) ?? THEMES[0]).name}`}>
+        <div className="field"><label>Background color</label></div>
+        <div className="theme-grid" data-testid="themes">
+          {THEMES.map(t => (
+            <button key={t.id} className={`theme-swatch ${(s.theme ?? 'midnight') === t.id ? 'on' : ''}`} onClick={() => { s.theme = t.id; game.changed(); }} data-testid={`theme-${t.id}`}>
+              <span className="sw" style={{ background: t.bg, borderColor: t.surface }}><i style={{ background: t.surface }} /></span>{t.name}
+            </button>
+          ))}
+        </div>
+      </Group>
+
       <Group id="map" title="Map" sub="Map style, coverage areas">
         <div className="field"><label>Map style</label>
           <select value={s.tileStyle} onChange={(e: any) => { s.tileStyle = e.target.value; game.changed(); }}>
@@ -198,7 +220,7 @@ export function SettingsPanel(p: Props) {
       </Group>
 
       <Group id="about" title="About">
-        <p className="hint">Emergency Operations prototype. All calls are fictional. Map data and tiles © OpenStreetMap contributors (Humanitarian style by HOT / OSM France); routing by OSRM. No API keys are used.</p>
+        <p className="hint">Authority: First Response. All calls are fictional. Map data and tiles © OpenStreetMap contributors (Humanitarian style by HOT / OSM France); routing by OSRM. No API keys are used.</p>
       </Group>
       </Section>
     </div>
