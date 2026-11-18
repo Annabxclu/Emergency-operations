@@ -2,7 +2,7 @@
 import { Game, newGameState, missingRequirements, xpForLevel, migrate } from '../src/engine/game';
 import type { LatLng, RoutingProvider } from '../src/engine/types';
 import { distanceM } from '../src/engine/geo';
-import { vehicleType } from '../src/data/departments';
+import { vehicleType, VEHICLE_TYPES } from '../src/data/departments';
 import { INCIDENT_TYPES } from '../src/data/incidents';
 
 let routeCalls = 0;
@@ -313,7 +313,16 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(threw, 'airport crash tender needs the Airport Extension');
     g8.upgradeStation(fs.id); g8.buildExtension(fs.id, 'airport_ext');
     g8.buyVehicle('arff', fs.id);
-    assert(g8.eligibleTypes().some(t => t.requirements.some(r => r.cap === 'arff')), 'owning a crash tender unlocks airport calls');
+    assert(!el.some(t => t.requirements.some(r => r.cap === 'rescue')), 'no heavy-rescue calls before you own a heavy rescue');
+    assert(g8.eligibleTypes().every(t => missingRequirements(t.requirements, g8.city.vehicles).length === 0), 'every offered call can be fully staffed from your own fleet');
+    const airport = INCIDENT_TYPES.filter(t => t.requirements.some(r => r.cap === 'arff')).sort((a, b) => a.requirements.length - b.requirements.length)[0];
+    for (const r of airport.requirements) {
+      const vt = VEHICLE_TYPES.find(v => v.caps.includes(r.cap))!;
+      const have = g8.city.vehicles.filter(v => vehicleType(v.typeId).caps.includes(r.cap)).length;
+      for (let i = have; i < r.count; i++) g8.city.vehicles.push({ ...g8.city.vehicles[0], id: 'tv' + r.cap + i, typeId: vt.id });
+    }
+    while (g8.stationCount() < airport.unlockLevel) g8.placeStation('fire_station', [33.75 + g8.stationCount() * 0.003, -84.39]);
+    assert(g8.eligibleTypes().some(t => t.id === airport.id), `owning every unit unlocks airport calls (${airport.name})`);
   }
 
   // Real per-mission requirements and one ambulance per patient.
@@ -325,7 +334,8 @@ async function run(g: Game, seconds: number, step = 1) {
     let inc = null;
     for (let i = 0; i < 20 && !(inc && inc.patients > 1); i++) inc = await g.spawnIncident(cpr.id);
     const amb = inc!.requirements.filter(r => ['ambulance', 'als', 'ccu'].includes(r.cap)).reduce((n, r) => n + r.count, 0);
-    assert(amb >= Math.min(inc!.patients, 10), `patients drive ambulances (${inc!.patients} patients -> ${amb} ambulances)`);
+    const owned = g.city.vehicles.filter(v => vehicleType(v.typeId).caps.includes('ambulance')).length;
+    assert(amb >= Math.min(inc!.patients, 10, owned) && amb <= Math.max(owned, 1), `patients drive ambulances, never more than you own (${owned} owned, (${inc!.patients} patients -> ${amb} ambulances)`);
   }
 
   // Save round trip.

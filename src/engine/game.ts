@@ -144,6 +144,19 @@ export class Game {
 
   constructor(state: GameState, public routing: RoutingProvider) {
     this.state = state;
+    this.dropUnstaffableCalls();
+  }
+
+  /** Remove untouched calls the player's fleet could never complete (from older versions). */
+  dropUnstaffableCalls() {
+    for (const id of Object.keys(this.state.cities)) {
+      const c = this.state.cities[id];
+      if (!c?.incidents || !c.vehicles) continue;
+      c.incidents = c.incidents.filter(inc =>
+        inc.status !== 'pending' || inc.parentId != null ||
+        c.vehicles.some(v => v.incidentId === inc.id || v.followUp === inc.id) ||
+        missingRequirements(inc.requirements, c.vehicles).length === 0);
+    }
   }
 
   /** City being simulated right now (background cities tick too). */
@@ -1272,7 +1285,12 @@ export class Game {
 
   /** Incident types the player can currently be sent (unlocked and staffed departments). */
   eligibleTypes() {
-    return INCIDENT_TYPES.filter(t => this.stationCount() >= t.unlockLevel && t.requirements.every(r => this.canCover(r.cap)));
+    return INCIDENT_TYPES.filter(t => this.stationCount() >= t.unlockLevel && this.fleetCovers(t.requirements));
+  }
+
+  /** True when the player's own fleet (busy or not) has every vehicle a call needs. */
+  fleetCovers(reqs: Requirement[]) {
+    return missingRequirements(reqs, this.city.vehicles).length === 0;
   }
 
   /**
@@ -1301,7 +1319,7 @@ export class Game {
       const parent = await this.createIncident(t, c, def, anchor.pos, stationType(anchor.typeId).coverageKm * 1000, null);
       if (parent && t.children) {
         // Major event: related calls appear around the main scene.
-        const allowed = t.children.types.map(incidentType).filter(ct => ct.requirements.every(r => this.canCover(r.cap)));
+        const allowed = t.children.types.map(incidentType).filter(ct => this.fleetCovers(ct.requirements));
         const room = this.activeCap() - c.incidents.length;
         const n = Math.min(room, Math.round(rand(t.children.count[0], t.children.count[1])));
         let made = 0;
@@ -1346,8 +1364,11 @@ export class Game {
       patients: range(t.patients), prisoners: range(t.prisoners), parentId,
     };
     // One ambulance per patient (capped), like the real game.
-    if (inc.patients > 0 && this.canCover('ambulance')) {
-      const need = Math.min(inc.patients, TUNING.maxPatientAmbulances);
+    const ambOwned = this.city.vehicles.filter(v => vehicleType(v.typeId).caps.includes('ambulance')).length;
+    if (ambOwned === 0) inc.patients = 0;
+    if (inc.patients > 0 && ambOwned > 0) {
+      // Never ask for more ambulances than the player owns.
+      const need = Math.min(inc.patients, TUNING.maxPatientAmbulances, ambOwned);
       const have = inc.requirements.filter(r => ['ambulance', 'als', 'ccu'].includes(r.cap)).reduce((n, r) => n + r.count, 0);
       if (have < need) {
         const amb = inc.requirements.find(r => r.cap === 'ambulance');
