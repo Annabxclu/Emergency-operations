@@ -5,14 +5,14 @@ import { Btn, Chip, ConfirmBtn, Dot, Empty, Header, Section, Stat, useCtx } from
 import { dur, money } from '../format';
 
 export function PersonnelList() {
-  const { game, push } = useCtx();
+  const { game, push, back } = useCtx();
   const [d, setD] = useState('all');
   const c = game.city;
   const list = c.employees.filter(e => d === 'all' || e.dept === d);
   const payroll = c.employees.reduce((a, e) => a + e.salaryPerHour, 0);
   return (
     <div>
-      <div className="sheet-head"><div className="grow"><div className="title">Personnel</div>
+      <div className="sheet-head"><button className="back" onClick={back} aria-label="Back">‹</button><div className="grow"><div className="title">Personnel</div>
         <div className="sub">{c.employees.length} employees · payroll {money(payroll)}/h{game.state.settings.shifts ? ` · shift ${game.currentShift()} on duty` : ''}</div></div></div>
       <div className="seg">
         <button className={d === 'all' ? 'on' : ''} onClick={() => setD('all')}>All</button>

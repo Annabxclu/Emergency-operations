@@ -2,12 +2,12 @@ import { Empty, useCtx } from '../common';
 import { money } from '../format';
 
 export function GoalsPanel() {
-  const { game } = useCtx();
+  const { game, back } = useCtx();
   const goals = game.city.goals;
   const done = goals ? goals.list.filter(g => g.done).length : 0;
   return (
     <div>
-      <div className="sheet-head"><div className="grow"><div className="title">Today's goals</div>
+      <div className="sheet-head"><button className="back" onClick={back} aria-label="Back">‹</button><div className="grow"><div className="title">Today's goals</div>
         <div className="sub">{goals ? `${done}/${goals.list.length} complete · new goals every game day` : 'Goals appear once your stations are set up'}</div></div></div>
       {!goals || !game.setupDone ? <Empty>Place your starter stations to get daily goals.</Empty> : (
         <div className="list">

@@ -302,7 +302,7 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .seg.tabs button.on .cnt { color: var(--text); }
 .subhead { font-size: 12px; font-weight: 700; color: var(--muted); margin: 14px 0 6px; }
 
-.tabbar .tl { font-size: 9.5px; }
+.tabbar .tl { font-size: 10px; }
 .tabbar .badge.info { background: var(--accent); }
 .goal-card { background: var(--surface); border-radius: 12px; padding: 12px; }
 .goal-card.done .goal-label { color: var(--ok); }

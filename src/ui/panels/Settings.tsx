@@ -41,6 +41,21 @@ export function SettingsPanel(p: Props) {
     <div>
       <Header title="Settings" sub={`Level ${lvl} · ${game.state.xp}/${xpForLevel(lvl + 1)} XP`} />
 
+      <Section title="Manage">
+        <div className="list">
+          <button className="row" onClick={() => push({ kind: 'goals' })} data-testid="goals-open">
+            <div className="grow"><div className="row-title">Today's goals</div>
+              <div className="row-sub">{game.city.goals ? `${game.city.goals.list.filter(g => g.done).length}/${game.city.goals.list.length} complete` : 'Available after setup'}</div></div>
+            <span className="muted">›</span>
+          </button>
+          <button className="row" onClick={() => push({ kind: 'personnel' })} data-testid="personnel-open">
+            <div className="grow"><div className="row-title">Personnel</div>
+              <div className="row-sub">{game.city.employees.length} employees</div></div>
+            <span className="muted">›</span>
+          </button>
+        </div>
+      </Section>
+
       <Section title="Gameplay">
         <div className="field"><label>New call every</label>
           <div className="seg" role="group" aria-label="Call frequency">
