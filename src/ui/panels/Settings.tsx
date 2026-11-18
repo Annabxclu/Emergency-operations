@@ -6,6 +6,23 @@ import { money } from '../format';
 import { TILE_STYLES } from '../MapView';
 import { exportJson } from '../../services/storage';
 
+// Settings are grouped into buttons that expand when tapped. Open groups are
+// remembered while the app is open (e.g. after visiting Missions and coming back).
+const openGroups = new Set<string>();
+function Group({ id, title, sub, children }: { id: string; title: string; sub?: string; children: any }) {
+  const [open, setOpen] = useState(openGroups.has(id));
+  const toggle = () => { if (open) openGroups.delete(id); else openGroups.add(id); setOpen(!open); };
+  return (
+    <div className={`set-group ${open ? 'open' : ''}`}>
+      <button className="set-group-head" onClick={toggle} data-testid={`group-${id}`} aria-expanded={open}>
+        <div className="grow"><div className="row-title">{title}</div>{sub && <div className="row-sub">{sub}</div>}</div>
+        <span className="chev">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && <div className="set-group-body">{children}</div>}
+    </div>
+  );
+}
+
 interface Props { onImport(text: string): void; onNewGame(): void; onAddCity(): void; onSwitchCity(id: string): void; onRoutingUrl(url: string): void; routingOk: boolean | null }
 
 export function SettingsPanel(p: Props) {
@@ -51,10 +68,21 @@ export function SettingsPanel(p: Props) {
               <div className="row-sub">{game.city.employees.length} employees</div></div>
             <span className="muted">›</span>
           </button>
+          <button className="row" onClick={() => push({ kind: 'missions' })} data-testid="missions-open">
+            <div className="grow"><div className="row-title">All missions & requirements</div>
+              <div className="row-sub">{INCIDENT_TYPES.length} call types · {game.eligibleTypes().length} unlocked</div></div>
+            <span className="muted">›</span>
+          </button>
+          <button className="row" onClick={() => push({ kind: 'research' })} data-testid="research-open">
+            <div className="grow"><div className="row-title">Research projects</div>
+              <div className="row-sub">{game.state.research.done.length} completed{game.state.research.active ? ' · 1 in progress' : ''}</div></div>
+            <span className="muted">›</span>
+          </button>
         </div>
       </Section>
 
-      <Section title="Gameplay">
+      <Section title="Options">
+      <Group id="gameplay" title="Gameplay" sub="Call frequency, travel, sounds, auto-dispatch, shifts">
         <div className="field"><label>New call every</label>
           <div className="seg" role="group" aria-label="Call frequency">
             {[1, 3, 5].map(m => (
@@ -81,9 +109,9 @@ export function SettingsPanel(p: Props) {
         <p className="hint">Auto-dispatch sends the recommended units only when every requirement can be covered.</p>
         <label className="check"><input type="checkbox" checked={s.shifts} onChange={(e: any) => { s.shifts = e.target.checked; Object.values(game.state.cities).length && game.city.stations.forEach(st => game.autoStaff(st.id)); game.changed(); }} /> Realistic shifts (A/B/C, 8 hours each)</label>
         <p className="hint">With shifts on, each vehicle needs a crew for every shift, so you need about three times the staff. Station staff capacity is tripled to match. Currently shift {game.currentShift()}.</p>
-      </Section>
+      </Group>
 
-      <Section title="Tuning">
+      <Group id="tuning" title="Tuning" sub="Running costs, driving speed, time on scene, rewards">
         <label className="check"><input type="checkbox" checked={s.runningCosts !== false} onChange={(e: any) => { s.runningCosts = e.target.checked; game.changed(); }} data-testid="running-costs" /> Running costs (station upkeep, fuel, maintenance)</label>
         <p className="hint">Off: you only spend money when you build, buy, hire or train.</p>
         <div className="field"><label>Driving speed</label>
@@ -101,25 +129,9 @@ export function SettingsPanel(p: Props) {
             {[0.5, 1, 1.5, 2, 3].map(m => <button key={m} className={(s.rewardMult ?? 1) === m ? 'on' : ''} onClick={() => { s.rewardMult = m; game.changed(); }}>{m}×</button>)}
           </div></div>
         <p className="hint">Other numbers (starting money, daily bonus, call cap) live in src/data/tuning.ts.</p>
-      </Section>
+      </Group>
 
-      <Section title="Research">
-        <button className="row" onClick={() => push({ kind: 'research' })} data-testid="research-open">
-          <div className="grow"><div className="row-title">Research projects</div>
-            <div className="row-sub">{game.state.research.done.length} completed{game.state.research.active ? ' · 1 in progress' : ''}</div></div>
-          <span className="muted">›</span>
-        </button>
-      </Section>
-
-      <Section title="Missions">
-        <button className="row" onClick={() => push({ kind: 'missions' })} data-testid="missions-open">
-          <div className="grow"><div className="row-title">All missions & requirements</div>
-            <div className="row-sub">{INCIDENT_TYPES.length} call types · {game.eligibleTypes().length} unlocked</div></div>
-          <span className="muted">›</span>
-        </button>
-      </Section>
-
-      <Section title="Cities" right={<span className="muted small">{slots.used}/{CITY_SLOT_LEVELS.length} slots</span>}>
+      <Group id="cities" title="Cities" sub={`${slots.used}/${CITY_SLOT_LEVELS.length} slots used`}>
         <div className="list">
           {Object.keys(game.state.cities).map(id => {
             const d = game.defOf(id), cs = game.state.cities[id];
@@ -138,26 +150,26 @@ export function SettingsPanel(p: Props) {
           {!slots.canAdd && slots.nextLevel && <span className="muted small">Next city unlocks at {slots.nextLevel} total stations</span>}
         </div>
         <p className="hint">Each city has its own stations, staff, calls and budget. Cities you're not viewing keep running, but new calls only arrive in the city you're viewing.</p>
-      </Section>
+      </Group>
 
-      <Section title="Map">
+      <Group id="map" title="Map" sub="Map style, coverage areas">
         <div className="field"><label>Map style</label>
           <select value={s.tileStyle} onChange={(e: any) => { s.tileStyle = e.target.value; game.changed(); }}>
             {Object.entries(TILE_STYLES).map(([k, t]) => <option key={k} value={k}>{t.name}</option>)}
           </select></div>
         <label className="check"><input type="checkbox" checked={s.showCoverage} onChange={(e: any) => { s.showCoverage = e.target.checked; game.changed(); }} /> Show station coverage areas</label>
-      </Section>
+      </Group>
 
-      <Section title="Road routing">
+      <Group id="routing" title="Road routing" sub={p.routingOk == null ? 'Not used yet' : p.routingOk ? 'Working' : 'Unreachable'}>
         <p className="hint">Status: {p.routingOk == null ? 'not used yet' : p.routingOk ? 'working' : 'unreachable — vehicles use approximate direct paths (dashed)'}.</p>
         <div className="field"><label>OSRM server</label>
           <input value={url} onChange={(e: any) => setUrl(e.target.value)} spellCheck={false} autoCapitalize="off" /></div>
         <div className="actions"><Btn small onClick={() => p.onRoutingUrl(url)}>Save server</Btn>
           <Btn small kind="ghost" onClick={() => { setUrl('https://router.project-osrm.org'); p.onRoutingUrl('https://router.project-osrm.org'); }}>Use public demo</Btn></div>
         <p className="hint">The public OSRM demo server is shared and rate-limited (about one request per second). For heavy play, point this at your own OSRM server.</p>
-      </Section>
+      </Group>
 
-      <Section title="Save data">
+      <Group id="save" title="Save data" sub="Export, import or copy your save">
         <p className="hint">Progress saves automatically on this device. Export a backup to keep it safe or move it to another device.</p>
         <div className="actions wrap">
           <Btn small kind="primary" onClick={doExport} testid="export-btn">Export backup</Btn>
@@ -168,9 +180,9 @@ export function SettingsPanel(p: Props) {
         {exported && <textarea className="mono" readOnly value={exported} rows={3} onFocus={(e: any) => e.target.select()} />}
         <div className="field"><label>Or paste a save</label><textarea className="mono" rows={3} value={paste} onChange={(e: any) => setPaste(e.target.value)} placeholder="Paste exported save text" /></div>
         <div className="actions"><Btn small disabled={!paste.trim()} onClick={() => p.onImport(paste)}>Load pasted save</Btn></div>
-      </Section>
+      </Group>
 
-      <Section title="Testing">
+      <Group id="testing" title="Testing" sub="Generate calls on demand">
         <div className="actions wrap">
           <Btn small disabled={!game.setupDone} testid="test-call" onClick={() => act(() => { game.spawnIncident(); })}>Generate a call now</Btn>
           <select value="" disabled={!game.setupDone} onChange={(e: any) => e.target.value && act(() => { game.spawnIncident(e.target.value); })}>
@@ -178,15 +190,16 @@ export function SettingsPanel(p: Props) {
             {INCIDENT_TYPES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
-      </Section>
+      </Group>
 
-      <Section title="New game">
+      <Group id="newgame" title="New game" sub="Start over in any city">
         <p className="hint">Start over in any city. This replaces your current game, so export a backup above first if you want to keep it.</p>
         <ConfirmBtn small onConfirm={p.onNewGame}>Start new game</ConfirmBtn>
-      </Section>
+      </Group>
 
-      <Section title="About">
+      <Group id="about" title="About">
         <p className="hint">Emergency Operations prototype. All calls are fictional. Map data and tiles © OpenStreetMap contributors (Humanitarian style by HOT / OSM France); routing by OSRM. No API keys are used.</p>
+      </Group>
       </Section>
     </div>
   );

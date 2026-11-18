@@ -348,3 +348,11 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .missing-table td.still { color: #ff8a8a; font-weight: 700; }
 .missing-table tr.done td.still { color: var(--ok); }
 .missing-table.covered table { outline-color: #3fb950; }
+
+/* Settings groups */
+.set-group { background: var(--surface); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+.set-group-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; text-align: left; color: inherit; }
+.set-group-head .chev { color: var(--muted); font-size: 14px; }
+.set-group.open .set-group-head { border-bottom: 1px solid var(--border); }
+.set-group-body { padding: 4px 14px 14px; }
+.set-group-body .field:first-child, .set-group-body .hint:first-child { margin-top: 8px; }

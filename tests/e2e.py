@@ -288,6 +288,8 @@ def main():
 
             # --- Settings / export
             page.click('.gear')
+            check(page.locator('[data-testid=export-btn]').count() == 0, 'settings groups start collapsed')
+            page.click('[data-testid=group-save]')
             page.click('[data-testid=export-btn]')
             page.wait_for_selector('textarea.mono')
             exported = page.locator('textarea.mono').first.input_value()
@@ -304,6 +306,7 @@ def main():
             page.click('.back')
             # --- Multi-city: unlock a second city at level 5 and add Atlanta
             game('(g.citySlots = () => ({ unlocked: 2, used: 1, nextLevel: 10, canAdd: true }), g.changed(), 0)')
+            if not page.locator('[data-testid=add-city]').count(): page.click('[data-testid=group-cities]')
             page.click('[data-testid=add-city]')
             page.fill('[data-testid=city-name]', 'Atlanta')
             page.select_option('[data-testid=city-state]', 'Georgia')
