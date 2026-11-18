@@ -230,6 +230,9 @@ def main():
             check(st[0] != 'pending' or st[1] == 'followup', f'a call with only a follow-up queued shows "Follow-up coming", not "No units" ({st})')
             if st[1] == 'followup':
                 check('Follow-up coming' in page.inner_text('[data-testid=sheet]'), 'call screen shows "Follow-up coming"')
+                badge = game('g.city.incidents.filter(i => g.shownStatus(i) === "pending").length')
+                shown = page.locator('[data-testid=tab-dispatch] .badge')
+                check((shown.count() == 0 and badge == 0) or (shown.count() and int(shown.inner_text()) == badge), 'Dispatch badge ignores calls that only wait for a follow-up')
                 if page.locator('[data-testid=missing]').count():
                     check('follow' in page.get_attribute('[data-testid=missing]', 'class'), 'missing-units box is yellow with a follow-up queued')
             if page.locator('.close').count(): page.click('.close')

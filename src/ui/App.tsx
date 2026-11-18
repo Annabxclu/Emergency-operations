@@ -274,7 +274,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const setup = !game.setupDone;
   const setupType = setup ? stationTypeForDept(SETUP_ORDER[c.setupStep]).id : null;
   const activeBuild = picker || menu ? null : setup ? setupType : buildType;
-  const pendingCount = c.incidents.filter(i => i.status === 'pending').length;
+  const pendingCount = c.incidents.filter(i => game.shownStatus(i) === 'pending').length;
   const top = stack[stack.length - 1];
   const activeTab = stack.length ? TAB_OF[stack[0].kind] : 'map';
   const selected: Selection = top && (top.kind === 'incident' || top.kind === 'station' || top.kind === 'vehicle') ? { kind: top.kind, id: top.id } : null;

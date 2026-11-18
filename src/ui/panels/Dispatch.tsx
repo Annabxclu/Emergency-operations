@@ -144,7 +144,7 @@ export function IncidentDetail({ id }: { id: string }) {
     if (!act(() => { if (ids.length) game.dispatch(inc.id, ids); if (selFollow.length) game.queueFollowUp(inc.id, selFollow); }, msg)) return;
     setSel(new Set());
     if (andNext) {
-      const next = [...game.city.incidents].filter(i => i.id !== inc.id && i.status === 'pending').sort((a, b) => a.createdAt - b.createdAt)[0];
+      const next = [...game.city.incidents].filter(i => i.id !== inc.id && game.shownStatus(i) === 'pending').sort((a, b) => a.createdAt - b.createdAt)[0];
       back();
       if (next) push({ kind: 'incident', id: next.id });
     }
