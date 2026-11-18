@@ -178,6 +178,9 @@ export interface Incident {
   status: IncidentStatus;
   workUntil: number | null;
   workStartedAt: number | null;
+  workRemaining?: number | null; // seconds of work left when paused (a required unit left)
+  workDone?: number;
+  firstOnSceneAt?: number | null;
   reward: number;
   xp: number;
   outcome: Outcome | null;

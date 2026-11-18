@@ -13,6 +13,10 @@ function IncIcon({ inc }: { inc: Incident }) {
 }
 
 function workPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
+  if (inc.workRemaining != null && inc.status !== 'working') {
+    const total = inc.workRemaining + (inc.workDone ?? 0);
+    return total > 0 ? ((inc.workDone ?? 0) / total) * 100 : 0;
+  }
   if (inc.status !== 'working' || inc.workUntil == null || inc.workStartedAt == null) return 0;
   return Math.min(100, Math.max(0, ((game.state.time - inc.workStartedAt) / (inc.workUntil - inc.workStartedAt)) * 100));
 }
@@ -20,6 +24,7 @@ function workPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
 export function timerText(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
   const now = game.state.time;
   if (inc.status === 'working') return `Working · ${dur((inc.workUntil ?? now) - now)} left`;
+  if (inc.workRemaining != null) return `Paused · ${dur(inc.workRemaining)} left`;
   return `Open ${dur(now - inc.createdAt)}`;
 }
 
@@ -42,7 +47,7 @@ export function DispatchList() {
               <div className="grow">
                 <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}</div>
                 <div className="row-sub">{inc.address} · {inc.district}</div>
-                {inc.status === 'working' && <div className="progress"><span style={{ width: `${workPct(game, inc)}%` }} /></div>}
+                {(inc.status === 'working' || inc.workRemaining != null) && <div className={`progress ${inc.status !== 'working' ? 'paused' : ''}`}><span style={{ width: `${workPct(game, inc)}%` }} /></div>}
               </div>
               <div className="row-right">
                 <Chip tone={st.tone}>{st.label}</Chip>
@@ -153,6 +158,12 @@ export function IncidentDetail({ id }: { id: string }) {
 
       {!closed && inc.status === 'working' && (
         <div className="progress big"><span style={{ width: `${workPct(game, inc)}%` }} /></div>
+      )}
+      {!closed && inc.status !== 'working' && inc.workRemaining != null && (
+        <>
+          <div className="progress big paused"><span style={{ width: `${workPct(game, inc)}%` }} /></div>
+          <div className="warnbox" style={{ marginTop: 8 }}>Work paused — a required unit left the scene. It resumes where it stopped once all required units are back.</div>
+        </>
       )}
       {!closed && inc.status !== 'working' && missingAll.length > 0 && (
         <div className="missing" data-testid="missing">Missing: {missingAll.map(m => `${m.count}× ${capability(m.cap).name}`).join(', ')}</div>

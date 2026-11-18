@@ -248,6 +248,29 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(g6.city.resolved.find(x => x.id === b!.id)?.outcome === 'successful', 'follow-up call completed');
   }
 
+  // Releasing a required unit pauses the work; sending one back resumes it.
+  {
+    const g7 = new Game(newGameState(), fake);
+    g7.placeStation('fire_station', [33.755, -84.39]); g7.placeStation('police_precinct', [33.77, -84.385]); g7.placeStation('ems_station', [33.76, -84.37]);
+    g7.state.settings.workMult = 1;
+    const call = await g7.spawnIncident('medical');
+    const medic = g7.city.vehicles.find(v => v.typeId === 'bls')!;
+    g7.dispatch(call!.id, [medic.id]);
+    for (let i = 0; i < 2000 && call!.status !== 'working'; i++) { g7.tick(1); if (i % 10 === 0) await flush(); }
+    g7.tick(60);
+    const leftBefore = call!.workUntil! - g7.state.time;
+    g7.recall(medic.id);
+    g7.tick(1);
+    assert(call!.status !== 'working' && call!.workUntil == null, `work paused after the medic was released (status ${call!.status})`);
+    g7.tick(600);
+    assert(!g7.city.resolved.some(x => x.id === call!.id), 'call does not complete with no unit on scene');
+    for (let i = 0; i < 3000 && medic.status !== 'available'; i++) { g7.tick(1); if (i % 10 === 0) await flush(); }
+    g7.dispatch(call!.id, [medic.id]);
+    for (let i = 0; i < 2000 && call!.status !== 'working'; i++) { g7.tick(1); if (i % 10 === 0) await flush(); }
+    const leftAfter = call!.workUntil! - g7.state.time;
+    assert(Math.abs(leftAfter - leftBefore) < 3, `work resumed with progress kept (${Math.round(leftBefore)}s -> ${Math.round(leftAfter)}s left)`);
+  }
+
   // Save round trip.
   const json = JSON.stringify(g.state);
   const g2 = new Game(JSON.parse(json), fake);

@@ -1039,11 +1039,20 @@ export class Game {
   private updateIncidents() {
     const now = this.state.time;
     for (const inc of [...this.city.incidents]) {
+      const onScene = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene');
       if (inc.status === 'working') {
+        // Work only continues while every required unit is still on scene.
+        if (!inc.partial && missingRequirements(inc.requirements, onScene).length > 0) {
+          inc.workRemaining = Math.max(0, (inc.workUntil ?? now) - now);
+          inc.workDone = now - (inc.workStartedAt ?? now);
+          inc.workUntil = null;
+          inc.status = onScene.length ? 'onscene' : this.responding(inc).length ? 'responding' : 'pending';
+          this.changed();
+          continue;
+        }
         if (now >= (inc.workUntil ?? 0)) this.resolve(inc, this.outcomeFor(inc));
         continue;
       }
-      const onScene = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene');
       const missing = missingRequirements(inc.requirements, onScene);
       if (onScene.length > 0 && missing.length === 0) { this.startWork(inc); continue; }
       const prev = inc.status;
@@ -1077,8 +1086,18 @@ export class Game {
   private startWork(inc: Incident) {
     const t = incidentType(inc.typeId);
     inc.status = 'working';
-    inc.workStartedAt = this.state.time;
-    inc.workUntil = this.state.time + Math.max(20, rand(t.workMin[0], t.workMin[1]) * 60 * (this.state.settings.workMult ?? TUNING.defaultWorkMult) * (inc.partial ? 1.4 : 1));
+    const now = this.state.time;
+    if (inc.firstOnSceneAt == null) inc.firstOnSceneAt = now;
+    if (inc.workRemaining != null && inc.workStartedAt != null && inc.workUntil == null) {
+      // Resume paused work: keep the progress already made.
+      const total = inc.workRemaining + (inc.workDone ?? 0);
+      inc.workStartedAt = now - (total - inc.workRemaining);
+      inc.workUntil = now + inc.workRemaining;
+      inc.workRemaining = null;
+    } else {
+      inc.workStartedAt = now;
+      inc.workUntil = now + Math.max(20, rand(t.workMin[0], t.workMin[1]) * 60 * (this.state.settings.workMult ?? TUNING.defaultWorkMult) * (inc.partial ? 1.4 : 1));
+    }
     this.changed();
   }
 
@@ -1146,7 +1165,8 @@ export class Game {
   /** All units on scene within the first half of the original response window. */
   private fastResponse(inc: Incident) {
     const t = incidentType(inc.typeId);
-    return inc.workStartedAt != null && inc.workStartedAt - inc.createdAt <= t.deadlineMin * 60 * 0.5;
+    const first = inc.firstOnSceneAt ?? inc.workStartedAt;
+    return first != null && first - inc.createdAt <= t.deadlineMin * 60 * 0.5;
   }
 
   primaryDept(inc: Incident) {
