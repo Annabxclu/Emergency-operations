@@ -235,7 +235,7 @@ export interface Settings {
   autoDispatch: 'off' | 'low' | 'all';
   shifts: boolean;
   travelModel?: 'fixed' | 'roads';
-  callIntervalMin?: number; // minutes between new calls (1, 3 or 5)
+  callIntervalMin?: number; // minutes between new calls (0.5, 3 or 5)
   runningCosts?: boolean;   // payroll, upkeep, maintenance, fuel
   rewardMult?: number;
   travelMult?: number;

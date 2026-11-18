@@ -61,7 +61,7 @@ export function DispatchList() {
   return (
     <div>
       <div className="sheet-head"><div className="grow"><div className="title">Dispatch</div>
-        <div className="sub">{active.length}/{game.activeCap()} active · new call every {game.state.settings.callIntervalMin ?? 3} min</div></div></div>
+        <div className="sub">{active.length}/{game.activeCap()} active · new call every {(game.state.settings.callIntervalMin ?? 3) < 1 ? `${(game.state.settings.callIntervalMin ?? 3) * 60} sec` : `${game.state.settings.callIntervalMin ?? 3} min`}</div></div></div>
       {!game.setupDone && <Empty>Place your three starter stations to begin receiving calls.</Empty>}
       {game.setupDone && !active.length && <Empty>No active calls. New calls will appear here and on the map.</Empty>}
       {all.length > 0 && (

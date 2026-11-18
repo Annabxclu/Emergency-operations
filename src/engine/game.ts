@@ -68,6 +68,7 @@ export function migrate(raw: unknown): GameState {
   if (s.settings && !s.settings.travelModel) s.settings.travelModel = 'fixed';
   s.settings.speed = 1; // game always runs in real time (speed options removed)
   if (s.settings && !s.settings.callIntervalMin) s.settings.callIntervalMin = 3;
+  if (s.settings?.callIntervalMin === 1) s.settings.callIntervalMin = 0.5; // the 1-minute option became 30 seconds
   if (s.settings.runningCosts === undefined) s.settings.runningCosts = TUNING.runningCostsDefault;
   if (!s.settings.rewardMult) s.settings.rewardMult = TUNING.defaultRewardMultiplier;
   if (!s.settings.travelMult) s.settings.travelMult = TUNING.defaultTravelMult;

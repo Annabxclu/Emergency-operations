@@ -96,9 +96,9 @@ export function SettingsPanel(p: Props) {
       <Group id="gameplay" title="Gameplay" sub="Call frequency, travel, sounds, auto-dispatch, shifts">
         <div className="field"><label>New call every</label>
           <div className="seg" role="group" aria-label="Call frequency">
-            {[1, 3, 5].map(m => (
-              <button key={m} className={(s.callIntervalMin ?? 3) === m ? 'on' : ''} data-testid={`interval-${m}`}
-                onClick={() => { s.callIntervalMin = m; const c = game.city; c.nextIncidentAt = Math.min(c.nextIncidentAt, game.state.time + m * 60); game.changed(); }}>{m} min</button>
+            {[0.5, 3, 5].map(m => (
+              <button key={m} className={(s.callIntervalMin ?? 3) === m ? 'on' : ''} data-testid={`interval-${m === 0.5 ? '30s' : m}`}
+                onClick={() => { s.callIntervalMin = m; const c = game.city; c.nextIncidentAt = Math.min(c.nextIncidentAt, game.state.time + m * 60); game.changed(); }}>{m < 1 ? `${m * 60} sec` : `${m} min`}</button>
             ))}
           </div></div>
         <p className="hint">Real minutes. Active calls are capped at your largest department's station count + 1 — right now that's {game.activeCap()} calls.</p>

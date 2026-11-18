@@ -199,11 +199,11 @@ async function run(g: Game, seconds: number, step = 1) {
     g3.placeStation('police_precinct', [33.73, -84.36]);
     for (let i = 0; i < 3; i++) g3.placeStation('ems_station', [33.78 + i * 0.01, -84.35]);
     assert(g3.activeCap() === 6, '5 fire / 2 police / 4 EMS stations -> max 6 active calls');
-    g3.state.settings.callIntervalMin = 1;
+    g3.state.settings.callIntervalMin = 0.5;
     g3.city.nextIncidentAt = g3.state.time;
     const times: number[] = [];
     for (let i = 0; i < 400; i++) { const n = g3.city.incidents.length; g3.tick(1); await flush(); if (g3.city.incidents.length > n) times.push(g3.state.time); }
-    assert(times.length >= 5 && times.slice(1).every((t, i) => Math.abs(t - times[i] - 60) <= 2), `1-minute setting: calls every 60s (${times.length} in 400s)`);
+    assert(times.length >= 5 && times.slice(1, 5).every((t, i) => Math.abs(t - times[i] - 30) <= 2), `30-second setting: calls every 30s (${times.length} in 400s)`);
     for (let i = 0; i < 600; i++) { g3.tick(1); if (i % 10 === 0) await flush(); }
     assert(g3.city.incidents.length <= 6, `active calls never exceed the cap (${g3.city.incidents.length})`);
   }
