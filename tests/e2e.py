@@ -89,10 +89,8 @@ def main():
             shot = lambda name: page.screenshot(path=os.path.join(OUT, name + '.png'))
 
             # --- Choose a city
-            page.wait_for_selector('[data-testid=start-menu]')
-            check(page.locator('[data-testid=menu-continue]').count() == 0, 'first launch shows start menu without Continue')
-            shot('00-start-menu')
-            page.click('[data-testid=menu-new]')
+            page.wait_for_selector('[data-testid=city-name]')
+            check(page.locator('text=Back').count() == 0, 'first launch goes straight to choosing a city')
             page.fill('[data-testid=city-name]', 'Tulsa')
             page.select_option('[data-testid=city-state]', 'Oklahoma')
             shot('00b-city-state')
@@ -207,10 +205,8 @@ def main():
             # --- Persistence: wait for autosave, reload, verify
             page.evaluate('() => new Promise(r => setTimeout(r, 10500))')
             page.reload()
-            page.wait_for_selector('[data-testid=menu-continue]')
-            shot('00c-continue-menu')
-            page.click('[data-testid=menu-continue]')
             page.wait_for_selector('[data-testid=claim-bonus]')
+            check(page.locator('[data-testid=city-name]').count() == 0, 'reopening goes straight back into the game (no Continue screen)')
             m_before = game('g.city.money')
             page.click('[data-testid=claim-bonus]')
             check(game('g.city.money') == m_before + 1000 and game('g.state.login.step') == 1, 'day-1 login bonus of $1,000 claimed')

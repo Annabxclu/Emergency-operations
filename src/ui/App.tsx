@@ -21,7 +21,6 @@ import { RealStationPanel } from './panels/RealStation';
 import { RESEARCH } from '../data/progression';
 import { playAlert, unlockAudio } from './sound';
 import { CityPicker } from './CityPicker';
-import { StartMenu } from './StartMenu';
 import { DailyBonus, todayKey } from './DailyBonus';
 import type { CityDef } from '../engine/types';
 
@@ -51,8 +50,9 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const [pendingAddr, setPendingAddr] = useState(null as string | null);
   const [tileTrouble, setTileTrouble] = useState(false);
   const [routingOk, setRoutingOk] = useState(null as boolean | null);
-  const [picker, setPicker] = useState(null as null | 'new' | 'add');
-  const [menu, setMenu] = useState(true);
+  // First launch goes straight to choosing a city; afterwards the game opens on the map.
+  const [picker, setPicker] = useState((firstRun ? 'new' : null) as null | 'new' | 'add');
+  const menu = false;
   const [hasSave, setHasSave] = useState(!firstRun);
   const [bonusHidden, setBonusHidden] = useState(false);
   const blocked = useRef(true);
@@ -222,7 +222,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       routing.setBaseUrl(st.settings.routingUrl);
       saveGame(st);
       openRoot(null);
-      setHasSave(true); setMenu(false);
+      setHasSave(true);
       toast('Save loaded', 'ok');
     } catch (e) { toast((e as Error).message, 'bad'); }
   };
@@ -235,7 +235,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     game.load(newGameState(def));
     routing.setBaseUrl(game.state.settings.routingUrl);
     saveGame(game.state);
-    setHasSave(true); setMenu(false);
+    setHasSave(true);
     setPicker(null); openRoot(null); setBuildType(null); setPending(null);
   };
   const onSwitchCity = (id: string) => {
@@ -305,7 +305,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'personnel': return <PersonnelList />;
       case 'employee': return <EmployeeDetail key={r.id} id={r.id} />;
       case 'finances': return <FinancesPanel />;
-      case 'settings': return <SettingsPanel onImport={onImport} onNewGame={() => setPicker('new')} onMenu={() => { saveGame(game.state); openRoot(null); setMenu(true); }} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
+      case 'settings': return <SettingsPanel onImport={onImport} onNewGame={() => setPicker('new')} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
       case 'missions': return <MissionsPanel />;
       case 'research': return <ResearchPanel />;
       case 'real': return <RealStationPanel key={r.id} id={r.id} />;
@@ -424,17 +424,15 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
           <DailyBonus game={game} onClaim={() => { const amt = game.claimDailyBonus(todayKey()); toast(`Daily bonus claimed: +${money(amt)}`, 'ok'); saveGame(game.state); }} onLater={() => setBonusHidden(true)} />
         )}
 
-        {menu && !picker && (
-          <StartMenu game={game} hasSave={hasSave} onContinue={() => setMenu(false)} onNewGame={() => setPicker('new')} onImport={onImport} />
-        )}
         {picker && (
           <CityPicker
-            title={picker === 'add' ? 'Expand to a new city' : 'Where do you want to start?'}
+            title={picker === 'add' ? 'Expand to a new city' : hasSave ? 'Start a new game' : 'Where do you want to start?'}
             subtitle={picker === 'add' ? 'Your new city has its own stations, staff, calls and budget. You keep your level.'
+              : hasSave ? 'This replaces your current game. Export a backup in Settings first if you want to keep it.'
               : 'Enter a city and state. You will build your network on its real streets.'}
             existingIds={picker === 'add' ? Object.keys(game.state.cities) : []}
             onPick={onPickCity}
-            onCancel={() => setPicker(null)} />
+            onCancel={hasSave ? () => setPicker(null) : undefined} />
         )}
 
         <nav className="tabbar">
