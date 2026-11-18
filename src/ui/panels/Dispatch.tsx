@@ -86,13 +86,10 @@ export function IncidentDetail({ id }: { id: string }) {
   const { game, act, push, back, focus } = useCtx();
   const inc = game.incident(id);
   const [sel, setSel] = useState(() => new Set<string>());
-  const [touched, setTouched] = useState(false);
 
   useEffect(() => { if (inc) focus(inc.pos, 15); }, [id]);
   // Pre-select recommended units until the player changes the selection.
   const rec = inc ? game.recommend(inc.id) : { ids: [], unfilled: [] };
-  const recKey = rec.ids.join(',');
-  useEffect(() => { if (!touched) setSel(new Set(rec.ids)); }, [recKey, touched]);
 
   if (!inc) return <div><Header title="Call not found" /></div>;
   const closed = inc.status === 'resolved';
@@ -116,13 +113,12 @@ export function IncidentDetail({ id }: { id: string }) {
     .slice(0, 30);
 
   const toggle = (v: Vehicle) => {
-    setTouched(true);
     const n = new Set(sel);
     if (n.has(v.id)) n.delete(v.id); else n.add(v.id);
     setSel(n);
   };
   const selCount = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem)).length;
-  const addVehicle = (v: Vehicle) => { setTouched(true); setSel(new Set([...sel, v.id])); };
+  const addVehicle = (v: Vehicle) => { setSel(new Set([...sel, v.id])); };
   // Quick buttons: add the nearest available unit of a type.
   const capsInFleet = [...new Set(candidates.filter(c => !c.problem).flatMap(c => vehicleType(c.v.typeId).caps))];
   const quick = capsInFleet.map(cap => {
@@ -132,8 +128,8 @@ export function IncidentDetail({ id }: { id: string }) {
   }).sort((a, b) => Number(b.needed) - Number(a.needed));
   const dispatch = (andNext: boolean) => {
     const ids = [...sel].filter(i => candidates.some(c => c.v.id === i && !c.problem));
-    if (!act(() => game.dispatch(inc.id, ids), `Alarmed ${ids.length} unit${ids.length === 1 ? '' : 's'}`)) return;
-    setTouched(false); setSel(new Set());
+    if (!act(() => game.dispatch(inc.id, ids), `Dispatched ${ids.length} unit${ids.length === 1 ? '' : 's'}`)) return;
+    setSel(new Set());
     if (andNext) {
       const next = [...game.city.incidents].filter(i => i.id !== inc.id && i.status === 'pending').sort((a, b) => a.deadline - b.deadline)[0];
       back();
@@ -205,7 +201,7 @@ export function IncidentDetail({ id }: { id: string }) {
       )}
 
       {!closed && inc.status !== 'working' && (
-        <Section title="Dispatch units" right={<button className="mini" onClick={() => { setTouched(false); setSel(new Set(rec.ids)); }}>Recommend</button>}>
+        <Section title="Dispatch units" right={<button className="mini" onClick={() => setSel(new Set(rec.ids))} data-testid="select-recommended">Select recommended</button>}>
           {rec.unfilled.length > 0 && (
             <div className="warnbox">No available unit for: {rec.unfilled.map(u => `${u.count}× ${capability(u.cap).name}`).join(', ')}</div>
           )}
@@ -237,8 +233,8 @@ export function IncidentDetail({ id }: { id: string }) {
             })}
           </div>
           <div className="actions sticky">
-            <Btn kind="primary" onClick={() => dispatch(false)} disabled={!selCount} testid="dispatch-btn">Alarm {selCount || ''}</Btn>
-            <Btn onClick={() => dispatch(true)} disabled={!selCount} testid="dispatch-next">Alarm & next</Btn>
+            <Btn kind="primary" onClick={() => dispatch(false)} disabled={!selCount} testid="dispatch-btn">Dispatch</Btn>
+            <Btn onClick={() => dispatch(true)} disabled={!selCount} testid="dispatch-next">Dispatch & next</Btn>
           </div>
         </Section>
       )}

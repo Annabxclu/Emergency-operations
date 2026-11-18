@@ -1,7 +1,7 @@
 // Service worker: caches the app shell and Leaflet so the game opens quickly
 // and survives brief connection drops. Map tiles and routing always go to the
 // network (they are large and the providers' terms discourage bulk caching).
-const CACHE = 'eo-shell-mwle3z21';
+const CACHE = 'eo-shell-mwle73u8';
 const SHELL = ['./', './index.html', './app.js', './styles.css', './manifest.webmanifest', './icons/icon-180.png', './icons/icon-192.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'];
 
