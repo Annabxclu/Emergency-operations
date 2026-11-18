@@ -319,3 +319,4 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .dispatch-footer .aao-btn { flex: none; }
 .dispatch-footer .actions { margin-top: 0; }
 .dispatch-footer .actions .btn { flex: 1; }
+.update-bar { position: fixed; z-index: 3000; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 10px 16px; border-radius: 999px; background: #3d82f6; color: #fff; font-weight: 700; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.35); border: 0; }

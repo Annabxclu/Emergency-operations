@@ -12,10 +12,13 @@ mkdirSync(outDir, { recursive: true });
 cpSync('public', outDir, { recursive: true });
 const stamp = Date.now().toString(36);
 writeFileSync(`${outDir}/sw.js`, readFileSync(`${outDir}/sw.js`, 'utf8').replace('__BUILD__', stamp));
+// Cache-bust the app files and publish the build id so open apps can detect updates.
+writeFileSync(`${outDir}/index.html`, readFileSync(`${outDir}/index.html`, 'utf8').replace('src="app.js"', `src="app.js?v=${stamp}"`).replace('href="styles.css"', `href="styles.css?v=${stamp}"`));
+writeFileSync(`${outDir}/version.json`, JSON.stringify({ build: stamp }));
 
 const opts = {
   entryPoints: ['src/main.tsx'], bundle: true, outfile: `${outDir}/app.js`, format: 'iife', target: ['es2020', 'safari15'],
   jsx: 'automatic', minify: !watch, sourcemap: watch ? 'inline' : false, nodePaths: ['node_modules', '/opt/npm-tools/node_modules'],
-  define: { 'process.env.NODE_ENV': watch ? '"development"' : '"production"' }, logLevel: 'info',
+  define: { 'process.env.NODE_ENV': watch ? '"development"' : '"production"', __BUILD__: JSON.stringify(stamp) }, logLevel: 'info',
 };
 if (watch) { const ctx = await esbuild.context(opts); await ctx.watch(); } else { await esbuild.build(opts); writeFileSync(`${outDir}/.nojekyll`, ''); console.log(`Built ${outDir}/ ·`, stamp); }
