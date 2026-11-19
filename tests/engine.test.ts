@@ -1,5 +1,5 @@
 // Headless test of the full gameplay loop with a fake road network.
-import { Game, newGameState, missingRequirements, xpForLevel, migrate } from '../src/engine/game';
+import { Game, newGameState, missingRequirements, addEmsChief, xpForLevel, migrate } from '../src/engine/game';
 import type { LatLng, RoutingProvider } from '../src/engine/types';
 import { distanceM } from '../src/engine/geo';
 import { vehicleType, VEHICLE_TYPES, QUALIFICATIONS } from '../src/data/departments';
@@ -397,6 +397,14 @@ async function run(g: Game, seconds: number, step = 1) {
     for (const e of gs.city.employees) e.quals = e.quals.filter(q => q !== 'hazmat_tech');
     assert(!gs.eligibleTypes().some(t => t.id === leak.id), 'a HazMat-staff mission stays locked without HazMat-trained people');
     assert(QUALIFICATIONS.every(q => q.cost === 0), 'all training is free');
+  }
+
+  // More than 10 ambulances needs an EMS Chief.
+  {
+    const reqs = addEmsChief([{ cap: 'ambulance', count: 11 }, { cap: 'engine', count: 2 }]);
+    assert(reqs.some(r => r.cap === 'ems_supervisor' && r.count === 1), '11 ambulances -> EMS Chief required');
+    assert(!addEmsChief([{ cap: 'ambulance', count: 10 }]).some(r => r.cap === 'ems_supervisor'), '10 ambulances -> no EMS Chief needed');
+    assert(INCIDENT_TYPES.every(t => t.requirements.filter(r => r.cap === 'ambulance').reduce((n, r) => n + r.count, 0) <= 10 || t.requirements.some(r => r.cap === 'ems_supervisor')), 'every mission listing 11+ ambulances includes an EMS Chief');
   }
 
   // A slow routing service must not hold units at the station.

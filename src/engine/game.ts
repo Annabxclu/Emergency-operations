@@ -121,6 +121,13 @@ export function missingRequirements(reqs: Requirement[], vehicles: Vehicle[]): R
   return missing;
 }
 
+/** More than 10 ambulances on a call needs an EMS Chief on scene. */
+export function addEmsChief(reqs: Requirement[]) {
+  const amb = reqs.filter(r => ['ambulance', 'als', 'ccu'].includes(r.cap)).reduce((n, r) => n + r.count, 0);
+  if (amb > TUNING.emsChiefAboveAmbulances && !reqs.some(r => r.cap === 'ems_supervisor')) reqs.push({ cap: 'ems_supervisor', count: 1 });
+  return reqs;
+}
+
 export function mergeRequirements(a: Requirement[], b: Requirement[]): Requirement[] {
   const out = a.map(r => ({ ...r }));
   for (const r of b) {
@@ -1496,8 +1503,9 @@ export class Game {
     // one of each per person. Never generate more people than the player can move.
     const owned = (cap: string) => this.city.vehicles.filter(v => vehicleType(v.typeId).caps.includes(cap)).length;
     const carriers = this.city.vehicles.filter(v => { const t = vehicleType(v.typeId); return t.caps.includes('police') && t.transport?.kind === 'prisoner'; }).length;
-    inc.patients = Math.min(inc.patients, owned('ambulance'), TUNING.maxPatientAmbulances);
-    inc.prisoners = Math.min(inc.prisoners, carriers, TUNING.maxPatientAmbulances);
+    const chiefCap = owned('ems_supervisor') > 0 ? TUNING.maxPatientAmbulances : TUNING.emsChiefAboveAmbulances;
+    inc.patients = Math.min(inc.patients, owned('ambulance'), chiefCap);
+    inc.prisoners = Math.min(inc.prisoners, carriers, TUNING.maxPrisoners);
     const raise = (caps: string[], add: string, need: number) => {
       const have = inc.requirements.filter(r => caps.includes(r.cap)).reduce((n, r) => n + r.count, 0);
       if (have >= need) return;
@@ -1510,6 +1518,7 @@ export class Game {
     if (!this.fleetCovers(inc.requirements)) {
       for (const r of inc.requirements) if (r.cap === 'ambulance' || r.cap === 'police') r.count = Math.max(1, Math.min(r.count, owned(r.cap)));
     }
+    addEmsChief(inc.requirements);
     c.incidents.push(inc);
     this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
     this.changed();

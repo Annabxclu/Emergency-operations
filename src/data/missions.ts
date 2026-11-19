@@ -269,6 +269,9 @@ export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDe
       // Calls with only patients still need an ambulance to be dispatchable; the
       // engine adds one ambulance per patient when the call comes in.
       if (!requirements.length) requirements.push({ cap: 'ambulance', count: 1 });
+      // More than 10 ambulances needs an EMS Chief on scene.
+      const amb = requirements.filter(x => x.cap === 'ambulance').reduce((n, x) => n + x.count, 0);
+      if (amb > 10 && !requirements.some(x => x.cap === 'ems_supervisor')) requirements.push({ cap: 'ems_supervisor', count: 1 });
       patients = r.patients ? [Math.min(r.patients[0], 20), Math.min(r.patients[1], 20)] : undefined;
       prisoners = r.prisoners ? [0, Math.min(r.prisoners, 10)] : undefined;
       if (r.prereq) unlock = Math.max(1, ...r.prereq);
