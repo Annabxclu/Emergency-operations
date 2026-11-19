@@ -334,8 +334,8 @@ export const ACADEMY_COURSES: Record<string, Record<string, number>> = {
   },
 };
 export const ACADEMIES: Record<string, { name: string; cost: number; classroomCost: number; maxExtraClassrooms: number; seatsPerClassroom: number }> = {
-  fire: { name: 'Fire Academy', cost: 500000, classroomCost: 400000, maxExtraClassrooms: 3, seatsPerClassroom: 10 },
-  police: { name: 'Police Academy', cost: 500000, classroomCost: 400000, maxExtraClassrooms: 3, seatsPerClassroom: 10 },
+  fire: { name: 'Fire Academy', cost: 250000, classroomCost: 400000, maxExtraClassrooms: 3, seatsPerClassroom: 10 },
+  police: { name: 'Police Academy', cost: 250000, classroomCost: 400000, maxExtraClassrooms: 3, seatsPerClassroom: 10 },
 };
 for (const [d, list] of Object.entries(ACADEMY_COURSES)) for (const [id, days] of Object.entries(list)) {
   const qd = QUALIFICATIONS.find(x => x.id === id && x.dept === d);
