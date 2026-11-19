@@ -1,3 +1,4 @@
+import { STAFF_TRAININGS } from '../../data/staffRequirements';
 import { useEffect, useState } from 'react';
 import { missingRequirements } from '../../engine/game';
 import { distanceM } from '../../engine/geo';
@@ -114,6 +115,7 @@ export function IncidentDetail({ id }: { id: string }) {
   const responding = attached.filter(v => v.status !== 'onscene');
   const onScene = attached.filter(v => v.status === 'onscene');
   const missingOnScene = missingRequirements(inc.requirements, onScene);
+  const staffOnSceneMissing = game.missingStaff(inc, onScene);
   const missingAll = missingRequirements(inc.requirements, game.responding(inc));
 
   // Requirement rows: needed, on scene, responding
@@ -247,7 +249,7 @@ export function IncidentDetail({ id }: { id: string }) {
 
       {!closed && inc.status !== 'working' && (
         <Section title="Dispatch units">
-          {missingOnScene.length > 0 && (() => {
+          {(missingOnScene.length > 0 || staffOnSceneMissing.length > 0) && (() => {
             const selDirect = candidates.filter(c => sel.has(c.v.id)).map(c => c.v);
             const selFollowV = followCands.filter(c => sel.has(c.v.id)).map(c => c.v);
             const base = game.responding(inc);
@@ -260,8 +262,17 @@ export function IncidentDetail({ id }: { id: string }) {
               const still = afterFollow.find(x => x.cap === m.cap)?.count ?? 0;
               return { cap: m.cap, miss, enroute: miss - a, selected: a - b, follow: b - still, still };
             });
-            const anyFollow = rows.some(r => r.follow > 0) || selFollowV.length > 0 || queued.length > 0;
-            const allCovered = rows.every(r => r.still === 0);
+            // Trained personnel the call needs (counted from the crews riding on the units)
+            const enrouteV = base.filter(v => v.status !== 'onscene');
+            const staffRows = staffOnSceneMissing.map(m => {
+              const miss = m.count;
+              const enroute = Math.min(miss, game.staffOn(m.training, enrouteV));
+              const selected = Math.min(miss - enroute, game.staffOn(m.training, selDirect));
+              const follow = Math.min(miss - enroute - selected, game.staffOn(m.training, [...selFollowV, ...queued]));
+              return { key: m.training, name: `${STAFF_TRAININGS[m.training]?.name ?? m.training} trained staff`, miss, enroute, selected, follow, still: miss - enroute - selected - follow };
+            });
+            const anyFollow = rows.some(r => r.follow > 0) || staffRows.some(r => r.follow > 0) || selFollowV.length > 0 || queued.length > 0;
+            const allCovered = rows.every(r => r.still === 0) && staffRows.every(r => r.still === 0);
             const tone = allCovered && !anyFollow ? 'covered' : anyFollow ? 'follow' : '';
             return (
               <div className={`missing-table ${tone}`} data-testid="missing">
@@ -271,6 +282,11 @@ export function IncidentDetail({ id }: { id: string }) {
                     {rows.map(r => (
                       <tr key={r.cap} className={r.still === 0 ? 'done' : ''}>
                         <td>{capability(r.cap).name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td>{r.follow}</td><td className="still">{r.still}</td>
+                      </tr>
+                    ))}
+                    {staffRows.map(r => (
+                      <tr key={r.key} className={`staff ${r.still === 0 ? 'done' : ''}`}>
+                        <td>{r.name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td>{r.follow}</td><td className="still">{r.still}</td>
                       </tr>
                     ))}
                   </tbody>

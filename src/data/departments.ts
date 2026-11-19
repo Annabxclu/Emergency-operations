@@ -152,6 +152,7 @@ export const QUALIFICATIONS: QualificationDef[] = [
   { id: 'paramedic', name: 'Paramedic', dept: 'ems', cost: 4000, hours: 12, unlockLevel: 2 },
   { id: 'ems_officer', name: 'EMS Officer', dept: 'ems', cost: 4000, hours: 12, unlockLevel: 4 },
   { id: 'critical_care', name: 'Critical Care', dept: 'ems', cost: 7000, hours: 20, unlockLevel: 5 },
+  { id: 'ems_mobile_command', name: 'EMS Mobile Command', dept: 'ems', cost: 0, hours: 12, unlockLevel: 1 },
   { id: 'mci_ops', name: 'Mass Casualty Operations', dept: 'ems', cost: 6000, hours: 16, unlockLevel: 7 },
   { id: 'cdl', name: 'Heavy Vehicle License', dept: 'public_works', cost: 2000, hours: 8, unlockLevel: 3 },
   { id: 'arborist', name: 'Arborist', dept: 'public_works', cost: 2500, hours: 8, unlockLevel: 3 },
@@ -340,5 +341,7 @@ for (const [d, list] of Object.entries(ACADEMY_COURSES)) for (const [id, days] o
   const qd = QUALIFICATIONS.find(x => x.id === id && x.dept === d);
   if (qd) { qd.days = days; qd.hours = days * 24; delete qd.neededAt; qd.unlockLevel = 1; } // academy courses: open as soon as the academy exists
 }
+for (const qd of QUALIFICATIONS) qd.cost = 0; // all training is free
+
 /** Can this training still be started (fire/police courses only at the academy)? */
 export const isTrainable = (qd: QualificationDef) => !ACADEMY_COURSES[qd.dept] || qd.id in ACADEMY_COURSES[qd.dept];

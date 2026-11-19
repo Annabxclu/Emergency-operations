@@ -62,6 +62,7 @@ export interface CapabilityDef { id: string; name: string; dept: string }
 
 export interface IncidentTypeDef {
   id: string;
+  staff?: { training: string; count: number }[]; // trained personnel needed on scene (see data/staffRequirements.ts)
   name: string;
   category: 'fire' | 'police' | 'ems' | 'rescue' | 'hazmat' | 'water' | 'public_works' | 'disaster';
   severity: 1 | 2 | 3;

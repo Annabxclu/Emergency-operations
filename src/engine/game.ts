@@ -10,6 +10,7 @@ import {
   CAPABILITIES, DEPARTMENTS, STARTER_KITS, STARTING_MONEY, STATION_TYPES, VEHICLE_TYPES,
   dept, qualification, stationType, stationTypeForDept, vehicleType, ACADEMIES, isTrainable } from '../data/departments';
 import { INCIDENT_TYPES, incidentType, CATEGORY_DEPT } from '../data/incidents';
+import { STAFF_TRAININGS } from '../data/staffRequirements';
 import { TUNING } from '../data/tuning';
 import { AGREEMENTS, GOAL_TEMPLATES, RESEARCH, extensionsFor, type ModKey } from '../data/progression';
 import { CITIES, CITY_SLOT_LEVELS } from '../data/cities';
@@ -1236,7 +1237,7 @@ export class Game {
       const onScene = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene');
       if (inc.status === 'working') {
         // Work only continues while every required unit is still on scene.
-        if (!inc.partial && missingRequirements(inc.requirements, onScene).length > 0) {
+        if (!inc.partial && (missingRequirements(inc.requirements, onScene).length > 0 || this.missingStaff(inc, onScene).length > 0)) {
           inc.workRemaining = Math.max(0, (inc.workUntil ?? now) - now);
           inc.workDone = now - (inc.workStartedAt ?? now);
           inc.workUntil = null;
@@ -1248,7 +1249,7 @@ export class Game {
         continue;
       }
       const missing = missingRequirements(inc.requirements, onScene);
-      if (onScene.length > 0 && missing.length === 0) { this.startWork(inc); continue; }
+      if (onScene.length > 0 && missing.length === 0 && this.missingStaff(inc, onScene).length === 0) { this.startWork(inc); continue; }
       const prev = inc.status;
       inc.status = onScene.length ? 'onscene' : this.responding(inc).length ? 'responding' : 'pending';
       if (prev !== inc.status) this.changed();
@@ -1392,7 +1393,28 @@ export class Game {
 
   /** Incident types the player can currently be sent (unlocked and staffed departments). */
   eligibleTypes() {
-    return INCIDENT_TYPES.filter(t => this.stationCount() >= t.unlockLevel && this.fleetCovers(t.requirements));
+    return INCIDENT_TYPES.filter(t => this.stationCount() >= t.unlockLevel && this.fleetCovers(t.requirements) &&
+      (t.staff ?? []).every(r => this.trainedStaff(r.training) >= r.count));
+  }
+
+  /** People with a training (not currently in a course). */
+  trainedStaff(training: string) {
+    const quals = STAFF_TRAININGS[training]?.quals ?? [training];
+    return this.city.employees.filter(e => !e.training && e.quals.some(q => quals.includes(q))).length;
+  }
+
+  /** Trained people riding on these vehicles (on-duty crew). */
+  staffOn(training: string, vehicles: Vehicle[]) {
+    const quals = STAFF_TRAININGS[training]?.quals ?? [training];
+    let n = 0;
+    for (const v of vehicles) n += this.crew(v.id).filter(e => !e.training && e.quals.some(q => quals.includes(q))).length;
+    return n;
+  }
+
+  /** Trained personnel a call still lacks given these vehicles. */
+  missingStaff(inc: Incident, vehicles: Vehicle[]) {
+    const need = incidentType(inc.typeId).staff ?? [];
+    return need.map(r => ({ training: r.training, count: r.count - this.staffOn(r.training, vehicles) })).filter(r => r.count > 0);
   }
 
   /** True when the player's own fleet (busy or not) has every vehicle a call needs. */

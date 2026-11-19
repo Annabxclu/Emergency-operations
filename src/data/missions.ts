@@ -1,6 +1,7 @@
 import type { IncidentTypeDef, Requirement } from '../engine/types';
 import { CATALOG } from './catalog';
 import { REAL_REQUIREMENTS } from './realRequirements';
+import { STAFF_REQUIREMENTS } from './staffRequirements';
 
 // Turns the catalog (credits + station requirements + special units) into playable
 // call types. All the rules for which vehicles a call needs live here.
@@ -191,6 +192,16 @@ export interface RealMission {
   patients: [number, number] | null; prisoners: number; prereq: [number, number, number] | null;
 }
 
+export function parseStaff(): Map<string, { training: string; count: number }[]> {
+  const out = new Map<string, { training: string; count: number }[]>();
+  for (const line of STAFF_REQUIREMENTS.split('\n')) {
+    const [name, list] = line.split('|');
+    if (!name?.trim() || !list) continue;
+    out.set(name.trim().toLowerCase(), list.split(',').map(t => { const [k, v] = t.split('='); return { training: k.trim(), count: Number(v) }; }));
+  }
+  return out;
+}
+
 export function parseReal(): Map<string, RealMission> {
   const out = new Map<string, RealMission>();
   for (const line of REAL_REQUIREMENTS.split('\n')) {
@@ -225,6 +236,7 @@ export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDe
   const seen = new Set<string>();
   const seenIds = new Set<string>();
   const real = parseReal();
+  const staffReq = parseStaff();
   const rows: { name: string; credits: number; f: number; a: number; p: number; extras: Record<string, number> }[] = [];
   for (const line of CATALOG.split('\n')) {
     if (!line.trim()) continue;
@@ -283,6 +295,7 @@ export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDe
       xp: Math.max(5, Math.round(reward / 50)),
       weight: reward < 1000 ? 5 : reward < 5000 ? 3 : reward < 15000 ? 1.5 : 0.6,
       unlockLevel: unlock,
+      staff: staffReq.get(key) ?? (ALIAS[key] ? staffReq.get(ALIAS[key]) : undefined),
       patients,
       prisoners,
     });

@@ -83,7 +83,7 @@ export function EmployeeDetail({ id }: { id: string }) {
               <div key={q.id} className={`row compact ${locked ? 'disabled' : ''}`}>
                 <div className="grow"><div className="row-title">{q.name}</div><div className="row-sub">{q.days ? `${q.days} days` : `${q.hours} h`} course</div></div>
                 {locked ? <span className="muted small">{need}</span> :
-                  <Btn small disabled={!!e.training || game.city.money < q.cost} onClick={() => act(() => game.train(e.id, q.id), `${e.name} started ${q.name}`)}>Train · {money(q.cost)}</Btn>}
+                  <Btn small disabled={!!e.training || game.city.money < q.cost} onClick={() => act(() => game.train(e.id, q.id), `${e.name} started ${q.name}`)}>{q.cost ? `Train · ${money(q.cost)}` : 'Train · Free'}</Btn>}
               </div>
             );
           })}
@@ -136,7 +136,7 @@ export function AcademyPanel({ dept: deptId }: { dept: string }) {
       <Section title="Start a course">
         <div className="field"><label>Course</label>
           <select value={course} onChange={(ev: any) => { setCourse(ev.target.value); setPicked(new Set()); }} data-testid="academy-course">
-            {courses.map(c => <option key={c.id} value={c.id}>{c.name} · {c.days} days · {money(c.cost)}/person</option>)}
+            {courses.map(c => <option key={c.id} value={c.id}>{c.name} · {c.days} days{c.cost ? ` · ${money(c.cost)}/person` : ''}</option>)}
           </select></div>
         <p className="hint">Pick who should take {q.name} ({q.days} days). {free > 0 ? `${free} seat${free > 1 ? 's' : ''} free.` : 'No free seats — add a classroom or wait for a course to finish.'} People in training can't crew vehicles.</p>
         {!eligible.length && <Empty>Everyone has this training or is already in a course.</Empty>}
@@ -150,7 +150,7 @@ export function AcademyPanel({ dept: deptId }: { dept: string }) {
           ))}
         </div>
         <div className="actions"><Btn kind="primary" disabled={!picked.size || game.city.money < picked.size * q.cost} testid="academy-start" onClick={start}>
-          Start {q.name} for {picked.size} · {money(picked.size * q.cost)}</Btn></div>
+          Start {q.name} for {picked.size}{q.cost ? ` · ${money(picked.size * q.cost)}` : ' · Free'}</Btn></div>
       </Section>
       {trainees.length > 0 && (
         <Section title="In training">

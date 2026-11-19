@@ -2,7 +2,7 @@
 import { Game, newGameState, missingRequirements, xpForLevel, migrate } from '../src/engine/game';
 import type { LatLng, RoutingProvider } from '../src/engine/types';
 import { distanceM } from '../src/engine/geo';
-import { vehicleType, VEHICLE_TYPES } from '../src/data/departments';
+import { vehicleType, VEHICLE_TYPES, QUALIFICATIONS } from '../src/data/departments';
 import { INCIDENT_TYPES } from '../src/data/incidents';
 
 let routeCalls = 0;
@@ -386,6 +386,17 @@ async function run(g: Game, seconds: number, step = 1) {
     gr.train(e.id, 'hazmat_tech');
     const left = gr.employee(e.id)!.training!.until - gr.state.time;
     assert(Math.abs(left - 3 * 86400) < 5, `HazMat course takes 3 days (${left}s)`);
+  }
+
+  // Missions that need trained personnel (MissionChief "personnel_educations").
+  {
+    const dam = INCIDENT_TYPES.find(t => t.name === 'Dam break')!;
+    assert(dam.staff?.some(s => s.training === 'hotshot' && s.count === 10), 'Dam break needs 10 Hotshot-trained staff');
+    const leak = INCIDENT_TYPES.find(t => t.staff?.some(s => s.training === 'hazmat'))!;
+    const gs = new Game(JSON.parse(JSON.stringify(g.state)), fake);
+    for (const e of gs.city.employees) e.quals = e.quals.filter(q => q !== 'hazmat_tech');
+    assert(!gs.eligibleTypes().some(t => t.id === leak.id), 'a HazMat-staff mission stays locked without HazMat-trained people');
+    assert(QUALIFICATIONS.every(q => q.cost === 0), 'all training is free');
   }
 
   // A slow routing service must not hold units at the station.
