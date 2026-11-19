@@ -62,6 +62,11 @@ export function SettingsPanel(p: Props) {
               <div className="row-sub">{game.city.employees.length} employees</div></div>
             <span className="muted">›</span>
           </button>
+          <button className="row" onClick={() => push({ kind: 'finances' })} data-testid="finances-open">
+            <div className="grow"><div className="row-title">Finances</div>
+              <div className="row-sub">Balance {money(game.city.money)} · income, spending and recent calls</div></div>
+            <span className="muted">›</span>
+          </button>
           <button className="row" onClick={() => push({ kind: 'missions' })} data-testid="missions-open">
             <div className="grow"><div className="row-title">All missions & requirements</div>
               <div className="row-sub">{INCIDENT_TYPES.length} call types · {game.eligibleTypes().length} unlocked</div></div>

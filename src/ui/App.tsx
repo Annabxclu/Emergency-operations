@@ -26,11 +26,11 @@ import type { CityDef } from '../engine/types';
 
 const TABS = [
   { id: 'map', label: 'Map' }, { id: 'dispatch', label: 'Dispatch' }, { id: 'stations', label: 'Stations' },
-  { id: 'vehicles', label: 'Vehicles' }, { id: 'finances', label: 'Finances' },
+  { id: 'vehicles', label: 'Vehicles' },
 ];
 const TAB_OF: Record<string, string> = {
   dispatch: 'dispatch', incident: 'dispatch', stations: 'stations', station: 'stations', build: 'stations', hire: 'stations',
-  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'settings', employee: 'settings', finances: 'finances', settings: 'settings', missions: 'settings', research: 'settings', goals: 'settings', real: 'stations',
+  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'settings', employee: 'settings', finances: 'settings', settings: 'settings', missions: 'settings', research: 'settings', goals: 'settings', real: 'stations',
 };
 
 interface Toast { id: number; text: string; tone: string; action?: () => void }
