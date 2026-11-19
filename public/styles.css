@@ -390,3 +390,4 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .stepper b { min-width: 44px; text-align: center; font-size: 16px; }
 .mini-select { flex: 0 0 auto; max-width: 128px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px; font-size: 12.5px; }
 .linkish-row { text-align: left; min-width: 0; }
+.missing-table tr.over td.still { color: #f0b429; }

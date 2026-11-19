@@ -260,7 +260,13 @@ export function IncidentDetail({ id }: { id: string }) {
               const a = missingAll.find(x => x.cap === m.cap)?.count ?? 0;
               const b = afterSel.find(x => x.cap === m.cap)?.count ?? 0;
               const still = afterFollow.find(x => x.cap === m.cap)?.count ?? 0;
-              return { cap: m.cap, miss, enroute: miss - a, selected: a - b, follow: b - still, still };
+              // Count every selected / follow-up unit of this type, so picking too many shows a minus number.
+              const units = (vs: typeof selDirect) => vs.reduce((n, v) => n + (vehicleType(v.typeId).caps.includes(m.cap) ? (vehicleType(v.typeId).capCount?.[m.cap] ?? 1) : 0), 0);
+              const enroute = miss - a;
+              const selected = Math.max(a - b, units(selDirect));
+              const follow = Math.max(b - still, units([...selFollowV, ...queued]));
+              const extra = enroute + selected + follow - miss;
+              return { cap: m.cap, miss, enroute, selected, follow, still: still > 0 ? still : -Math.max(0, extra) };
             });
             // Trained personnel the call needs (counted from the crews riding on the units)
             const enrouteV = base.filter(v => v.status !== 'onscene');
@@ -272,7 +278,7 @@ export function IncidentDetail({ id }: { id: string }) {
               return { key: m.training, name: `${STAFF_TRAININGS[m.training]?.name ?? m.training} trained staff`, miss, enroute, selected, follow, still: miss - enroute - selected - follow };
             });
             const anyFollow = rows.some(r => r.follow > 0) || staffRows.some(r => r.follow > 0) || selFollowV.length > 0 || queued.length > 0;
-            const allCovered = rows.every(r => r.still === 0) && staffRows.every(r => r.still === 0);
+            const allCovered = rows.every(r => r.still <= 0) && staffRows.every(r => r.still === 0);
             const tone = allCovered && !anyFollow ? 'covered' : anyFollow ? 'follow' : '';
             return (
               <div className={`missing-table ${tone}`} data-testid="missing">
@@ -280,7 +286,7 @@ export function IncidentDetail({ id }: { id: string }) {
                   <thead><tr><th>Missing</th><th>On mission</th><th>En route</th><th>Selected</th><th>Follow-up</th><th>Still needed</th></tr></thead>
                   <tbody>
                     {rows.map(r => (
-                      <tr key={r.cap} className={r.still === 0 ? 'done' : ''}>
+                      <tr key={r.cap} className={r.still < 0 ? 'done over' : r.still === 0 ? 'done' : ''}>
                         <td>{capability(r.cap).name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td>{r.follow}</td><td className="still">{r.still}</td>
                       </tr>
                     ))}

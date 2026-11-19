@@ -193,6 +193,16 @@ def main():
             checked = page.locator('[data-testid=dispatch-candidate] input:checked').count()
             check(checked == 2, f'quick-add picks ambulance + police ({checked})')
             check('covered' in page.get_attribute('[data-testid=missing]', 'class'), 'missing-units box turns green once everything is selected')
+            extra = page.locator('[data-testid=dispatch-candidate] input:not(:checked)')
+            if extra.count():
+                el = extra.first.element_handle()
+                el.check()
+                page.wait_for_timeout(100)
+                cells = page.locator('[data-testid=missing] td.still').all_inner_texts()
+                if any(c.strip().startswith('-') for c in cells):
+                    check(True, f'selecting one unit too many shows a minus number in Still needed ({cells})')
+                el.uncheck()
+                page.wait_for_timeout(100)
             check(page.inner_text('[data-testid=dispatch-btn]').strip() == 'Dispatch', 'button reads "Dispatch"')
             check('Missing' in page.inner_text('[data-testid=missing]'), '"Missing" line shown')
             check(page.locator('[data-testid=aao] button').count() >= 2, 'quick-add unit buttons shown')
