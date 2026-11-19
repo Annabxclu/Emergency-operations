@@ -130,7 +130,7 @@ export const QUALIFICATIONS: QualificationDef[] = [
   { id: 'wildland_lead_pilot', name: 'Wildland Lead Pilot Training', dept: 'fire', cost: 6000, hours: 12, unlockLevel: 1 },
   { id: 'wildland_mcc_training', name: 'Wildland Mobile Command Center Training', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
   { id: 'police_aviation', name: 'Police Aviation', dept: 'police', cost: 6000, hours: 12, unlockLevel: 1 },
-  { id: 'sharpshooter', name: 'Sharpshooter Training', dept: 'police', cost: 4000, hours: 12, unlockLevel: 1 },
+  { id: 'sharpshooter', name: 'Sharpshooter Training', dept: 'police', cost: 0, hours: 12, unlockLevel: 1 }, // retired: no longer taught (kept so old saves still show it)
   { id: 'police_swift_water', name: 'Swift Water Rescue', dept: 'police', cost: 4000, hours: 12, unlockLevel: 1 },
   { id: 'smoke_jumper', name: 'Smoke Jumper Training', dept: 'fire', cost: 5000, hours: 12, unlockLevel: 1 },
   { id: 'truck_license', name: 'Truck Drivers License', dept: 'fire', cost: 2000, hours: 6, unlockLevel: 1 },
@@ -329,7 +329,7 @@ export const ACADEMY_COURSES: Record<string, Record<string, number>> = {
   },
   police: {
     csi: 5, detective: 5, drone_operator: 5, game_warden_q: 4, fbi_bomb_tech: 5, k9_handler: 5, ocean_navigation: 5,
-    police_aviation: 7, police_supervisor: 5, riot_training: 3, swat: 5, sharpshooter: 5, police_swift_water: 4, police_traffic: 3,
+    police_aviation: 7, police_supervisor: 5, riot_training: 3, swat: 5, police_swift_water: 4, police_traffic: 3,
     police_ops: 5,
   },
 };
