@@ -208,7 +208,7 @@ export function SettingsPanel(p: Props) {
       </Group>
 
       <Group id="about" title="About">
-        <p className="hint">Authority: First Response. All calls are fictional. Map data and tiles © OpenStreetMap contributors (Humanitarian style by HOT / OSM France); routing by OSRM. No API keys are used.</p>
+        <p className="hint">First Responders. All calls are fictional. Map data and tiles © OpenStreetMap contributors (Humanitarian style by HOT / OSM France); routing by OSRM. No API keys are used.</p>
       </Group>
       </Section>
     </div>

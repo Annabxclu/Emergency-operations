@@ -1,6 +1,6 @@
 {
-  "name": "Authority: First Response",
-  "short_name": "Authority",
+  "name": "First Responders",
+  "short_name": "First Responders",
   "description": "Map-based emergency services management game.",
   "start_url": "./",
   "scope": "./",

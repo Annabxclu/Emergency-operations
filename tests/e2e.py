@@ -347,7 +347,7 @@ def main():
             # --- Settings / export
             page.click('.gear')
             check(page.locator('[data-testid=export-btn]').count() == 0, 'settings groups start collapsed')
-            check('Authority' in page.inner_text('.topbar') and 'First Response' in page.title(), 'game is named Authority: First Response (top bar and page title)')
+            check('First Responders' in page.inner_text('.topbar') and 'First Responders' in page.title(), 'game is named First Responders (top bar and page title)')
             page.click('[data-testid=group-appearance]')
             page.click('[data-testid=theme-navy]')
             page.wait_for_timeout(300)

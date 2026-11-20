@@ -352,7 +352,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
             <span className={c.money < 0 ? 'bad' : ''}>{moneyShort(c.money)}</span>
           </button>
           <div className="topbrand">
-            <div className="brand-name">Authority<span>: First Response</span></div>
+            <div className="brand-name">First <span>Responders</span></div>
             <div className="brand-city">{game.cityDef.name}, {game.cityDef.state}</div>
           </div>
           <button className="gear" aria-label="Settings" onClick={() => openRoot({ kind: 'settings' })}>

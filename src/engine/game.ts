@@ -61,7 +61,7 @@ export function newGameState(def: CityDef = CITIES[0]): GameState {
 export function migrate(raw: unknown): GameState {
   const s = raw as GameState;
   if (!s || typeof s !== 'object' || typeof s.time !== 'number' || !s.cities || !s.activeCity || !s.cities[s.activeCity]) {
-    throw new Error('This file is not an Authority: First Response save.');
+    throw new Error('This file is not an First Responders save.');
   }
   if (s.schema > SCHEMA) throw new Error('This save was made by a newer version of the game.');
   s.cityDefs ||= {};
