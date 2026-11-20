@@ -57,7 +57,8 @@ export function MissionsPanel() {
       )}
 
       {CATEGORIES.map(cat => {
-        const items = list.filter(t => t.category === cat.id);
+        const items = list.filter(t => t.category === cat.id)
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }) || (a.id.endsWith('_tow') ? 1 : 0) - (b.id.endsWith('_tow') ? 1 : 0));
         if (!items.length) return null;
         return (
           <Section key={cat.id}>
