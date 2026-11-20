@@ -306,6 +306,27 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(call.patientList!.every(p => p.status === 'transport' || p.status === 'released'), 'patient was taken to hospital or released');
   }
 
+  // Units on scene with patients still waiting for an ambulance show as yellow (on scene, missing units).
+  {
+    const gy = new Game(newGameState(), fake);
+    gy.placeStation('fire_station', [33.755, -84.39]); gy.placeStation('police_precinct', [33.77, -84.385]); gy.placeStation('ems_station', [33.76, -84.37]);
+    let call: any = null;
+    for (const t of INCIDENT_TYPES) {
+      if (!(t.patients && t.patients[0] > 0)) continue;
+      const c = await gy.spawnIncident(t.id);
+      if (c && c.patientList?.length && c.requirements.length) { call = c; break; }
+    }
+    if (call) {
+      const rec = gy.recommend(call.id).ids.filter((id: string) => !gy.isMedic(gy.vehicle(id)!));
+      if (rec.length) {
+        gy.dispatch(call.id, rec);
+        for (let i = 0; i < 3000 && !gy.incidentVehicles(call.id).some(v => v.status === 'onscene'); i++) { gy.tick(1); if (i % 10 === 0) await flush(); }
+        gy.tick(1);
+        assert(gy.shownStatus(call) === 'onscene', `units on scene but patients waiting for an ambulance shows yellow (${gy.shownStatus(call)})`);
+      }
+    }
+  }
+
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
   {
     const old = JSON.parse(JSON.stringify(newGameState()));

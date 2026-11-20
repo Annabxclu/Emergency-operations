@@ -920,6 +920,8 @@ export class Game {
   /** Status to show the player: a call with only follow-ups queued is no longer "No units". */
   shownStatus(inc: Incident): Incident['status'] | 'followup' {
     if (inc.status === 'pending' && this.city.vehicles.some(v => v.followUp === inc.id)) return 'followup';
+    // Units on scene but patients still waiting for an ambulance: on scene, missing units (yellow).
+    if ((inc.status === 'working' || inc.status === 'onscene') && this.untreated(inc) > 0) return 'onscene';
     return inc.status;
   }
 

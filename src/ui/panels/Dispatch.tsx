@@ -25,7 +25,9 @@ function workPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
 
 export function timerText(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
   const now = game.state.time;
-  if (inc.status === 'working') return `Working · ${dur((inc.workUntil ?? now) - now)} left`;
+  const waiting = game.untreated(inc);
+  if (inc.status === 'working' && waiting > 0 && (inc.workUntil ?? 0) <= now) return `Waiting for ambulance · ${waiting} patient${waiting > 1 ? 's' : ''}`;
+  if (inc.status === 'working') return `Working · ${dur((inc.workUntil ?? now) - now)} left${waiting ? ` · ${waiting} patient${waiting > 1 ? 's' : ''} waiting` : ''}`;
   if (inc.workRemaining != null) return `Paused · ${dur(inc.workRemaining)} left`;
   return `Received ${receivedText(game, inc)}`;
 }
@@ -280,7 +282,7 @@ export function IncidentDetail({ id }: { id: string }) {
         </Section>
       )}
 
-      {!closed && inc.status !== 'working' && (
+      {!closed && (inc.status !== 'working' || game.untreated(inc) > 0) && (
         <Section title="Dispatch units">
           {(missingOnScene.length > 0 || staffOnSceneMissing.length > 0 || game.untreated(inc) > 0) && (() => {
             const selDirect = candidates.filter(c => sel.has(c.v.id)).map(c => c.v);
