@@ -1,7 +1,7 @@
 // MissionChief-style hospitals the player builds and owns.
 export const HOSPITAL = {
   name: 'Hospital',
-  cost: 200000,
+  cost: 50000,
   baseBeds: 10,
   maxExtraBeds: 20,       // up to 30 beds
   bedCost: 20000,

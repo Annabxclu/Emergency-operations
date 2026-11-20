@@ -428,7 +428,7 @@ async function run(g: Game, seconds: number, step = 1) {
     const gh = new Game(JSON.parse(JSON.stringify(g.state)), fake);
     gh.city.money = 1_000_000;
     const h = gh.buildHospital([33.75, -84.38], 'Test Hospital');
-    assert(gh.city.money === 800_000 && gh.hospitalBeds(h) === 10 && gh.hospitalFreeBeds(h) === 10, 'hospital costs $200,000 and starts with 10 beds');
+    assert(gh.city.money === 950_000 && gh.hospitalBeds(h) === 10 && gh.hospitalFreeBeds(h) === 10, 'hospital costs $50,000 and starts with 10 beds');
     gh.addHospitalBed(h.id);
     gh.addSpecialty(h.id, 'cardiology');
     assert(gh.hospitalBeds(h) === 11 && h.specialties.includes('cardiology'), 'beds and specialties can be added');
