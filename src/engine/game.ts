@@ -1214,12 +1214,14 @@ export class Game {
       const cg = v.cargo;
       const km = r.distanceM / 1000;
       const cells = cg.kind === 'prisoner' && this.hasFeature(this.station(cg.dest), 'cells') ? 1.5 : 1;
-      cg.fee = Math.round((cg.kind === 'patient' ? (250 + 120 * km) * cg.count : (200 + 80 * km) * cg.count) * this.mod('transport') * cells);
+      // Patient transport itself pays nothing (MissionChief style); hospitals earn per admission below.
+      cg.fee = cg.kind === 'patient' ? 0 : Math.round((200 + 80 * km) * cg.count * this.mod('transport') * cells);
       this.progressGoal(cg.kind === 'patient' ? 'patients' : 'prisoners', cg.count);
-      this.post(cg.fee, cg.kind === 'patient' ? 'patient transport' : 'prisoner transport', vehicleType(v.typeId).dept, `${v.name} → ${cg.destName}`);
+      if (cg.fee) this.post(cg.fee, 'prisoner transport', vehicleType(v.typeId).dept, `${v.name} → ${cg.destName}`);
       const oh = cg.kind === 'patient' ? this.ownedHospital(cg.dest) : null;
       if (oh) {
-        this.post(HOSPITAL.admissionFee * cg.count, 'hospital admissions', 'ems', `${oh.name}: ${cg.count} admitted`);
+        cg.fee = HOSPITAL.admissionFee * cg.count;
+        this.post(cg.fee, 'hospital admissions', 'ems', `${oh.name}: ${cg.count} admitted`);
         oh.occupied = oh.occupied.filter(t => t > this.state.time); // tidy up freed beds
       }
       v.status = 'handover';

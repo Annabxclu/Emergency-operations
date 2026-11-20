@@ -94,7 +94,7 @@ export function MissionsPanel() {
                     {t.children && <div className="mission-foot"><span className="warn">Major event: also triggers {t.children.count[0]}–{t.children.count[1]} calls ({t.children.types.map(id => incidentType(id).name).join(', ')})</span></div>}
                     <div className="mission-foot">
                       <span />
-                      <span className="ok">≈{money(t.reward)}</span>
+                      <span className="ok">{t.reward ? `≈${money(t.reward)}` : 'Paid at hospital'}</span>
                     </div>
                   </div>
                 );

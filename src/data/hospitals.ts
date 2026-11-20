@@ -6,7 +6,7 @@ export const HOSPITAL = {
   maxExtraBeds: 20,       // up to 30 beds
   bedCost: 20000,
   stayHours: 2,           // how long an admitted patient keeps a bed (real hours)
-  admissionFee: 150,      // income per patient admitted to your own hospital
+  admissionFee: 500,      // income per patient admitted to your own hospital (EMS calls and transport pay nothing)
 };
 
 export const SPECIALTIES = [

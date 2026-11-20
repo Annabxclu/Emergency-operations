@@ -85,10 +85,9 @@ async function run(g: Game, seconds: number, step = 1) {
   const done = c().resolved.find(i => i.id === inc!.id)!;
   assert(done.outcome === 'successful', `outcome successful (${done.outcome})`);
   assert(amb.status === 'available', 'ambulance returned to station');
-  assert((c().finance.total.income['patient transport'] || 0) > 0, `patient transported to hospital (fee $${c().finance.total.income['patient transport']})`);
-  assert(g.state.xp > 0, 'earned XP');
+  assert(!c().finance.total.income['patient transport'], 'patient transport itself pays nothing (MissionChief style)');
   const rewards = c().finance.total.income['incident rewards'] || 0;
-  assert(rewards > 0, `earned reward $${rewards}`);
+  assert(rewards === 0, `an EMS-only call pays no reward ($${rewards})`);
   void moneyBefore;
 
   // Multi-department call needing units the player can supply.

@@ -159,7 +159,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       }
       case 'transport_done': {
         const v = game.vehicle(e.id);
-        toast(`${v?.name ?? 'Unit'} delivered ${e.count} ${e.kind}${e.count > 1 ? 's' : ''} to ${e.dest} +${money(e.fee)}`, 'ok');
+        toast(`${v?.name ?? 'Unit'} delivered ${e.count} ${e.kind}${e.count > 1 ? 's' : ''} to ${e.dest}${e.fee ? ` +${money(e.fee)}` : ''}`, 'ok');
         break;
       }
       case 'major_event': {
