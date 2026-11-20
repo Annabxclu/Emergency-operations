@@ -229,6 +229,87 @@ export function parseReal(): Map<string, RealMission> {
   return out;
 }
 
+
+// Tow trucks from einsaetze.json: missions whose crashed cars must be towed
+// (prerequisites tow_trucks / tow_trucks_large; large wrecks need a heavy rotator).
+// name|tow trucks|rotators|variant  — variant 1 = MissionChief's overlay version: the call
+// also comes in a second form that needs the tow, alongside the plain one.
+const TOW_DATA = `
+Burning car|1|0|1
+Burning motorbike|1|0|1
+Burning truck|0|1|1
+Dangerous goods truck accident|0|1|1
+Parked car accident|1|0|1
+MVA Rollover|2|0|1
+Vehicle Accident - Entrapment|2|0|1
+Truck in House Wall|0|1|1
+Burning Garbage Truck|0|1|1
+Car in river|1|0|1
+Car in lake|1|0|1
+Large MVA in tunnel|6|0|1
+Single vehicle fire in tunnel|1|0|1
+Multiple vehicle fire in tunnel|3|0|1
+Multiple vehicles on fire|3|0|1
+Hazardous materials truck fire|0|1|1
+Truck Rear-Ended with Entrapment|0|1|1
+Vehicle fire in parking garage|1|0|1
+Car vs tree|1|0|1
+Car vs tree (entrapment)|1|0|1
+Vehicle Crash - Property Damage|1|0|1
+Construction vehicle accident|0|1|1
+Car vs Powerline|1|0|1
+Car off bridge|1|0|1
+Fire Truck Accident|0|2|1
+Multi Vehicle Pile-up|5|0|1
+Multi Vehicle Pile-up (Large)|8|0|1
+MVA Rollover - Ejection|3|0|1
+Truck overturned by strong winds|0|1|1
+Vehicle Reposession|1|0|0
+Vehicle Reposession Gone Wrong|1|0|0
+Disabled Car on Roadway|1|0|0
+Car Ran out of Gas|1|0|0
+Abandoned Vehicle on Side of Roadway|1|0|0
+Flat Tire|1|0|0
+Tow Truck runs out of Fuel|1|0|0
+Group Of Vagrants Slash Car Tires In Supermarket Parking Lot|10|0|0
+Stolen Armored Truck Crashes into Casino|0|1|0
+Double Tractor Trailer Broken Down on Highway|0|2|0
+Intoxicated Construction Worker flips Cement Truck into ditch|0|1|0
+Driver on Phone slams into Car Carrier Semi Transport on Highway|4|1|0
+Charter Bus runs out of fuel|0|1|0
+Semi-Truck Flipped in Ditch|0|1|0
+Garbage Truck set on Fire|0|1|0
+School Bus slams breaks down on County Road|0|1|0
+Passenger Train Crashes into Fire Truck stuck on Railroad Crossing|0|1|0
+Highspeed Pursuit ends in Suspect crashing into Supermarket causing Water Main Break|1|0|0
+Massive Debris from Rockslide Stuck on Highway Trapping Drivers|10|1|0
+`;
+
+/** Adds tow trucks / rotators, and MissionChief's "with tow" second version of a call. */
+function applyTow(types: IncidentTypeDef[]) {
+  const byName = new Map<string, { tow: number; rot: number; variant: boolean }>();
+  for (const line of TOW_DATA.split('\n')) {
+    const [name, tow, rot, v] = line.split('|');
+    if (!name?.trim() || tow == null) continue;
+    byName.set(name.trim().toLowerCase(), { tow: Number(tow), rot: Number(rot), variant: v === '1' });
+  }
+  const aliasBack = new Map(Object.entries(ALIAS).map(([k, v]) => [v, k]));
+  const extra: IncidentTypeDef[] = [];
+  for (const t of types) {
+    const key = t.name.toLowerCase();
+    const d = byName.get(key) ?? byName.get(ALIAS[key] ?? '') ?? byName.get(aliasBack.get(key) ?? '');
+    if (!d) continue;
+    const reqs = t.requirements.map(r => ({ ...r }));
+    // The plain version never needs a tow; the catalog's guess is replaced by the real data.
+    if (d.variant) t.requirements = t.requirements.filter(r => r.cap !== 'tow' && r.cap !== 'rotator');
+    const target = d.variant ? reqs.filter(r => r.cap !== 'tow' && r.cap !== 'rotator') : t.requirements;
+    if (d.tow) add(target, 'tow', d.tow);
+    if (d.rot) add(target, 'rotator', d.rot);
+    if (d.variant) extra.push({ ...t, id: `${t.id}_tow`, requirements: target, descriptions: [`${t.descriptions[0]} The vehicle needs to be towed.`] });
+  }
+  types.push(...extra);
+}
+
 const slug = (s: string) => 'mc_' + s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDef[] {
@@ -303,5 +384,6 @@ export function buildCatalogMissions(existingNames: Set<string>): IncidentTypeDe
       prisoners,
     });
   }
+  applyTow(out);
   return out;
 }

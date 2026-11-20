@@ -76,7 +76,7 @@ export function MissionsPanel() {
                   <div key={t.id} className={`mission ${locked ? 'locked' : ''}`} data-testid="mission">
                     <div className="mission-head">
                       <span className={`inc-ico sev${t.severity}`} dangerouslySetInnerHTML={{ __html: glyph(t.category, 14) }} />
-                      <div className="grow"><div className="row-title">{t.name}</div>
+                      <div className="grow"><div className="row-title">{t.name}{t.id.endsWith("_tow") && <span className="muted small"> · tow version</span>}</div>
                         <div className="row-sub">{SEVERITY[t.severity]} severity · {fmtWork(t.workMin[0])}–{fmtWork(t.workMin[1])} on scene</div></div>
                       {needStations ? <Chip tone="muted">{t.unlockLevel} stations</Chip> : ready ? <Chip tone="ok">Unlocked</Chip> : <Chip tone="warn">Need units</Chip>}
                     </div>
