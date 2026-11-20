@@ -406,3 +406,14 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .patient .pstate { font-size: 11px; opacity: .75; }
 .patient.transport, .patient.released { border-color: rgba(48,164,108,.5); }
 .patient.transport .pstate, .patient.released .pstate { color: #30a46c; opacity: 1; }
+
+/* Cloud save */
+.cloud { display: flex; flex-direction: column; gap: 8px; }
+.cloud .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.cloud .kv span { opacity: .7; }
+.cloud .ok { color: #30a46c; }
+.picker-cloud { margin: 12px 0 4px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.05); }
+.picker-cloud summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.picker-cloud[open] summary { margin-bottom: 10px; }
+.modal .btn.big small { font-weight: 400; opacity: .8; font-size: 12px; }
+.modal .btn.big { flex-direction: column; gap: 2px; }

@@ -9,6 +9,8 @@ interface Props {
   existingIds: string[];
   onPick(def: CityDef): void;
   onCancel?: () => void;
+  /** Optional extra block (cloud sign-in on first run). */
+  footer?: any;
 }
 
 const QUICK: [string, string][] = [['Atlanta', 'Georgia'], ['Chicago', 'Illinois'], ['Houston', 'Texas'], ['Phoenix', 'Arizona'],
@@ -52,7 +54,6 @@ export function CityPicker(p: Props) {
   return (
     <div className="picker">
       <div className="picker-card">
-        <div className="picker-brand">EMERGENCY OPERATIONS</div>
         <div className="brand">First <span>Responders</span></div>
         <h1>{p.title}</h1>
         <p className="muted">{p.subtitle}</p>
@@ -90,6 +91,7 @@ export function CityPicker(p: Props) {
             </div>
           </>
         )}
+        {p.footer && !busy && p.footer}
         {p.onCancel && !busy && <button className="btn ghost picker-cancel" onClick={p.onCancel}>Back</button>}
         <p className="hint">City search © OpenStreetMap contributors (Nominatim, Overpass).</p>
       </div>

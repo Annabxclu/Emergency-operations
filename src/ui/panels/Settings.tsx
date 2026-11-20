@@ -5,6 +5,8 @@ import { Btn, ConfirmBtn, Group, Header, Section, useCtx } from '../common';
 import { money } from '../format';
 import { TILE_STYLES } from '../MapView';
 import { exportJson } from '../../services/storage';
+import type { CloudSync } from '../../services/cloudSync';
+import { CloudAccount } from '../Cloud';
 
 export const THEMES = [
   { id: 'midnight', name: 'Midnight', bg: '#0e141b', surface: '#18212b' },
@@ -17,7 +19,7 @@ export const THEMES = [
   { id: 'black', name: 'Black', bg: '#000000', surface: '#141414' },
 ];
 
-interface Props { onImport(text: string): void; onNewGame(): void; onAddCity(): void; onSwitchCity(id: string): void; onRoutingUrl(url: string): void; routingOk: boolean | null }
+interface Props { cloud: CloudSync; onImport(text: string): void; onNewGame(): void; onAddCity(): void; onSwitchCity(id: string): void; onRoutingUrl(url: string): void; routingOk: boolean | null }
 
 export function SettingsPanel(p: Props) {
   const { game, toast, act, push } = useCtx();
@@ -177,6 +179,10 @@ export function SettingsPanel(p: Props) {
         <div className="actions"><Btn small onClick={() => p.onRoutingUrl(url)}>Save server</Btn>
           <Btn small kind="ghost" onClick={() => { setUrl('https://router.project-osrm.org'); p.onRoutingUrl('https://router.project-osrm.org'); }}>Use public demo</Btn></div>
         <p className="hint">The public OSRM demo server is shared and rate-limited (about one request per second). For heavy play, point this at your own OSRM server.</p>
+      </Group>
+
+      <Group id="cloud" title="Cloud save" sub="Play on several devices with one account">
+        <CloudAccount cloud={p.cloud} />
       </Group>
 
       <Group id="save" title="Save data" sub="Export, import or copy your save">

@@ -4,6 +4,8 @@ import type { GameEvent, LatLng } from '../engine/types';
 import { DEPARTMENTS, dept, qualification, stationType, stationTypeForDept } from '../data/departments';
 import type { OsrmRouting } from '../services/routing';
 import { clearSave, importJson, saveGame } from '../services/storage';
+import { CloudSync } from '../services/cloudSync';
+import { CloudAccount, CloudConflict } from './Cloud';
 import { fetchHospitals, reverseAddress, searchAddress, type AddressResult } from '../services/geocode';
 import { GameCtx, type Ctx, type Route } from './common';
 import { MapView, type MapApi, type Selection } from './MapView';
@@ -229,6 +231,31 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', save); };
   }, [game]);
 
+  // ---------------------------------------------------------- cloud save
+  const loadFromCloud = useRef((() => {}) as (json: string, from: { device: string }) => void);
+  loadFromCloud.current = (json: string, from: { device: string }) => {
+    const st = importJson(json);
+    game.load(st);
+    routing.setBaseUrl(st.settings.routingUrl);
+    saveGame(st);
+    setPicker(null); openRoot(null); setBuildType(null); setPending(null);
+    setHasSave(true);
+    catchUp();
+    toast(`Loaded your progress from ${from.device || 'the cloud'}`, 'ok');
+  };
+  const [cloud] = useState(() => new CloudSync(() => game.state, (j, m) => loadFromCloud.current(j, m), () => ({ city: game.cityDef?.name, money: game.city?.money })));
+  const [, setCloudTick] = useState(0);
+  useEffect(() => cloud.on(() => setCloudTick((t: number) => t + 1)), [cloud]);
+  cloud.hasLocal = hasSave;
+  useEffect(() => {
+    if (!hasSave) return;
+    cloud.check();
+    const iv = setInterval(() => { if (document.visibilityState === 'visible') cloud.upload(); }, 60000);
+    const onVis = () => { if (document.visibilityState === 'hidden') cloud.upload(); else cloud.check(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
+  }, [cloud, hasSave]);
+
   const onImport = (text: string) => {
     try {
       const st = importJson(text);
@@ -322,7 +349,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'personnel': return <PersonnelList />;
       case 'employee': return <EmployeeDetail key={r.id} id={r.id} />;
       case 'finances': return <FinancesPanel />;
-      case 'settings': return <SettingsPanel onImport={onImport} onNewGame={() => setPicker('new')} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
+      case 'settings': return <SettingsPanel cloud={cloud} onImport={onImport} onNewGame={() => setPicker('new')} onAddCity={() => setPicker('add')} onSwitchCity={onSwitchCity} onRoutingUrl={onRoutingUrl} routingOk={routingOk} />;
       case 'missions': return <MissionsPanel />;
       case 'research': return <ResearchPanel />;
       case 'goals': return <GoalsPanel />;
@@ -445,7 +472,13 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
               : 'Enter a city and state. You will build your network on its real streets.'}
             existingIds={picker === 'add' ? Object.keys(game.state.cities) : []}
             onPick={onPickCity}
-            onCancel={hasSave ? () => setPicker(null) : undefined} />
+            onCancel={hasSave ? () => setPicker(null) : undefined}
+            footer={!hasSave ? (
+              <details className="picker-cloud" data-testid="picker-cloud">
+                <summary>Already playing on another device? Sign in</summary>
+                <CloudAccount cloud={cloud} compact />
+              </details>
+            ) : null} />
         )}
 
         <nav className="tabbar">
@@ -459,6 +492,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
           ))}
         </nav>
       </div>
+      {cloud.status === 'conflict' && cloud.conflict && <CloudConflict meta={cloud.conflict} onPick={k => cloud.resolve(k)} />}
     </GameCtx.Provider>
   );
 }
