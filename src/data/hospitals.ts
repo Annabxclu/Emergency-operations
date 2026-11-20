@@ -36,3 +36,20 @@ export const SPECIALTY_BY_CATEGORY: Record<string, string[]> = {
   public_works: ['traumatology'],
   children: ['internal', 'traumatology'],
 };
+
+/** Pick the specialty a call's patients need from what the call is about (none = general care). */
+const SPECIALTY_KEYWORDS: [string, RegExp][] = [
+  ['gynecology', /pregnan|giving birth|childbirth|\bbirth\b|\blabou?r\b|miscarri|obstetric|expectant mother/i],
+  ['urology', /kidney|urinar|bladder|urolog/i],
+  ['cardiac_surgery', /aortic|heart surgery/i],
+  ['cardiology', /heart|cardiac|chest pain|\bcpr\b|palpitation/i],
+  ['neurosurgery', /head (injury|trauma)|skull|spinal|spine|brain injury|fall from (a )?height/i],
+  ['neurology', /(?<!heat ?)(?<!sun)stroke|seizure|unconscious|faint|dizz|headache|convuls|epilep/i],
+  ['general_surgery', /stab|gunshot|shot\b|shooting|impal|appendic|abdominal|bleeding/i],
+  ['internal', /poison|swallow|overdose|allerg|diabet|fever|sick|breath|asthma|inhal|hypotherm|heat ?stroke|dehydrat|vomit|food/i],
+  ['traumatology', /\bhit\b|crash|accident|collision|\bfell\b|\bfall|fracture|broken|injur|struck|bitten|bite|assault|trapped|burn|cut\b|wound|mva|motorcycle|bike|biker/i],
+];
+export function specialtyForText(text: string): string | undefined {
+  for (const [id, re] of SPECIALTY_KEYWORDS) if (re.test(text)) return id;
+  return undefined;
+}

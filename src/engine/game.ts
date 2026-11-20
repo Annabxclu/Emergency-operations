@@ -11,7 +11,7 @@ import {
   dept, qualification, stationType, stationTypeForDept, vehicleType, ACADEMIES, isTrainable } from '../data/departments';
 import { INCIDENT_TYPES, incidentType, CATEGORY_DEPT } from '../data/incidents';
 import { STAFF_TRAININGS } from '../data/staffRequirements';
-import { HOSPITAL, SPECIALTIES, SPECIALTY_BY_CATEGORY, admissionFee } from '../data/hospitals';
+import { HOSPITAL, SPECIALTIES, admissionFee, specialtyForText } from '../data/hospitals';
 import { TUNING } from '../data/tuning';
 import { AGREEMENTS, GOAL_TEMPLATES, RESEARCH, extensionsFor, type ModKey } from '../data/progression';
 import { CITIES, CITY_SLOT_LEVELS } from '../data/cities';
@@ -1605,11 +1605,9 @@ export class Game {
     // Patients are handled one by one by ambulances (see updatePatients), so plain
     // ambulances aren't a fixed requirement; ALS / critical care requirements stay.
     if (inc.patients > 0) { inc.requirements = inc.requirements.filter(r => r.cap !== 'ambulance'); this.ensurePatients(inc); }
-    // About half of patient calls need specialist care at the hospital.
-    if (inc.patients > 0 && Math.random() < 0.5) {
-      const opts = SPECIALTY_BY_CATEGORY[inc.category] ?? [];
-      if (opts.length) inc.specialty = opts[Math.floor(Math.random() * opts.length)];
-    }
+    // The specialty follows what happened (a hit or crash -> traumatology, a birth -> gynecology ...);
+    // calls that don't point to one need general care.
+    if (inc.patients > 0) inc.specialty = specialtyForText(`${inc.name} ${inc.description}`);
     c.incidents.push(inc);
     this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
     this.changed();
