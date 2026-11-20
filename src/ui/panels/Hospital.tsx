@@ -18,7 +18,7 @@ export function HospitalPanel({ id }: { id: string }) {
         <div className="field"><input className="text" value={name} onChange={(e: any) => setName(e.target.value)} />
           <div className="actions"><Btn small kind="primary" onClick={() => { game.renameHospital(h.id, name); setRenaming(false); }}>Save</Btn><Btn small onClick={() => setRenaming(false)}>Cancel</Btn></div></div>
       ) : <div className="actions"><Btn small onClick={() => { setName(h.name); setRenaming(true); }}>Rename</Btn></div>}
-      <p className="hint">Ambulances bring patients to your nearest hospital with a free bed and the care they need; otherwise they go to the public hospital. Each patient admitted here earns {money(HOSPITAL.admissionFee)} and stays {HOSPITAL.stayHours} hours.</p>
+      <p className="hint">Ambulances bring patients to your nearest hospital with a free bed and the care they need; otherwise they go to the public hospital. A general patient admitted here earns {money(HOSPITAL.admissionFee)}; specialist patients earn the fee shown below. Each patient keeps a bed for {HOSPITAL.stayHours} hour{HOSPITAL.stayHours === 1 ? '' : 's'}.</p>
       <Section title="Beds">
         <div className="kv"><span>{beds} beds · {beds - free} in use</span></div>
         {h.extraBeds < HOSPITAL.maxExtraBeds ? (
@@ -32,7 +32,7 @@ export function HospitalPanel({ id }: { id: string }) {
             const has = h.specialties.includes(sp.id);
             return (
               <div key={sp.id} className="row compact">
-                <div className="grow"><div className="row-title">{sp.name}</div></div>
+                <div className="grow"><div className="row-title">{sp.name}</div><div className="row-sub">Earns {money(sp.fee)} per patient</div></div>
                 {has ? <span className="chip ok">Available</span>
                   : <Btn small disabled={game.city.money < sp.cost} testid={`spec-${sp.id}`} onClick={() => act(() => game.addSpecialty(h.id, sp.id), `${sp.name} added`)}>Add · {money(sp.cost)}</Btn>}
               </div>

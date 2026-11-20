@@ -4,6 +4,7 @@ import type { LatLng, RoutingProvider } from '../src/engine/types';
 import { distanceM } from '../src/engine/geo';
 import { vehicleType, VEHICLE_TYPES, QUALIFICATIONS } from '../src/data/departments';
 import { INCIDENT_TYPES } from '../src/data/incidents';
+import { admissionFee } from '../src/data/hospitals';
 
 let routeCalls = 0;
 const fake: RoutingProvider = {
@@ -421,6 +422,7 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(pick('neurology').id !== h.id, 'a neurology patient goes to the public hospital when yours lacks it');
     h.occupied = Array(11).fill(gh.state.time + 9999);
     assert(pick().id !== h.id, 'a full hospital sends patients elsewhere');
+    assert(admissionFee() === 500 && admissionFee('internal') === 600 && admissionFee('cardiac_surgery') === 1500, 'admission pays $500 for general patients and more per specialty');
   }
 
   // A slow routing service must not hold units at the station.

@@ -180,7 +180,7 @@ export function IncidentDetail({ id }: { id: string }) {
           {!closed && <span>{timerText(game, inc)}</span>}
           {closed ? <span className={inc.payout < 0 ? 'bad' : 'ok'}>{money(inc.payout)}</span> : <span>{inc.reward ? `Reward ${money(inc.reward)}` : 'No reward · your hospital earns per patient'}</span>}
           {inc.escalated && <span className="bad">Escalated</span>}
-          {inc.patients > 0 && <span>🚑 {inc.patients} patient{inc.patients > 1 ? 's' : ''} to transport{inc.specialty ? ` · needs ${specialty(inc.specialty).name}` : ''}</span>}
+          {inc.patients > 0 && <span>🚑 {inc.patients} patient{inc.patients > 1 ? 's' : ''} to transport{inc.specialty ? ` · needs ${specialty(inc.specialty).name} (${money(specialty(inc.specialty).fee)} each at your hospital)` : ''}</span>}
           {inc.prisoners > 0 && <span>🚓 {inc.prisoners} suspect{inc.prisoners > 1 ? 's' : ''} to jail</span>}
         </div>
         {inc.parentId && game.incident(inc.parentId) && (

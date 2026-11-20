@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HOSPITAL, specialty } from '../../data/hospitals';
+import { HOSPITAL, SPECIALTIES, specialty } from '../../data/hospitals';
 import { ACADEMIES, DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, capability, dept, qualification, stationType, vehicleType } from '../../data/departments';
 import { Btn, Group, Chip, Dot, Empty, Header, Section, Stat, StatusCode, useCtx } from '../common';
 import { extensionsFor } from '../../data/progression';
@@ -54,7 +54,7 @@ export function StationsList() {
       })}
       {game.setupDone && (tab === 'all' || tab === 'ems') && (
         <Section title="Hospitals" right={<Btn small onClick={() => startBuild('hospital')} disabled={game.city.money < HOSPITAL.cost} testid="build-hospital">Build · {money(HOSPITAL.cost)}</Btn>}>
-          {!(game.city.hospitals ?? []).length && <p className="hint">You don't own a hospital yet, so ambulances use the public hospital. Your own hospitals take patients nearby, earn {money(HOSPITAL.admissionFee)} per patient, and can add specialist care.</p>}
+          {!(game.city.hospitals ?? []).length && <p className="hint">You don't own a hospital yet, so ambulances use the public hospital. Your own hospitals take patients nearby, earn {money(HOSPITAL.admissionFee)}–{money(Math.max(...SPECIALTIES.map(x => x.fee)))} per patient, and can add specialist care.</p>}
           <div className="list">
             {(game.city.hospitals ?? []).map(h => (
               <button key={h.id} className="row" onClick={() => push({ kind: 'hospital', id: h.id })} data-testid="hospital-row">

@@ -11,7 +11,7 @@ import {
   dept, qualification, stationType, stationTypeForDept, vehicleType, ACADEMIES, isTrainable } from '../data/departments';
 import { INCIDENT_TYPES, incidentType, CATEGORY_DEPT } from '../data/incidents';
 import { STAFF_TRAININGS } from '../data/staffRequirements';
-import { HOSPITAL, SPECIALTIES, SPECIALTY_BY_CATEGORY } from '../data/hospitals';
+import { HOSPITAL, SPECIALTIES, SPECIALTY_BY_CATEGORY, admissionFee } from '../data/hospitals';
 import { TUNING } from '../data/tuning';
 import { AGREEMENTS, GOAL_TEMPLATES, RESEARCH, extensionsFor, type ModKey } from '../data/progression';
 import { CITIES, CITY_SLOT_LEVELS } from '../data/cities';
@@ -1220,7 +1220,7 @@ export class Game {
       if (cg.fee) this.post(cg.fee, 'prisoner transport', vehicleType(v.typeId).dept, `${v.name} → ${cg.destName}`);
       const oh = cg.kind === 'patient' ? this.ownedHospital(cg.dest) : null;
       if (oh) {
-        cg.fee = HOSPITAL.admissionFee * cg.count;
+        cg.fee = admissionFee(cg.specialty) * cg.count;
         this.post(cg.fee, 'hospital admissions', 'ems', `${oh.name}: ${cg.count} admitted`);
         oh.occupied = oh.occupied.filter(t => t > this.state.time); // tidy up freed beds
       }
