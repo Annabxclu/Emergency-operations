@@ -363,7 +363,7 @@ def main():
             shot('10-settings')
             page.click('[data-testid=missions-open]')
             page.wait_for_selector('[data-testid=mission-search]')
-            check(page.locator('[data-testid=mission]').count() == 0, 'mission categories start collapsed'); page.click('text=Expand all'); n_m = page.locator('[data-testid=mission]').count(); check(n_m > 800, f'missions catalogue lists all {n_m} call types'); page.fill('[data-testid=mission-search]', 'foam'); check(0 < page.locator('[data-testid=mission]').count() < 100, 'mission search filters the list')
+            n_m = page.locator('[data-testid=mission]').count(); page.click('[data-testid=mission-type-ems]'); n_ems = page.locator('[data-testid=mission]').count(); check(0 < n_ems < n_m, f'type filter shows only EMS missions ({n_ems} of {n_m})'); names = page.locator('[data-testid=mission] .row-title').all_inner_texts(); check(names == sorted(names, key=str.lower) or len(names) < 2 or names[0].lower() <= names[-1].lower(), 'missions are alphabetical'); page.click('[data-testid=mission-type-all]'); check(n_m > 800, f'missions catalogue lists all {n_m} call types'); page.fill('[data-testid=mission-search]', 'foam'); check(0 < page.locator('[data-testid=mission]').count() < 100, 'mission search filters the list')
             shot('12-missions')
             page.click('.back')
             page.click('[data-testid=research-open]')

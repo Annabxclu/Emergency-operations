@@ -417,3 +417,11 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .picker-cloud[open] summary { margin-bottom: 10px; }
 .modal .btn.big small { font-weight: 400; opacity: .8; font-size: 12px; }
 .modal .btn.big { flex-direction: column; gap: 2px; }
+
+/* Mission type filter */
+.type-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.type-chips .fchip { display: inline-flex; align-items: center; gap: 5px; }
+.type-chips .fchip em { font-style: normal; opacity: .6; font-size: 11px; }
+.type-chips .fchip.on { background: var(--accent, #3b82f6); color: #fff; border-color: transparent; }
+.type-chips .fchip.on em { opacity: .85; }
+.type-chips .dot { width: 8px; height: 8px; border-radius: 50%; }
