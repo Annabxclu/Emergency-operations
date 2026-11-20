@@ -407,6 +407,23 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(INCIDENT_TYPES.every(t => t.requirements.filter(r => r.cap === 'ambulance').reduce((n, r) => n + r.count, 0) <= 10 || t.requirements.some(r => r.cap === 'ems_supervisor')), 'every mission listing 11+ ambulances includes an EMS Chief');
   }
 
+  // MissionChief-style hospitals: build, beds, specialties.
+  {
+    const gh = new Game(JSON.parse(JSON.stringify(g.state)), fake);
+    gh.city.money = 1_000_000;
+    const h = gh.buildHospital([33.75, -84.38], 'Test Hospital');
+    assert(gh.city.money === 800_000 && gh.hospitalBeds(h) === 10 && gh.hospitalFreeBeds(h) === 10, 'hospital costs $200,000 and starts with 10 beds');
+    gh.addHospitalBed(h.id);
+    gh.addSpecialty(h.id, 'cardiology');
+    assert(gh.hospitalBeds(h) === 11 && h.specialties.includes('cardiology'), 'beds and specialties can be added');
+    assert(gh.hospitals().some(f => f.id === h.id && f.owned), 'owned hospital is on the map list');
+    const pick = (spec?: string) => (gh as any).hospitalFor([33.751, -84.381], 1, spec);
+    assert(pick('cardiology').id === h.id, 'a cardiology patient goes to your hospital with cardiology');
+    assert(pick('neurology').id !== h.id, 'a neurology patient goes to the public hospital when yours lacks it');
+    h.occupied = Array(11).fill(gh.state.time + 9999);
+    assert(pick().id !== h.id, 'a full hospital sends patients elsewhere');
+  }
+
   // A slow routing service must not hold units at the station.
   {
     const stuck: RoutingProvider = { route: () => new Promise(() => undefined), nearest: async p => ({ pos: p, name: 'Peachtree St NE' }) };

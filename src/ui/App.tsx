@@ -12,6 +12,8 @@ import { tabIcon } from './icons';
 import { DispatchList, IncidentDetail } from './panels/Dispatch';
 import { BuildChooser, StationDetail, StationsList } from './panels/Stations';
 import { VehicleDetail, VehiclesList } from './panels/Vehicles';
+import { HospitalPanel } from './panels/Hospital';
+import { HOSPITAL } from '../data/hospitals';
 import { AcademyPanel, EmployeeDetail, PersonnelList } from './panels/Personnel';
 import { FinancesPanel } from './panels/Finances';
 import { SettingsPanel } from './panels/Settings';
@@ -29,7 +31,7 @@ const TABS = [
   { id: 'vehicles', label: 'Vehicles' },
 ];
 const TAB_OF: Record<string, string> = {
-  dispatch: 'dispatch', incident: 'dispatch', stations: 'stations', station: 'stations', build: 'stations', hire: 'stations',
+  dispatch: 'dispatch', incident: 'dispatch', stations: 'stations', station: 'stations', build: 'stations', hire: 'stations', hospital: 'stations', academy: 'stations',
   vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'settings', employee: 'settings', finances: 'settings', settings: 'settings', missions: 'settings', research: 'settings', goals: 'settings', real: 'stations',
 };
 
@@ -270,7 +272,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const pendingCount = c.incidents.filter(i => game.shownStatus(i) === 'pending').length;
   const top = stack[stack.length - 1];
   const activeTab = stack.length ? TAB_OF[stack[0].kind] : 'map';
-  const selected: Selection = top && (top.kind === 'incident' || top.kind === 'station' || top.kind === 'vehicle') ? { kind: top.kind, id: top.id } : null;
+  const selected: Selection = top && (top.kind === 'incident' || top.kind === 'station' || top.kind === 'vehicle' || top.kind === 'hospital') ? { kind: top.kind, id: top.id } : null;
 
   const ctx: Ctx = { game, push, back, toast, act, focus, startBuild };
 
@@ -296,10 +298,13 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const confirmBuild = () => {
     if (!activeBuild || !pending) return;
     let id = '';
-    const ok = act(() => { id = game.placeStation(activeBuild, pending, buildName, pendingAddr && pendingAddr !== 'Address not available' ? pendingAddr : undefined).id; }, setup ? undefined : `${stationType(activeBuild).name} built`);
+    const addr = pendingAddr && pendingAddr !== 'Address not available' ? pendingAddr : undefined;
+    const ok = activeBuild === 'hospital'
+      ? act(() => { id = game.buildHospital(pending, buildName, addr).id; }, 'Hospital built')
+      : act(() => { id = game.placeStation(activeBuild, pending, buildName, addr).id; }, setup ? undefined : `${stationType(activeBuild).name} built`);
     if (ok) {
       setPending(null); setBuildName(''); resetAddr();
-      if (!setup) { setBuildType(null); openRoot({ kind: 'station', id }); }
+      if (!setup) { setBuildType(null); openRoot(activeBuild === 'hospital' ? { kind: 'hospital', id } : { kind: 'station', id }); }
     }
   };
 
@@ -311,6 +316,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'station': return <StationDetail key={r.id} id={r.id} />;
       case 'build': return <BuildChooser />;
       case 'academy': return <AcademyPanel key={r.dept} dept={r.dept} />;
+      case 'hospital': return <HospitalPanel key={r.id} id={r.id} />;
       case 'vehicles': return <VehiclesList />;
       case 'vehicle': return <VehicleDetail key={r.id} id={r.id} />;
       case 'personnel': return <PersonnelList />;
@@ -323,7 +329,9 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     }
   };
 
-  const buildDept = activeBuild ? stationType(activeBuild).dept : null;
+  // Hospitals use the same placement flow as stations.
+  const buildInfo = activeBuild === 'hospital' ? { name: HOSPITAL.name, cost: HOSPITAL.cost, dept: 'ems' } : activeBuild ? stationType(activeBuild) : null;
+  const buildDept = buildInfo ? buildInfo.dept : null;
 
   return (
     <GameCtx.Provider value={ctx}>
@@ -379,8 +387,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
             <div className="grow">
               {!pending && setup && c.setupStep === 0 && <div className="welcome">Welcome, Director. Set up your first three stations — they come staffed and equipped.</div>}
               <div className="build-row"><span className="dot" style={{ background: dept(buildDept!).color }} />
-                <b>{setup ? `Step ${c.setupStep + 1} of 3: ` : ''}{stationType(activeBuild).name}</b>
-                <span className="muted small">{setup ? 'Free starter station' : money(stationType(activeBuild).cost)}</span></div>
+                <b>{setup ? `Step ${c.setupStep + 1} of 3: ` : ''}{buildInfo!.name}</b>
+                <span className="muted small">{setup ? 'Free starter station' : money(buildInfo!.cost)}</span></div>
               {!pending ? (
                 <>
                   <form className="addr-form" onSubmit={(e: Event) => { e.preventDefault(); findAddress(); }}>
@@ -402,10 +410,10 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
               ) : (
                 <>
                   <div className="addr-picked" data-testid="addr-picked">📍 {pendingAddr ?? 'Looking up address…'} <span className="muted">· {game.districtFor(pending)}</span></div>
-                  <input className="text" placeholder={`${stationType(activeBuild).name} ${c.stations.filter(st => st.typeId === activeBuild).length + 1}`} value={buildName}
+                  <input className="text" placeholder={activeBuild === 'hospital' ? `${game.cityDef.name} Hospital ${(c.hospitals?.length ?? 0) + 1}` : `${buildInfo!.name} ${c.stations.filter(st => st.typeId === activeBuild).length + 1}`} value={buildName}
                     onChange={(e: any) => setBuildName(e.target.value)} />
                   <div className="actions">
-                    <button className="btn primary" onClick={confirmBuild} data-testid="build-confirm">{setup ? 'Place station' : `Build · ${money(stationType(activeBuild).cost)}`}</button>
+                    <button className="btn primary" onClick={confirmBuild} data-testid="build-confirm">{setup ? 'Place station' : `Build · ${money(buildInfo!.cost)}`}</button>
                     <button className="btn ghost" onClick={() => { setPending(null); setPendingAddr(null); }}>Change</button>
                     {!setup && <button className="btn ghost" onClick={() => { setBuildType(null); setPending(null); resetAddr(); }}>Cancel</button>}
                   </div>

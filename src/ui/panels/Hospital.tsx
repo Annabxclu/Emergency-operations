@@ -1,0 +1,45 @@
+import { useEffect, useState } from 'react';
+import { HOSPITAL, SPECIALTIES } from '../../data/hospitals';
+import { Btn, Header, Section, useCtx } from '../common';
+import { money } from '../format';
+
+export function HospitalPanel({ id }: { id: string }) {
+  const { game, act, focus } = useCtx();
+  const h = game.ownedHospital(id);
+  const [name, setName] = useState(h?.name ?? '');
+  const [renaming, setRenaming] = useState(false);
+  useEffect(() => { if (h) focus(h.pos, 15); }, [id]);
+  if (!h) return <div><Header title="Hospital not found" /></div>;
+  const beds = game.hospitalBeds(h), free = game.hospitalFreeBeds(h);
+  return (
+    <div>
+      <Header title={h.name} sub={`${free}/${beds} beds free${h.address ? ` · ${h.address}` : ''}`} />
+      {renaming ? (
+        <div className="field"><input className="text" value={name} onChange={(e: any) => setName(e.target.value)} />
+          <div className="actions"><Btn small kind="primary" onClick={() => { game.renameHospital(h.id, name); setRenaming(false); }}>Save</Btn><Btn small onClick={() => setRenaming(false)}>Cancel</Btn></div></div>
+      ) : <div className="actions"><Btn small onClick={() => { setName(h.name); setRenaming(true); }}>Rename</Btn></div>}
+      <p className="hint">Ambulances bring patients to your nearest hospital with a free bed and the care they need; otherwise they go to the public hospital. Each patient admitted here earns {money(HOSPITAL.admissionFee)} and stays {HOSPITAL.stayHours} hours.</p>
+      <Section title="Beds">
+        <div className="kv"><span>{beds} beds · {beds - free} in use</span></div>
+        {h.extraBeds < HOSPITAL.maxExtraBeds ? (
+          <div className="actions"><Btn small disabled={game.city.money < HOSPITAL.bedCost} testid="hospital-add-bed" onClick={() => act(() => game.addHospitalBed(h.id), 'Bed added')}>Add a bed · {money(HOSPITAL.bedCost)}</Btn></div>
+        ) : <p className="hint">Maximum of {HOSPITAL.baseBeds + HOSPITAL.maxExtraBeds} beds reached.</p>}
+      </Section>
+      <Section title="Specialties">
+        <p className="hint">About half of patients need specialist care. They can only be admitted where that specialty exists.</p>
+        <div className="list">
+          {SPECIALTIES.map(sp => {
+            const has = h.specialties.includes(sp.id);
+            return (
+              <div key={sp.id} className="row compact">
+                <div className="grow"><div className="row-title">{sp.name}</div></div>
+                {has ? <span className="chip ok">Available</span>
+                  : <Btn small disabled={game.city.money < sp.cost} testid={`spec-${sp.id}`} onClick={() => act(() => game.addSpecialty(h.id, sp.id), `${sp.name} added`)}>Add · {money(sp.cost)}</Btn>}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+    </div>
+  );
+}

@@ -80,7 +80,10 @@ export interface IncidentTypeDef {
   children?: { types: string[]; count: [number, number]; radiusKm: number }; // major events spawn related calls
 }
 
-export interface Facility { id: string; kind: 'hospital' | 'jail'; name: string; pos: LatLng }
+export interface Facility { id: string; kind: 'hospital' | 'jail'; name: string; pos: LatLng; owned?: boolean }
+
+/** A hospital the player built (MissionChief style). */
+export interface OwnedHospital { id: string; name: string; pos: LatLng; address?: string; extraBeds: number; specialties: string[]; occupied: number[] /* game time each bed frees up */ }
 
 export interface DistrictDef { name: string; center: LatLng }
 
@@ -127,7 +130,7 @@ export interface Vehicle {
   odometerKm: number;
   costs: { purchase: number; fuel: number; maintenance: number };
   calls: number;
-  cargo?: { kind: 'patient' | 'prisoner'; count: number; dest: string; destName: string; fee: number } | null;
+  cargo?: { kind: 'patient' | 'prisoner'; count: number; dest: string; destName: string; fee: number; specialty?: string } | null;
   busyUntil?: number;
   followUp?: string | null; // incident to drive to straight after the current job
 }
@@ -167,6 +170,7 @@ export type IncidentStatus = 'pending' | 'responding' | 'onscene' | 'working' | 
 export type Outcome = 'successful' | 'delayed' | 'partial' | 'escalated' | 'failed';
 
 export interface Incident {
+  specialty?: string;     // specialist care the patients need (hospital must have it)
   id: string;
   number: string;
   typeId: string;
@@ -210,6 +214,7 @@ export interface FinanceBucket {
 
 export interface CityState {
   cityId: string;
+  hospitals?: OwnedHospital[];
   academies?: Record<string, { classrooms: number }>; // fire / police academies (classrooms beyond the first)
   money: number;
   stations: Station[];

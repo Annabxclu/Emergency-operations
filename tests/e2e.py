@@ -168,6 +168,17 @@ def main():
             page.click('[data-testid=academy-start]')
             check(game('g.city.employees.filter(e => e.training && e.training.qual === "hazmat_tech").length') == 2, 'two recruits started HazMat at the Fire Academy')
             shot('04b-academy')
+            # --- Build a hospital and add a specialty
+            game('(g.city.money += 300000, g.changed(), 0)')
+            page.click('[data-testid=tab-stations]')
+            page.click('[data-testid=build-hospital]')
+            page.mouse.click(250, 330)
+            page.click('[data-testid=build-confirm]')
+            page.wait_for_selector('[data-testid=hospital-add-bed]')
+            page.click('[data-testid=spec-cardiology]')
+            check(game('g.city.hospitals.length') == 1 and game('g.city.hospitals[0].specialties[0]') == 'cardiology', 'hospital built on the map and Cardiology added')
+            check(page.locator('[data-testid=own-hospital]').count() == 1, 'your hospital shows on the map')
+            shot('04c-hospital')
             game(f'(g.city.money = {money_before}, g.changed(), 0)')
             page.click('.close')
 

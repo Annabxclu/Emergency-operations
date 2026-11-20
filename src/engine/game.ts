@@ -11,6 +11,7 @@ import {
   dept, qualification, stationType, stationTypeForDept, vehicleType, ACADEMIES, isTrainable } from '../data/departments';
 import { INCIDENT_TYPES, incidentType, CATEGORY_DEPT } from '../data/incidents';
 import { STAFF_TRAININGS } from '../data/staffRequirements';
+import { HOSPITAL, SPECIALTIES, SPECIALTY_BY_CATEGORY } from '../data/hospitals';
 import { TUNING } from '../data/tuning';
 import { AGREEMENTS, GOAL_TEMPLATES, RESEARCH, extensionsFor, type ModKey } from '../data/progression';
 import { CITIES, CITY_SLOT_LEVELS } from '../data/cities';
@@ -210,6 +211,7 @@ export class Game {
         this.sendHome(v);
       } else if (v.status === 'transporting' && !v.route) {
         const dest = v.cargo && [...this.hospitals(), ...this.jails()].find(f => f.id === v.cargo!.dest);
+        // (an owned hospital is in hospitals() too)
         if (dest) this.requestRoute(v, dest.pos); else { v.cargo = null; this.sendHome(v); }
       }
     }
@@ -1215,6 +1217,11 @@ export class Game {
       cg.fee = Math.round((cg.kind === 'patient' ? (250 + 120 * km) * cg.count : (200 + 80 * km) * cg.count) * this.mod('transport') * cells);
       this.progressGoal(cg.kind === 'patient' ? 'patients' : 'prisoners', cg.count);
       this.post(cg.fee, cg.kind === 'patient' ? 'patient transport' : 'prisoner transport', vehicleType(v.typeId).dept, `${v.name} → ${cg.destName}`);
+      const oh = cg.kind === 'patient' ? this.ownedHospital(cg.dest) : null;
+      if (oh) {
+        this.post(HOSPITAL.admissionFee * cg.count, 'hospital admissions', 'ems', `${oh.name}: ${cg.count} admitted`);
+        oh.occupied = oh.occupied.filter(t => t > this.state.time); // tidy up freed beds
+      }
       v.status = 'handover';
       v.busyUntil = this.state.time + TUNING.handoverSeconds;
       this.emit({ type: 'transport_done', id: v.id, kind: cg.kind, count: cg.count, fee: cg.fee, dest: cg.destName });
@@ -1519,6 +1526,11 @@ export class Game {
       for (const r of inc.requirements) if (r.cap === 'ambulance' || r.cap === 'police') r.count = Math.max(1, Math.min(r.count, owned(r.cap)));
     }
     addEmsChief(inc.requirements);
+    // About half of patient calls need specialist care at the hospital.
+    if (inc.patients > 0 && Math.random() < 0.5) {
+      const opts = SPECIALTY_BY_CATEGORY[inc.category] ?? [];
+      if (opts.length) inc.specialty = opts[Math.floor(Math.random() * opts.length)];
+    }
     c.incidents.push(inc);
     this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
     this.changed();
@@ -1526,9 +1538,62 @@ export class Game {
   }
 
   // ------------------------------------------------------------ facilities & transport
+  /** Public hospitals (always accept patients) plus the player's own hospitals. */
   hospitals(def: CityDef = this.cityDef): Facility[] {
-    if (def.hospitals && def.hospitals.length) return def.hospitals;
-    return [{ id: 'h-general', kind: 'hospital', name: `${def.name} General Hospital`, pos: def.center }];
+    const own: Facility[] = def === this.cityDef ? (this.city.hospitals ?? []).map(h => ({ id: h.id, kind: 'hospital', name: h.name, pos: h.pos, owned: true })) : [];
+    const pub: Facility[] = def.hospitals && def.hospitals.length ? def.hospitals : [{ id: 'h-general', kind: 'hospital', name: `${def.name} General Hospital`, pos: def.center }];
+    return [...own, ...pub];
+  }
+
+  // ---- Player hospitals (MissionChief style)
+  ownedHospital(id: string) { return this.city.hospitals?.find(h => h.id === id); }
+  hospitalBeds(h: { extraBeds: number }) { return HOSPITAL.baseBeds + h.extraBeds; }
+  hospitalFreeBeds(h: { extraBeds: number; occupied: number[] }) {
+    const now = this.state.time;
+    return this.hospitalBeds(h) - h.occupied.filter(t => t > now).length;
+  }
+
+  buildHospital(pos: LatLng, name?: string, address?: string) {
+    this.spend(HOSPITAL.cost, 'stations', 'ems', 'Built a hospital');
+    const list = (this.city.hospitals ??= []);
+    const h = { id: this.id('hosp'), name: name?.trim() || `${this.cityDef.name} Hospital ${list.length + 1}`, pos, address, extraBeds: 0, specialties: [], occupied: [] };
+    list.push(h);
+    this.changed();
+    return h;
+  }
+
+  addHospitalBed(id: string) {
+    const h = this.ownedHospital(id);
+    if (!h) throw new ActionError('Hospital not found.');
+    if (h.extraBeds >= HOSPITAL.maxExtraBeds) throw new ActionError('This hospital has the most beds possible.');
+    this.spend(HOSPITAL.bedCost, 'stations', 'ems', `${h.name}: extra bed`);
+    h.extraBeds++;
+    this.changed();
+  }
+
+  addSpecialty(id: string, spec: string) {
+    const h = this.ownedHospital(id);
+    const sp = SPECIALTIES.find(s => s.id === spec);
+    if (!h || !sp) throw new ActionError('Not found.');
+    if (h.specialties.includes(spec)) throw new ActionError(`${sp.name} is already here.`);
+    this.spend(sp.cost, 'stations', 'ems', `${h.name}: ${sp.name}`);
+    h.specialties.push(spec);
+    this.changed();
+  }
+
+  renameHospital(id: string, name: string) {
+    const h = this.ownedHospital(id);
+    if (h && name.trim()) { h.name = name.trim().slice(0, 40); this.changed(); }
+  }
+
+  /** Nearest hospital that can take these patients: your own (free beds + right specialty) first, else a public one. */
+  private hospitalFor(from: LatLng, count: number, spec?: string): Facility {
+    const own = (this.city.hospitals ?? []).filter(h => this.hospitalFreeBeds(h) >= count && (!spec || h.specialties.includes(spec)));
+    if (own.length) {
+      const h = own.reduce((b, x) => (distanceM(from, x.pos) < distanceM(from, b.pos) ? x : b));
+      return { id: h.id, kind: 'hospital', name: h.name, pos: h.pos, owned: true };
+    }
+    return this.nearestFacility(this.hospitals().filter(f => !f.owned), from);
   }
 
   jails(): Facility[] {
@@ -1553,8 +1618,11 @@ export class Game {
       const n = Math.min(tr.capacity, left[tr.kind]);
       if (n <= 0) continue;
       left[tr.kind] -= n;
-      const dest = this.nearestFacility(tr.kind === 'patient' ? this.hospitals() : this.jails(), v.pos);
-      v.cargo = { kind: tr.kind, count: n, dest: dest.id, destName: dest.name, fee: 0 };
+      const dest = tr.kind === 'patient' ? this.hospitalFor(v.pos, n, inc.specialty) : this.nearestFacility(this.jails(), v.pos);
+      // Reserve the beds now so two ambulances don't overfill one hospital.
+      const oh = dest.owned ? this.ownedHospital(dest.id) : null;
+      if (oh) for (let i = 0; i < n; i++) oh.occupied.push(this.state.time + HOSPITAL.stayHours * 3600);
+      v.cargo = { kind: tr.kind, count: n, dest: dest.id, destName: dest.name, fee: 0, specialty: tr.kind === 'patient' ? inc.specialty : undefined };
       v.status = 'transporting';
       v.incidentId = null;
       v.route = null;

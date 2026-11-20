@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { HOSPITAL, specialty } from '../../data/hospitals';
 import { ACADEMIES, DEPARTMENTS, STATION_TYPES, VEHICLE_TYPES, capability, dept, qualification, stationType, vehicleType } from '../../data/departments';
 import { Btn, Group, Chip, Dot, Empty, Header, Section, Stat, StatusCode, useCtx } from '../common';
 import { extensionsFor } from '../../data/progression';
@@ -8,7 +9,7 @@ import { glyph } from '../icons';
 let rememberedTab = 'all'; // keeps the chosen tab when you open a station and come back
 
 export function StationsList() {
-  const { game, push } = useCtx();
+  const { game, push, startBuild } = useCtx();
   const c = game.city;
   const depts = DEPARTMENTS.filter(d => c.stations.some(s => s.dept === d.id));
   const [tab, setTabState] = useState(depts.some(d => d.id === rememberedTab) ? rememberedTab : 'all');
@@ -51,6 +52,21 @@ export function StationsList() {
           </Section>
         );
       })}
+      {game.setupDone && (tab === 'all' || tab === 'ems') && (
+        <Section title="Hospitals" right={<Btn small onClick={() => startBuild('hospital')} disabled={game.city.money < HOSPITAL.cost} testid="build-hospital">Build · {money(HOSPITAL.cost)}</Btn>}>
+          {!(game.city.hospitals ?? []).length && <p className="hint">You don't own a hospital yet, so ambulances use the public hospital. Your own hospitals take patients nearby, earn {money(HOSPITAL.admissionFee)} per patient, and can add specialist care.</p>}
+          <div className="list">
+            {(game.city.hospitals ?? []).map(h => (
+              <button key={h.id} className="row" onClick={() => push({ kind: 'hospital', id: h.id })} data-testid="hospital-row">
+                <span className="st-ico" style={{ background: '#e02424' }} dangerouslySetInnerHTML={{ __html: glyph('hospital', 15) }} />
+                <div className="grow"><div className="row-title">{h.name}</div>
+                  <div className="row-sub">{game.hospitalFreeBeds(h)}/{game.hospitalBeds(h)} beds free · {h.specialties.length ? h.specialties.map(x => specialty(x).name).join(', ') : 'no specialties'}</div></div>
+                <span className="muted">›</span>
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
       {game.setupDone && (tab === 'all' || ACADEMIES[tab]) && (
         <Section title="Academies">
           <div className="list">
@@ -91,6 +107,13 @@ export function BuildChooser() {
             </button>
           );
         })}
+      </div>
+      <div className="list" style={{ marginTop: 8 }}>
+        <button className="row" disabled={game.city.money < HOSPITAL.cost} onClick={() => startBuild('hospital')} data-testid="build-hospital-chooser">
+          <span className="st-ico" style={{ background: '#e02424' }} dangerouslySetInnerHTML={{ __html: glyph('hospital', 15) }} />
+          <div className="grow"><div className="row-title">Hospital</div><div className="row-sub wrap">{HOSPITAL.baseBeds} beds, up to {HOSPITAL.baseBeds + HOSPITAL.maxExtraBeds} · add specialist care</div></div>
+          <div className="row-right"><div className="amt">{money(HOSPITAL.cost)}</div></div>
+        </button>
       </div>
       <p className="hint">After choosing, tap anywhere on the map to place it. Stations can go anywhere in the city.</p>
     </div>

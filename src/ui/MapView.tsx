@@ -22,7 +22,7 @@ export const TILE_STYLES: Record<string, { name: string; url: string; attributio
 export const DEFAULT_TILE_STYLE = 'osm';
 
 export interface MapApi { focus(p: LatLng, zoom?: number): void }
-export type Selection = { kind: 'incident' | 'station' | 'vehicle'; id: string } | null;
+export type Selection = { kind: 'incident' | 'station' | 'vehicle' | 'hospital'; id: string } | null;
 
 interface Props {
   game: Game;
@@ -116,8 +116,8 @@ export function MapView(props: Props) {
       for (const h of g.hospitals()) {
         hIds.add(h.id);
         if (!markers.facilities.has(h.id)) {
-          const m = L.marker(h.pos, { zIndexOffset: 50, interactive: false, title: h.name });
-          m.setIcon(L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [10, 10], html: `<div class="mk hosp" title="${h.name.replace(/"/g, '')}">${glyph('hospital', 13)}</div>` }));
+          const m = h.owned ? clickable(L.marker(h.pos, { zIndexOffset: 60, title: h.name }), { kind: 'hospital', id: h.id }) : L.marker(h.pos, { zIndexOffset: 50, interactive: false, title: h.name });
+          m.setIcon(L.divIcon({ className: '', iconSize: h.owned ? [24, 24] : [20, 20], iconAnchor: h.owned ? [12, 12] : [10, 10], html: `<div class="mk hosp${h.owned ? ' own' : ''}" title="${h.name.replace(/"/g, '')}" data-testid="${h.owned ? 'own-hospital' : 'hospital'}">${glyph('hospital', 13)}</div>` }));
           layers.facilities.addLayer(m); markers.facilities.set(h.id, m);
         }
       }
