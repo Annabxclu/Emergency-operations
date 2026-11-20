@@ -123,8 +123,8 @@ export function missingRequirements(reqs: Requirement[], vehicles: Vehicle[]): R
 }
 
 /** More than 10 ambulances on a call needs an EMS Chief on scene. */
-export function addEmsChief(reqs: Requirement[]) {
-  const amb = reqs.filter(r => ['ambulance', 'als', 'ccu'].includes(r.cap)).reduce((n, r) => n + r.count, 0);
+export function addEmsChief(reqs: Requirement[], patients = 0) {
+  const amb = Math.max(patients, reqs.filter(r => ['ambulance', 'als', 'ccu'].includes(r.cap)).reduce((n, r) => n + r.count, 0));
   if (amb > TUNING.emsChiefAboveAmbulances && !reqs.some(r => r.cap === 'ems_supervisor')) reqs.push({ cap: 'ems_supervisor', count: 1 });
   return reqs;
 }
@@ -808,6 +808,8 @@ export class Game {
     const inc = this.incident(incId);
     if (!inc || inc.status === 'resolved') return { ids: [], unfilled: [] };
     const missing = missingRequirements(inc.requirements, this.responding(inc));
+    const ambNeed = this.patientAmbulanceNeed(inc);
+    if (ambNeed > 0) missing.push({ cap: 'ambulance', count: ambNeed });
     const candidates = this.city.vehicles.filter(v => !this.dispatchProblem(v) && v.incidentId == null);
     const chosen: string[] = [];
     const unfilled: Requirement[] = [];
@@ -1250,10 +1252,16 @@ export class Game {
   private updateIncidents() {
     const now = this.state.time;
     for (const inc of [...this.city.incidents]) {
+      if (inc.patients > 0 && !inc.patientList) this.ensurePatients(inc); // calls from before patient cards
+      this.updatePatients(inc, now);
       const onScene = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene');
+      // All patients handled and nothing else to do (EMS-only call): done.
+      if (inc.patientList && this.patientsDone(inc) && this.sceneReqs(inc).length === 0 && !(incidentType(inc.typeId).staff ?? []).length && inc.firstOnSceneAt != null) {
+        this.resolve(inc, this.outcomeFor(inc)); continue;
+      }
       if (inc.status === 'working') {
         // Work only continues while every required unit is still on scene.
-        if (!inc.partial && (missingRequirements(inc.requirements, onScene).length > 0 || this.missingStaff(inc, onScene).length > 0)) {
+        if (!inc.partial && (missingRequirements(this.sceneReqs(inc), onScene).length > 0 || this.missingStaff(inc, onScene).length > 0)) {
           inc.workRemaining = Math.max(0, (inc.workUntil ?? now) - now);
           inc.workDone = now - (inc.workStartedAt ?? now);
           inc.workUntil = null;
@@ -1261,10 +1269,12 @@ export class Game {
           this.changed();
           continue;
         }
-        if (now >= (inc.workUntil ?? 0)) this.resolve(inc, this.outcomeFor(inc));
+        // The call ends when the work is done and every patient has been treated.
+        if (now >= (inc.workUntil ?? 0) && this.patientsDone(inc)) this.resolve(inc, this.outcomeFor(inc));
         continue;
       }
-      const missing = missingRequirements(inc.requirements, onScene);
+      if (onScene.length > 0 && inc.firstOnSceneAt == null) inc.firstOnSceneAt = now;
+      const missing = missingRequirements(this.sceneReqs(inc), onScene);
       if (onScene.length > 0 && missing.length === 0 && this.missingStaff(inc, onScene).length === 0) { this.startWork(inc); continue; }
       const prev = inc.status;
       inc.status = onScene.length ? 'onscene' : this.responding(inc).length ? 'responding' : 'pending';
@@ -1433,6 +1443,69 @@ export class Game {
     return need.map(r => ({ training: r.training, count: r.count - this.staffOn(r.training, vehicles) })).filter(r => r.count > 0);
   }
 
+  // ---- Individual patients
+  static EMS_CAPS = ['ambulance', 'als', 'ccu', 'ems_supervisor', 'mci'];
+  isMedic(v: Vehicle) { const t = vehicleType(v.typeId); return t.transport?.kind === 'patient' || ['ambulance', 'als', 'ccu'].some(c => t.caps.includes(c)); }
+
+  ensurePatients(inc: Incident) {
+    if (!inc.patients || inc.patientList) return;
+    inc.patientList = Array.from({ length: inc.patients }, (_, i) => ({
+      id: `${inc.id}-p${i}`, name: `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)[0]}.`,
+      needsTransport: Math.random() < 0.75, treatSec: 40 + Math.floor(Math.random() * 80), status: 'untreated' as const,
+    }));
+  }
+  /** Ambulances still wanted: untreated patients not yet covered by a medic on the way or free on scene. */
+  patientAmbulanceNeed(inc: Incident, extra: Vehicle[] = []) {
+    if (!inc.patientList) return 0;
+    const busy = new Set(inc.patientList.filter(p => p.status === 'treating').map(p => p.vehicleId));
+    const free = [...this.responding(inc), ...extra].filter(v => this.isMedic(v) && !busy.has(v.id) && (v.patientLoad ?? 0) === 0).length;
+    return this.untreated(inc) - free; // negative = more ambulances than patients waiting
+  }
+  patientsDone(inc: Incident) { return !inc.patientList || inc.patientList.every(p => p.status === 'released' || p.status === 'transport'); }
+  untreated(inc: Incident) { return (inc.patientList ?? []).filter(p => p.status === 'untreated').length; }
+
+  /** Ambulances on scene treat one patient at a time; then transport or release and take the next. */
+  private updatePatients(inc: Incident, now: number) {
+    const list = inc.patientList;
+    if (!list) return;
+    const medics = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene' && this.isMedic(v));
+    // A medic that left mid-treatment hands the patient back.
+    for (const p of list) if (p.status === 'treating' && !medics.some(v => v.id === p.vehicleId)) { p.status = 'untreated'; p.vehicleId = null; p.until = undefined; }
+    for (const v of medics) {
+      const cap = vehicleType(v.typeId).transport?.capacity ?? 1;
+      let cur = list.find(p => p.status === 'treating' && p.vehicleId === v.id);
+      if (cur && now >= (cur.until ?? 0)) {
+        cur.status = cur.needsTransport ? 'transport' : 'released';
+        if (cur.needsTransport) v.patientLoad = (v.patientLoad ?? 0) + 1;
+        cur = undefined;
+        this.changed();
+      }
+      if (cur) continue;
+      const next = (v.patientLoad ?? 0) < cap ? list.find(p => p.status === 'untreated') : undefined;
+      if (next) { next.status = 'treating'; next.vehicleId = v.id; next.until = now + next.treatSec; this.changed(); continue; }
+      if ((v.patientLoad ?? 0) > 0) this.takeToHospital(v, inc);
+    }
+  }
+
+  private takeToHospital(v: Vehicle, inc: Incident) {
+    const n = v.patientLoad ?? 0;
+    v.patientLoad = 0;
+    const dest = this.hospitalFor(v.pos, n, inc.specialty);
+    const oh = dest.owned ? this.ownedHospital(dest.id) : null;
+    if (oh) for (let i = 0; i < n; i++) oh.occupied.push(this.state.time + HOSPITAL.stayHours * 3600);
+    v.cargo = { kind: 'patient', count: n, dest: dest.id, destName: dest.name, fee: 0, specialty: inc.specialty };
+    v.status = 'transporting';
+    v.incidentId = null;
+    v.route = null;
+    this.requestRoute(v, dest.pos);
+    this.changed();
+  }
+
+  /** Requirements still to meet: once every patient is handled, EMS units are no longer needed on scene. */
+  private sceneReqs(inc: Incident) {
+    return this.patientsDone(inc) && inc.patientList ? inc.requirements.filter(r => !Game.EMS_CAPS.includes(r.cap)) : inc.requirements;
+  }
+
   /** True when the player's own fleet (busy or not) has every vehicle a call needs. */
   fleetCovers(reqs: Requirement[]) {
     return missingRequirements(reqs, this.city.vehicles).length === 0;
@@ -1521,13 +1594,15 @@ export class Game {
       const r = inc.requirements.find(x => x.cap === add);
       if (r) r.count += need - have; else inc.requirements.push({ cap: add, count: need - have });
     };
-    if (inc.patients > 0) raise(['ambulance', 'als', 'ccu'], 'ambulance', inc.patients);
     if (inc.prisoners > 0) raise(['police'], 'police', inc.prisoners);
     // Calls with no other work left can't ask for more units than the player owns.
     if (!this.fleetCovers(inc.requirements)) {
       for (const r of inc.requirements) if (r.cap === 'ambulance' || r.cap === 'police') r.count = Math.max(1, Math.min(r.count, owned(r.cap)));
     }
-    addEmsChief(inc.requirements);
+    addEmsChief(inc.requirements, inc.patients);
+    // Patients are handled one by one by ambulances (see updatePatients), so plain
+    // ambulances aren't a fixed requirement; ALS / critical care requirements stay.
+    if (inc.patients > 0) { inc.requirements = inc.requirements.filter(r => r.cap !== 'ambulance'); this.ensurePatients(inc); }
     // About half of patient calls need specialist care at the hospital.
     if (inc.patients > 0 && Math.random() < 0.5) {
       const opts = SPECIALTY_BY_CATEGORY[inc.category] ?? [];
@@ -1611,7 +1686,7 @@ export class Game {
   /** After a call is worked, load patients and prisoners into suitable units on scene. */
   private assignTransports(inc: Incident) {
     const onScene = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene');
-    const left: Record<'patient' | 'prisoner', number> = { patient: inc.patients || 0, prisoner: inc.prisoners || 0 };
+    const left: Record<'patient' | 'prisoner', number> = { patient: inc.patientList ? 0 : inc.patients || 0, prisoner: inc.prisoners || 0 };
     // Largest carriers first so vans and MCI units take the bulk.
     const carriers = onScene.filter(v => vehicleType(v.typeId).transport)
       .sort((a, b) => vehicleType(b.typeId).transport!.capacity - vehicleType(a.typeId).transport!.capacity);

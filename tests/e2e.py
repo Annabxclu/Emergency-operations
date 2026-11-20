@@ -203,6 +203,10 @@ def main():
             for cap_btn in page.locator('[data-testid=aao] button.needed').all(): cap_btn.click()
             checked = page.locator('[data-testid=dispatch-candidate] input:checked').count()
             check(checked == 2, f'quick-add picks ambulance + police ({checked})')
+            if page.locator('[data-testid=patients]').count():
+                n = page.locator('[data-testid=patient-card]').count()
+                check(n >= 1 and page.locator('[data-testid=patient-card][data-status=untreated]').count() == n, f'patient cards show names, all untreated before an ambulance arrives ({n})')
+                shot('05d-patients')
             check('covered' in page.get_attribute('[data-testid=missing]', 'class'), 'missing-units box turns green once everything is selected')
             extra = page.locator('[data-testid=dispatch-candidate] input:not(:checked)')
             if extra.count():

@@ -105,6 +105,7 @@ export function IncidentDetail({ id }: { id: string }) {
   const inc = game.incident(id);
   const [sel, setSel] = useState(() => new Set<string>());
   const [unitTab, setUnitTab] = useState('all');
+  const [hidePatients, setHidePatients] = useState(false);
 
   useEffect(() => { if (inc) focus(inc.pos, 15); }, [id]);
   // Pre-select recommended units until the player changes the selection.
@@ -153,7 +154,7 @@ export function IncidentDetail({ id }: { id: string }) {
   const quick = capsInFleet.map(cap => {
     const pool = candidates.filter(c => !c.problem && vehicleType(c.v.typeId).caps.includes(cap));
     const next = pool.find(c => !sel.has(c.v.id))?.v ?? null;
-    return { cap, next, left: pool.filter(c => !sel.has(c.v.id)).length, needed: missingAll.some(m => m.cap === cap) };
+    return { cap, next, left: pool.filter(c => !sel.has(c.v.id)).length, needed: missingAll.some(m => m.cap === cap) || (cap === 'ambulance' && game.patientAmbulanceNeed(inc) > 0) };
   }).sort((a, b) => Number(b.needed) - Number(a.needed));
   const quickShown = quick.filter(q => unitTab === 'all' || capability(q.cap).dept === unitTab);
   const dispatch = (andNext: boolean) => {
@@ -180,13 +181,44 @@ export function IncidentDetail({ id }: { id: string }) {
           {!closed && <span>{timerText(game, inc)}</span>}
           {closed ? <span className={inc.payout < 0 ? 'bad' : 'ok'}>{money(inc.payout)}</span> : <span>{inc.reward ? `Reward ${money(inc.reward)}` : 'No reward · your hospital earns per patient'}</span>}
           {inc.escalated && <span className="bad">Escalated</span>}
-          {inc.patients > 0 && <span>🚑 {inc.patients} patient{inc.patients > 1 ? 's' : ''} to transport{inc.specialty ? ` · needs ${specialty(inc.specialty).name} (${money(specialty(inc.specialty).fee)} each at your hospital)` : ''}</span>}
+          {inc.patients > 0 && !inc.patientList && <span>🚑 {inc.patients} patient{inc.patients > 1 ? 's' : ''} to transport{inc.specialty ? ` · needs ${specialty(inc.specialty).name} (${money(specialty(inc.specialty).fee)} each at your hospital)` : ''}</span>}
           {inc.prisoners > 0 && <span>🚓 {inc.prisoners} suspect{inc.prisoners > 1 ? 's' : ''} to jail</span>}
         </div>
         {inc.parentId && game.incident(inc.parentId) && (
           <button className="linkish parent-link" onClick={() => push({ kind: 'incident', id: inc.parentId! })}>Part of major event: {game.incident(inc.parentId)!.name} ›</button>
         )}
       </div>
+
+      {inc.patientList && inc.patientList.length > 0 && (() => {
+        const list = inc.patientList;
+        const now = game.state.time;
+        const left = game.untreated(inc);
+        return (
+          <section className="patients" data-testid="patients">
+            <div className="patients-head">
+              <b>{list.length} Patient{list.length > 1 ? 's' : ''}</b>
+              <span className={left ? 'bad' : 'ok'}> – {left} untreated</span>
+              {inc.specialty && <span className="muted small" style={{ flexBasis: "100%" }}>Needs {specialty(inc.specialty).name} ({money(specialty(inc.specialty).fee)} each at your hospital)</span>}
+              <button className="mini" onClick={() => setHidePatients(!hidePatients)}>{hidePatients ? 'Show' : 'Hide'}</button>
+            </div>
+            {!hidePatients && (
+              <div className="patient-grid">
+                {list.map(p => {
+                  const pct = p.status === 'untreated' ? 100 : p.status === 'treating' ? Math.max(0, Math.min(100, ((p.until ?? now) - now) / p.treatSec * 100)) : 0;
+                  const label = p.status === 'treating' ? 'Treating' : p.status === 'transport' ? 'To hospital' : p.status === 'released' ? 'Released' : 'Untreated';
+                  return (
+                    <div key={p.id} className={`patient ${p.status}`} data-testid="patient-card" data-status={p.status}>
+                      <div className="pname">{p.name}</div>
+                      <div className="pbar"><span style={{ width: `${pct}%` }} /></div>
+                      <div className="pstate">{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {!closed && inc.status === 'working' && (
         <div className="progress big"><span style={{ width: `${workPct(game, inc)}%` }} /></div>
@@ -199,7 +231,7 @@ export function IncidentDetail({ id }: { id: string }) {
       )}
 
       {/* While units are still missing, the missing-units table below shows this instead. */}
-      {!(!closed && inc.status !== 'working' && missingOnScene.length > 0) && <Section title="Required">
+      {!(!closed && inc.status !== 'working' && (missingOnScene.length > 0 || game.untreated(inc) > 0)) && reqRows.length > 0 && <Section title="Required">
         <div className="reqs">
           {reqRows.map(r => (
             <div key={r.cap} className={`req ${r.onScene >= r.count ? 'met' : r.short > 0 ? 'short' : 'coming'}`}>
@@ -250,7 +282,7 @@ export function IncidentDetail({ id }: { id: string }) {
 
       {!closed && inc.status !== 'working' && (
         <Section title="Dispatch units">
-          {(missingOnScene.length > 0 || staffOnSceneMissing.length > 0) && (() => {
+          {(missingOnScene.length > 0 || staffOnSceneMissing.length > 0 || game.untreated(inc) > 0) && (() => {
             const selDirect = candidates.filter(c => sel.has(c.v.id)).map(c => c.v);
             const selFollowV = followCands.filter(c => sel.has(c.v.id)).map(c => c.v);
             const base = game.responding(inc);
@@ -278,6 +310,17 @@ export function IncidentDetail({ id }: { id: string }) {
               const follow = Math.min(miss - enroute - selected, game.staffOn(m.training, [...selFollowV, ...queued]));
               return { key: m.training, name: `${STAFF_TRAININGS[m.training]?.name ?? m.training} trained staff`, miss, enroute, selected, follow, still: miss - enroute - selected - follow };
             });
+            // Ambulances for untreated patients: one free ambulance takes one patient at a time.
+            const untreated = game.untreated(inc);
+            if (untreated > 0) {
+              const busy = new Set((inc.patientList ?? []).filter(p => p.status === 'treating').map(p => p.vehicleId));
+              const free = (vs: Vehicle[]) => vs.filter(v => game.isMedic(v) && !busy.has(v.id) && (v.patientLoad ?? 0) === 0).length;
+              const miss = Math.max(0, untreated - free(base.filter(v => v.status === 'onscene')));
+              const enroute = free(enrouteV);
+              const selected = free(selDirect);
+              const follow = free([...selFollowV, ...queued]);
+              if (miss > 0) rows.unshift({ cap: 'patients', miss, enroute, selected, follow, still: miss - enroute - selected - follow });
+            }
             const anyFollow = rows.some(r => r.follow > 0) || staffRows.some(r => r.follow > 0) || selFollowV.length > 0 || queued.length > 0;
             const allCovered = rows.every(r => r.still <= 0) && staffRows.every(r => r.still === 0);
             const tone = allCovered && !anyFollow ? 'covered' : anyFollow ? 'follow' : '';
@@ -288,7 +331,7 @@ export function IncidentDetail({ id }: { id: string }) {
                   <tbody>
                     {rows.map(r => (
                       <tr key={r.cap} className={r.still < 0 ? 'done over' : r.still === 0 ? 'done' : ''}>
-                        <td>{capability(r.cap).name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td>{r.follow}</td><td className="still">{r.still}</td>
+                        <td>{r.cap === 'patients' ? 'Ambulance (untreated patients)' : capability(r.cap).name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td>{r.follow}</td><td className="still">{r.still}</td>
                       </tr>
                     ))}
                     {staffRows.map(r => (

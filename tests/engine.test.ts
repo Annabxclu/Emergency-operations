@@ -272,15 +272,15 @@ async function run(g: Game, seconds: number, step = 1) {
     const g7 = new Game(newGameState(), fake);
     g7.placeStation('fire_station', [33.755, -84.39]); g7.placeStation('police_precinct', [33.77, -84.385]); g7.placeStation('ems_station', [33.76, -84.37]);
     g7.state.settings.workMult = 1;
-    const call = await g7.spawnIncident('medical');
-    const medic = g7.city.vehicles.find(v => v.typeId === 'bls')!;
+    const call = await g7.spawnIncident('fire_alarm');
+    const medic = g7.city.vehicles.find(v => v.typeId === 'engine')!;
     g7.dispatch(call!.id, [medic.id]);
     for (let i = 0; i < 2000 && call!.status !== 'working'; i++) { g7.tick(1); if (i % 10 === 0) await flush(); }
     g7.tick(60);
     const leftBefore = call!.workUntil! - g7.state.time;
     g7.recall(medic.id);
     g7.tick(1);
-    assert(call!.status !== 'working' && call!.workUntil == null, `work paused after the medic was released (status ${call!.status})`);
+    assert(call!.status !== 'working' && call!.workUntil == null, `work paused after the engine was released (status ${call!.status})`);
     g7.tick(600);
     assert(!g7.city.resolved.some(x => x.id === call!.id), 'call does not complete with no unit on scene');
     for (let i = 0; i < 3000 && medic.status !== 'available'; i++) { g7.tick(1); if (i % 10 === 0) await flush(); }
@@ -288,6 +288,22 @@ async function run(g: Game, seconds: number, step = 1) {
     for (let i = 0; i < 2000 && call!.status !== 'working'; i++) { g7.tick(1); if (i % 10 === 0) await flush(); }
     const leftAfter = call!.workUntil! - g7.state.time;
     assert(Math.abs(leftAfter - leftBefore) < 3, `work resumed with progress kept (${Math.round(leftBefore)}s -> ${Math.round(leftAfter)}s left)`);
+  }
+
+  // Patients: each ambulance treats one patient, then transports or releases them and takes the next.
+  {
+    const gp = new Game(newGameState(), fake);
+    gp.placeStation('fire_station', [33.755, -84.39]); gp.placeStation('police_precinct', [33.77, -84.385]); gp.placeStation('ems_station', [33.76, -84.37]);
+    const call = (await gp.spawnIncident('medical'))!;
+    assert(call.patientList?.length === call.patients && call.patients > 0 && call.patientList.every(p => p.status === 'untreated'), 'patients appear as individual untreated patients');
+    assert(!call.requirements.some(r => r.cap === 'ambulance') && gp.patientAmbulanceNeed(call) === call.patients, 'ambulances needed follow the untreated patients');
+    const medic = gp.city.vehicles.find(v => v.typeId === 'bls')!;
+    gp.dispatch(call.id, [medic.id]);
+    let sawTreating = false;
+    for (let i = 0; i < 3000 && !gp.city.resolved.some(x => x.id === call.id); i++) { gp.tick(1); if (call.patientList!.some(p => p.status === 'treating')) sawTreating = true; if (i % 10 === 0) await flush(); }
+    assert(sawTreating, 'the ambulance treats a patient on scene');
+    assert(gp.city.resolved.some(x => x.id === call.id), 'a one-patient call completes once its patient is treated');
+    assert(call.patientList!.every(p => p.status === 'transport' || p.status === 'released'), 'patient was taken to hospital or released');
   }
 
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
@@ -333,9 +349,9 @@ async function run(g: Game, seconds: number, step = 1) {
     const cpr = INCIDENT_TYPES.find(t => t.name === 'Carbon monoxide leak (large)')!;
     let inc = null;
     for (let i = 0; i < 20 && !(inc && inc.patients > 1); i++) inc = await g.spawnIncident(cpr.id);
-    const amb = inc!.requirements.filter(r => ['ambulance', 'als', 'ccu'].includes(r.cap)).reduce((n, r) => n + r.count, 0);
+    const amb = g.patientAmbulanceNeed(inc!) + g.responding(inc!).filter(v => g.isMedic(v)).length;
     const owned = g.city.vehicles.filter(v => vehicleType(v.typeId).caps.includes('ambulance')).length;
-    assert(amb >= Math.min(inc!.patients, 10, owned) && amb <= Math.max(owned, 1), `patients drive ambulances, never more than you own (${owned} owned, (${inc!.patients} patients -> ${amb} ambulances)`);
+    assert(amb === inc!.patients && inc!.patients <= Math.max(owned, 1), `one ambulance per patient, never more patients than ambulances you own, never more than you own (${owned} owned, (${inc!.patients} patients -> ${amb} ambulances)`);
   }
 
   // Spreadsheet vehicles: a double boat trailer counts as 2 boats, and trailers need a tow vehicle.

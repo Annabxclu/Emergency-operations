@@ -114,7 +114,19 @@ export interface Route {
   provisional?: boolean;  // straight-line estimate used until the road route arrives
 }
 
+/** One patient at a call: treated by an ambulance, then taken to hospital or released on scene. */
+export interface Patient {
+  id: string;
+  name: string;
+  needsTransport: boolean;
+  treatSec: number;
+  status: 'untreated' | 'treating' | 'released' | 'transport';
+  vehicleId?: string | null;
+  until?: number;
+}
+
 export interface Vehicle {
+  patientLoad?: number;   // patients on board waiting to leave for hospital
   id: string;
   typeId: string;
   name: string;
@@ -170,6 +182,7 @@ export type IncidentStatus = 'pending' | 'responding' | 'onscene' | 'working' | 
 export type Outcome = 'successful' | 'delayed' | 'partial' | 'escalated' | 'failed';
 
 export interface Incident {
+  patientList?: Patient[]; // individual patients (shown as cards on the call screen)
   specialty?: string;     // specialist care the patients need (hospital must have it)
   id: string;
   number: string;
