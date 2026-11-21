@@ -358,7 +358,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       const r = await searchAddress(addrQuery, game.cityDef.bounds, `${game.cityDef.name}, ${game.cityDef.state}`);
       if (r.length === 1) placeAt(r[0].pos, r[0].label);
       else if (r.length) setAddrResults(r);
-      else setAddrError(`No match in ${game.cityDef.name}. Try a street address like "123 Main St".`);
+      else setAddrError(`No match near ${game.cityDef.name}. Check the spelling, or tap the map to place it.`);
     } catch { setAddrError('Address search is unavailable right now — tap the map instead.'); }
     setAddrBusy(false);
   };
@@ -368,7 +368,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const confirmBuild = () => {
     if (!activeBuild || !pending) return;
     let id = '';
-    const addr = pendingAddr && pendingAddr !== 'Address not available' ? pendingAddr : undefined;
+    const addr = pendingAddr && pendingAddr !== 'Address not available' ? pendingAddr.replace(' (on the street)', '') : undefined;
     const ok = activeBuild === 'hospital'
       ? act(() => { id = game.buildHospital(pending, buildName, addr).id; }, 'Hospital built')
       : act(() => { id = game.placeStation(activeBuild, pending, buildName, addr).id; }, setup ? undefined : `${stationType(activeBuild).name} built`);

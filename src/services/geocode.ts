@@ -143,12 +143,72 @@ const shortAddress = (a: any, fallback: string) => {
 };
 
 /** Find an address or place inside the city's play area. */
+const ABBR: Record<string, string> = {
+  e: 'East', w: 'West', n: 'North', s: 'South', st: 'Street', ave: 'Avenue', av: 'Avenue', blvd: 'Boulevard', rd: 'Road', dr: 'Drive',
+  pl: 'Place', pkwy: 'Parkway', ln: 'Lane', ct: 'Court', ter: 'Terrace', hwy: 'Highway', expy: 'Expressway', sq: 'Square', cir: 'Circle',
+};
+/** "341 E 143rd St" -> "341 East 143rd Street" (OpenStreetMap search matches full words better). */
+export function expandAddress(q: string) {
+  return q.split(/(\s+|,)/).map(w => ABBR[w.toLowerCase().replace(/\.$/, '')] ?? w).join('');
+}
+
+/** Find an address inside (or near) the city. Tries the text as typed, then with abbreviations
+ *  spelled out, then a second geocoder, then the street without the house number (placed on the street). */
 export async function searchAddress(query: string, bounds: [LatLng, LatLng], cityLabel: string): Promise<AddressResult[]> {
   const [[s, w], [n, e]] = bounds;
-  const base = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=us&viewbox=${w},${n},${e},${s}&bounded=1`;
-  let rows: any[] = await getJson(`${base}&q=${encodeURIComponent(query.trim())}`, { headers: { 'Accept-Language': 'en' } });
-  if (!rows.length) rows = await getJson(`${base}&q=${encodeURIComponent(`${query.trim()}, ${cityLabel}`)}`, { headers: { 'Accept-Language': 'en' } });
-  return rows.map(r => ({ label: shortAddress(r.address || {}, r.display_name || query), pos: [Number(r.lat), Number(r.lon)] as LatLng }));
+  const padLat = (n - s) * 0.25, padLng = (e - w) * 0.25;
+  const inArea = (p: LatLng) => p[0] >= s - padLat && p[0] <= n + padLat && p[1] >= w - padLng && p[1] <= e + padLng;
+  const state = cityLabel.split(',').pop()!.trim();
+  const base = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=us&viewbox=${w - padLng},${n + padLat},${e + padLng},${s - padLat}&bounded=1`;
+  const nominatim = async (q: string) => {
+    const rows: any[] = await getJson(`${base}&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': 'en' } });
+    return rows.map(r => ({ label: shortAddress(r.address || {}, r.display_name || q), pos: [Number(r.lat), Number(r.lon)] as LatLng, house: !!r.address?.house_number }));
+  };
+  const photon = async (q: string) => {
+    const c: LatLng = [(s + n) / 2, (w + e) / 2];
+    const r: any = await getJson(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${c[0]}&lon=${c[1]}&limit=6&lang=en`);
+    return (r?.features ?? []).map((f: any) => {
+      const p = f.properties || {};
+      const street = [p.housenumber, p.street || (p.type === 'street' ? p.name : '')].filter(Boolean).join(' ') || p.name || q;
+      const area = p.district || p.locality || p.city || '';
+      return { label: area && area !== street ? `${street}, ${area}` : street, pos: [f.geometry.coordinates[1], f.geometry.coordinates[0]] as LatLng, house: !!p.housenumber };
+    });
+  };
+  const typed = query.trim();
+  const full = expandAddress(typed);
+  const tries: (() => Promise<{ label: string; pos: LatLng; house: boolean }[]>)[] = [
+    () => nominatim(typed),
+    () => nominatim(full === typed ? `${typed}, ${cityLabel}` : full),
+    () => nominatim(`${full}, ${state}`),
+    () => photon(`${full}, ${cityLabel}`),
+  ];
+  let failures = 0;
+  for (const t of tries) {
+    try {
+      const hits = (await t()).filter(h => inArea(h.pos));
+      // With a house number typed, prefer results that have one; otherwise any hit will do.
+      const exact = /^\d/.test(typed) ? hits.filter(h => h.house) : hits;
+      if (exact.length) return dedupe(exact);
+    } catch { failures++; }
+  }
+  // House number not on the map: put it on the street itself.
+  const num = typed.match(/^(\d+[a-z]?)\s+/i)?.[1];
+  if (num) {
+    const street = full.replace(/^\d+[a-z]?\s+/i, '');
+    for (const t of [() => nominatim(`${street}, ${cityLabel}`), () => photon(`${street}, ${cityLabel}`)]) {
+      try {
+        const hits = (await t()).filter((h: { pos: LatLng }) => inArea(h.pos));
+        if (hits.length) return dedupe(hits).map((h: AddressResult) => ({ ...h, label: `${num} ${h.label.replace(/^\d+[a-z]?\s+/i, '')} (on the street)` }));
+      } catch { failures++; }
+    }
+  }
+  if (failures >= tries.length) throw new Error('unavailable');
+  return [];
+}
+function dedupe(list: { label: string; pos: LatLng }[]): AddressResult[] {
+  const seen = new Set<string>();
+  return list.filter(h => { const k = `${h.pos[0].toFixed(4)},${h.pos[1].toFixed(4)}`; if (seen.has(k)) return false; seen.add(k); return true; })
+    .map(h => ({ label: h.label, pos: h.pos }));
 }
 
 /** Street address for a point (used when a station is placed by tapping the map). */
