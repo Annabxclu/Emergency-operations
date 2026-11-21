@@ -208,11 +208,13 @@ export function IncidentDetail({ id }: { id: string }) {
                 {list.map(p => {
                   const pct = p.status === 'untreated' ? 100 : p.status === 'treating' ? Math.max(0, Math.min(100, ((p.until ?? now) - now) / p.treatSec * 100)) : 0;
                   const label = p.status === 'treating' ? 'Treating' : p.status === 'transport' ? 'To hospital' : p.status === 'released' ? 'Released' : 'Untreated';
+                  const timer = p.status === 'treating' ? `${dur(Math.max(0, (p.until ?? now) - now))} left` : p.status === 'untreated' ? `${dur(p.treatSec)} to treat` : '';
                   return (
                     <div key={p.id} className={`patient ${p.status}`} data-testid="patient-card" data-status={p.status}>
                       <div className="pname">{p.name}</div>
                       <div className="pbar"><span style={{ width: `${pct}%` }} /></div>
-                      <div className="pstate">{label}</div>
+                      <div className="pstate" data-testid="patient-state">{label}</div>
+                      {timer && <div className="ptime">{timer}</div>}
                     </div>
                   );
                 })}

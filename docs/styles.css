@@ -434,3 +434,6 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .radio-top { display: flex; justify-content: space-between; gap: 8px; }
 .radio-kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .radio-text { font-size: 14px; line-height: 1.35; margin-top: 1px; }
+.patient .ptime { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 1px; }
+.patient.treating .ptime { color: #f5a524; }
+.patient.untreated .ptime { opacity: .6; font-weight: 500; font-size: 11px; }
