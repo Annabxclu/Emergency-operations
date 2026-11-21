@@ -458,3 +458,4 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .row-patients .rp.more { background: rgba(255,255,255,.07); color: var(--muted); }
 .expanded-note { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: #f5a524; }
 .tag.warn { background: rgba(245,165,36,.18); color: #f5c46b; }
+.row-credits { font-size: 13px; font-weight: 700; color: #6fd3a2; margin-top: 3px; font-variant-numeric: tabular-nums; }

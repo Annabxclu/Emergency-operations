@@ -110,6 +110,7 @@ export function DispatchList() {
               </div>
               <div className="row-right">
                 <Chip tone={st.tone}>{st.label}</Chip>
+                <div className="row-credits" data-testid="row-credits">{inc.reward ? money(inc.reward) : 'Paid at hospital'}</div>
                 <div className="timer">{timerText(game, inc)}</div>
               </div>
             </button>
