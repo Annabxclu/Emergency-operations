@@ -470,3 +470,12 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .mission-row { flex-wrap: wrap; }
 .row-bars { flex-basis: 100%; display: flex; flex-direction: column; gap: 2px; padding-left: 52px; }
 .row-bars .bar-label { width: 66px; white-space: nowrap; overflow: visible; }
+
+/* Vehicle map pins: a drawing of the vehicle in a card with a pointer */
+.vpin { position: relative; width: 50px; height: 31px; display: grid; place-items: center; background: #fff; border: 2.5px solid var(--c); border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,.4); transition: transform .15s; }
+.vpin::after { content: ''; position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); border: 6px solid transparent; border-top: 7px solid var(--c); border-bottom: 0; }
+.vpin svg { width: 42px; height: 23px; display: block; }
+.vpin.onscene { background: #ecfdf3; }
+.vpin.returning { opacity: .7; }
+.vpin.transporting { background: #fff7ed; }
+.vpin.sel { transform: scale(1.18); box-shadow: 0 0 0 3px #fff, 0 0 0 6px rgba(61,130,246,.6); }

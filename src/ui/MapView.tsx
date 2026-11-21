@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Game } from '../engine/game';
 import type { LatLng, Vehicle } from '../engine/types';
 import { dept, stationType, vehicleType } from '../data/departments';
+import { artFor, vehicleSvg } from './vehicleArt';
 import { glyph } from './icons';
 
 declare const L: any; // Leaflet, loaded from CDN in index.html
@@ -178,10 +179,14 @@ export function MapView(props: Props) {
           if (!m) { m = clickable(L.marker(v.pos, { zIndexOffset: 500 }), { kind: 'vehicle', id: v.id }); layers.vehicles.addLayer(m); markers.vehicles.set(v.id, m); }
           m.setLatLng(v.pos);
           const isSel = selected?.kind === 'vehicle' && selected.id === v.id;
-          setIcon(m, `${v.status}${isSel}`, () => L.divIcon({
-            className: '', iconSize: [26, 26], iconAnchor: [13, 13],
-            html: `<div class="mk veh ${v.status}${isSel ? ' sel' : ''}" data-id="${v.id}" style="--c:${dept(t.dept).color}">${t.short}</div>`,
-          }));
+          setIcon(m, `${v.status}${isSel}`, () => {
+            const art = artFor(t);
+            const color = art === 'ambulance' ? '#dc2626' : dept(t.dept).color;
+            return L.divIcon({
+              className: '', iconSize: [50, 38], iconAnchor: [25, 38],
+              html: `<div class="vpin ${v.status}${isSel ? ' sel' : ''}" data-id="${v.id}" style="--c:${dept(t.dept).color}" title="${v.name}">${vehicleSvg(art, color)}</div>`,
+            });
+          });
         }
         if (v.route && ['enroute', 'returning', 'dispatched', 'transporting'].includes(v.status)) {
           rIds.add(v.id);
