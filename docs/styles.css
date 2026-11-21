@@ -479,3 +479,7 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .vpin.returning { opacity: .7; }
 .vpin.transporting { background: #3a2410; }
 .vpin.sel { transform: scale(1.18); box-shadow: 0 0 0 3px #fff, 0 0 0 6px rgba(61,130,246,.6); }
+/* Views get their own full-width row; sort sits on the right below */
+.list-tools { flex-wrap: wrap; }
+.list-tools .seg.views { flex: 1 1 100%; }
+.list-tools .sort-select { margin-left: auto; height: 34px; }

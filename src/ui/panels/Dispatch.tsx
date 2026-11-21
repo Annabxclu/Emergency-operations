@@ -57,6 +57,7 @@ const SORTS = [
 ];
 const VIEWS = [
   { id: 'all', label: 'All', test: (_s: string, _i: Incident) => true },
+  { id: 'new', label: '🆕 New', test: (st: string, i: Incident) => st === 'pending' && i.workRemaining == null },
   { id: 'enroute', label: '🚨 En route', test: (st: string) => st === 'responding' || st === 'followup' },
   { id: 'missing', label: '⚠️ Missing', test: (st: string, i: Incident) => st === 'onscene' || (st === 'pending' && i.workRemaining != null) },
 ];
