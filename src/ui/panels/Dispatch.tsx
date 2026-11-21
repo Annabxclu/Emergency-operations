@@ -107,7 +107,7 @@ export function DispatchList() {
                 <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}{inc.expandedFrom && <span className="tag warn">Expanded</span>}</div>
                 <div className="row-sub">{inc.address} · {inc.district}</div>
                 {inc.patientList && inc.patientList.length > 0 && <RowPatients inc={inc} now={game.state.time} />}
-                {(inc.status === 'working' || inc.workRemaining != null) && <div className={`progress ${inc.status !== 'working' ? 'paused' : ''}`}><span style={{ width: `${workPct(game, inc)}%` }} /></div>}
+                {(inc.status === 'working' || inc.workRemaining != null) && <div className={`progress ${inc.status !== 'working' ? 'paused' : ''}`}><span style={{ width: `${100 - workPct(game, inc)}%` }} /></div>}
               </div>
               <div className="row-right">
                 <Chip tone={st.tone}>{st.label}</Chip>
@@ -248,11 +248,11 @@ export function IncidentDetail({ id }: { id: string }) {
       })()}
 
       {!closed && inc.status === 'working' && (
-        <div className="progress big"><span style={{ width: `${workPct(game, inc)}%` }} /></div>
+        <div className="progress big"><span style={{ width: `${100 - workPct(game, inc)}%` }} /></div>
       )}
       {!closed && inc.status !== 'working' && inc.workRemaining != null && (
         <>
-          <div className="progress big paused"><span style={{ width: `${workPct(game, inc)}%` }} /></div>
+          <div className="progress big paused"><span style={{ width: `${100 - workPct(game, inc)}%` }} /></div>
           <div className="warnbox" style={{ marginTop: 8 }}>Work paused — a required unit left the scene. It resumes where it stopped once all required units are back.</div>
         </>
       )}
