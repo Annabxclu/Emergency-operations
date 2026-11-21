@@ -259,6 +259,8 @@ export interface CityState {
 
 export interface Settings {
   theme?: string;          // background color theme
+  pinBg?: string;          // vehicle map pins: 'dark' | 'light' | '#rrggbb'
+  pinBorder?: 'dept' | 'status'; // pin outline shows the department or the radio status
   speed: number;
   routingUrl: string;
   tileStyle: string;

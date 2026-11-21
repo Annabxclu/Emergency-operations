@@ -1,4 +1,25 @@
-import type { VehicleTypeDef } from '../engine/types';
+import type { Settings, VehicleStatus, VehicleTypeDef } from '../engine/types';
+import { VEHICLE_STATUS } from './format';
+
+const lum = (h: string) => { const n = parseInt(h.slice(1), 16); return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255); };
+const isHex = (h: string) => /^#[0-9a-f]{6}$/i.test(h);
+
+/** The pin background chosen in Settings. */
+export function pinBackground(s: Settings) { return s.pinBg === 'light' ? '#f8fafc' : s.pinBg && isHex(s.pinBg) ? s.pinBg : '#1c232c'; }
+
+/** A vehicle pin: drawing on the chosen background, outlined by department or by radio status. */
+export function pinHtml(art: Art, deptColor: string, status: VehicleStatus, s: Settings, extra = '') {
+  const bg = pinBackground(s);
+  const darkBg = lum(bg) < 110;
+  let color = art === 'ambulance' ? '#dc2626' : deptColor;
+  // Keep the drawing visible against the background.
+  if (isHex(color) && darkBg && lum(color) < 70) color = '#9aa7b6';
+  if (isHex(color) && !darkBg && lum(color) > 215) color = '#64748b';
+  const st = VEHICLE_STATUS[status];
+  const border = s.pinBorder === 'status' ? st.color : deptColor;
+  const badge = s.pinBorder === 'status' ? `<b class="vcode" style="background:${st.color}">${st.code}</b>` : '';
+  return `<div class="vpin ${status} ${darkBg ? 'on-dark' : 'on-light'}" style="--c:${border};--bg:${bg}" ${extra}>${vehicleSvg(art, color)}${badge}</div>`;
+}
 
 // Original side-view vehicle drawings for the map markers (viewBox 0 0 40 22, facing right).
 

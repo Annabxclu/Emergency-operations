@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Game } from '../engine/game';
 import type { LatLng, Vehicle } from '../engine/types';
 import { dept, stationType, vehicleType } from '../data/departments';
-import { artFor, vehicleSvg } from './vehicleArt';
+import { artFor, pinHtml } from './vehicleArt';
 import { glyph } from './icons';
 
 declare const L: any; // Leaflet, loaded from CDN in index.html
@@ -179,17 +179,11 @@ export function MapView(props: Props) {
           if (!m) { m = clickable(L.marker(v.pos, { zIndexOffset: 500 }), { kind: 'vehicle', id: v.id }); layers.vehicles.addLayer(m); markers.vehicles.set(v.id, m); }
           m.setLatLng(v.pos);
           const isSel = selected?.kind === 'vehicle' && selected.id === v.id;
-          setIcon(m, `${v.status}${isSel}`, () => {
-            const art = artFor(t);
-            const dc = dept(t.dept).color;
-            // Very dark department colors would vanish on the dark pin: lighten them.
-            const lum = (h: string) => { const n = parseInt(h.slice(1), 16); return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255); };
-            const color = art === 'ambulance' ? '#dc2626' : /^#[0-9a-f]{6}$/i.test(dc) && lum(dc) < 70 ? '#9aa7b6' : dc;
-            return L.divIcon({
-              className: '', iconSize: [50, 38], iconAnchor: [25, 38],
-              html: `<div class="vpin ${v.status}${isSel ? ' sel' : ''}" data-id="${v.id}" style="--c:${dept(t.dept).color}" title="${v.name}">${vehicleSvg(art, color)}</div>`,
-            });
-          });
+          const ps = game.state.settings;
+          setIcon(m, `${v.status}${isSel}${ps.pinBg}${ps.pinBorder}`, () => L.divIcon({
+            className: '', iconSize: [50, 38], iconAnchor: [25, 38],
+            html: pinHtml(artFor(t), dept(t.dept).color, v.status, ps, `data-id="${v.id}" title="${v.name}"`).replace('class="vpin ', `class="vpin ${isSel ? 'sel ' : ''}`),
+          }));
         }
         if (v.route && ['enroute', 'returning', 'dispatched', 'transporting'].includes(v.status)) {
           rIds.add(v.id);

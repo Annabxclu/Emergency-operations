@@ -6,6 +6,8 @@ import { money } from '../format';
 import { TILE_STYLES } from '../MapView';
 import { exportJson } from '../../services/storage';
 import type { CloudSync } from '../../services/cloudSync';
+import { pinHtml, type Art } from '../vehicleArt';
+import { VEHICLE_STATUS } from '../format';
 import { CloudAccount } from '../Cloud';
 
 export const THEMES = [
@@ -162,6 +164,30 @@ export function SettingsPanel(p: Props) {
             </button>
           ))}
         </div>
+      </Group>
+
+      <Group id="pins" title="Vehicle markers" sub={`${s.pinBg === 'light' ? 'Light' : !s.pinBg || s.pinBg === 'dark' ? 'Dark' : 'Custom'} · ${s.pinBorder === 'status' ? 'status border' : 'department border'}`}>
+        <div className="field"><label>Marker background</label>
+          <div className="seg" data-testid="pin-bg">
+            <button className={!s.pinBg || s.pinBg === 'dark' ? 'on' : ''} onClick={() => { s.pinBg = 'dark'; game.changed(); }} data-testid="pin-bg-dark">Dark</button>
+            <button className={s.pinBg === 'light' ? 'on' : ''} onClick={() => { s.pinBg = 'light'; game.changed(); }} data-testid="pin-bg-light">Light</button>
+            <label className={`color-btn ${s.pinBg?.startsWith('#') ? 'on' : ''}`}>
+              Custom <input type="color" value={s.pinBg?.startsWith('#') ? s.pinBg : '#1c232c'} onChange={(e: any) => { s.pinBg = e.target.value; game.changed(); }} data-testid="pin-bg-color" />
+            </label>
+          </div></div>
+        <div className="field"><label>Marker border shows</label>
+          <div className="seg" data-testid="pin-border">
+            <button className={s.pinBorder !== 'status' ? 'on' : ''} onClick={() => { s.pinBorder = 'dept'; game.changed(); }} data-testid="pin-border-dept">Department</button>
+            <button className={s.pinBorder === 'status' ? 'on' : ''} onClick={() => { s.pinBorder = 'status'; game.changed(); }} data-testid="pin-border-status">Status</button>
+          </div></div>
+        {s.pinBorder === 'status' && (
+          <div className="status-legend">
+            {(['returning', 'available', 'enroute', 'onscene', 'transporting', 'handover'] as const).map(k => (
+              <span key={k}><i style={{ background: VEHICLE_STATUS[k].color }} /><b>{VEHICLE_STATUS[k].code}</b> {VEHICLE_STATUS[k].label}</span>
+            ))}
+          </div>
+        )}
+        <div className="pin-preview" data-testid="pin-preview" dangerouslySetInnerHTML={{ __html: ['engine', 'ambulance', 'car'].map((a, i) => pinHtml(a as Art, ['#dc2626', '#dc2626', '#1e66f5'][i], (['enroute', 'transporting', 'onscene'] as const)[i], s)).join('') }} />
       </Group>
 
       <Group id="map" title="Map" sub="Map style, coverage areas">
