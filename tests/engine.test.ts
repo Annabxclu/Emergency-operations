@@ -367,6 +367,22 @@ async function run(g: Game, seconds: number, step = 1) {
     }
   }
 
+  // MissionChief expansions: a finished call can turn into a bigger one at the same address.
+  {
+    const gx = new Game(newGameState(), fake);
+    gx.placeStation('fire_station', [33.755, -84.39]); gx.placeStation('police_precinct', [33.77, -84.385]); gx.placeStation('ems_station', [33.76, -84.37]);
+    const car = INCIDENT_TYPES.find(t => t.name === 'Burning car' && !t.id.endsWith('_tow'))!;
+    const opts = gx.expansionsFor(car.id).map(t => t.name);
+    assert(opts.includes('Burning trailer') || opts.includes('Garage fire'), `Burning car can expand into ${opts.join(', ') || 'nothing'}`);
+    const call = await gx.spawnIncident(car.id);
+    const before = gx.city.incidents.length;
+    const next = (gx as any).maybeExpand(call, true);
+    assert(next && next.address === call!.address && next.pos[0] === call!.pos[0] && next.expandedFrom === 'Burning car', `expansion comes in at the same address (${next?.name} at ${next?.address})`);
+    assert(gx.city.incidents.length === before + 1 && gx.radioLog()[0].text.includes('expanded into'), 'expanded call is on the board and announced on the radio');
+    const owned = new Set(gx.eligibleTypes().map(t => t.id));
+    assert(owned.has(next.typeId), 'only expands into missions you can get');
+  }
+
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
   {
     const old = JSON.parse(JSON.stringify(newGameState()));

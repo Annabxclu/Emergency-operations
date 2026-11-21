@@ -157,7 +157,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
         const inc = c.incidents.find(i => i.id === e.id);
         if (inc && game.state.settings.sound && !inc.parentId) playAlert(inc.severity >= 3 ? 'major' : 'call');
         if (inc && inc.parentId) break; // major event children are summarized by the event toast
-        if (inc) toast(`New call: ${inc.name} · ${inc.district}`, inc.severity >= 3 ? 'bad' : 'warn', () => openRoot({ kind: 'incident', id: inc.id }));
+        if (inc) toast(inc.expandedFrom ? `${inc.expandedFrom} expanded into ${inc.name} · ${inc.district}` : `New call: ${inc.name} · ${inc.district}`, inc.severity >= 3 ? 'bad' : 'warn', () => openRoot({ kind: 'incident', id: inc.id }));
         break;
       }
       case 'incident_escalated': {

@@ -10,6 +10,8 @@ import {
   dept, qualification, stationType, stationTypeForDept, vehicleType, ACADEMIES, isTrainable } from '../data/departments';
 import { INCIDENT_TYPES, incidentType, CATEGORY_DEPT } from '../data/incidents';
 import { STAFF_TRAININGS } from '../data/staffRequirements';
+import { EXPANSION_CHANCE, EXPANSION_MAP } from '../data/expansions';
+import { ALIAS } from '../data/missions';
 import { HOSPITAL, SPECIALTIES, admissionFee, specialtyForText } from '../data/hospitals';
 import { TUNING } from '../data/tuning';
 import { AGREEMENTS, GOAL_TEMPLATES, RESEARCH, extensionsFor, type ModKey } from '../data/progression';
@@ -1415,7 +1417,33 @@ export class Game {
     c.resolved.unshift(inc);
     if (c.resolved.length > 40) c.resolved.length = 40;
     this.emit({ type: 'incident_resolved', id: inc.id, outcome, payout });
+    if (outcome !== 'failed') this.maybeExpand(inc);
     this.changed();
+  }
+
+  /** Bigger missions a finished call can turn into, that the player can currently get. */
+  expansionsFor(typeId: string): IncidentTypeDef[] {
+    const t = incidentType(typeId);
+    const key = t.name.toLowerCase();
+    const targets = EXPANSION_MAP.get(ALIAS[key] ?? key) ?? EXPANSION_MAP.get(key);
+    if (!targets) return [];
+    const eligible = new Set(this.eligibleTypes().map(x => x.id));
+    return INCIDENT_TYPES.filter(x => {
+      const k = x.name.toLowerCase();
+      return (targets.includes(k) || targets.includes(ALIAS[k] ?? '')) && eligible.has(x.id);
+    });
+  }
+
+  /** MissionChief style: a finished call sometimes expands into a bigger one at the same address. */
+  private maybeExpand(inc: Incident, force = false) {
+    if (!force && Math.random() >= EXPANSION_CHANCE) return null;
+    const options = this.expansionsFor(inc.typeId);
+    if (!options.length) return null;
+    const t = this.weightedPick(options);
+    if (!t) return null;
+    const c = this.city;
+    const next = this.makeIncident(t, c, this.cityDef, inc.pos, '', null, inc);
+    return next;
   }
 
   /** All units on scene within the first half of the original response window. */
@@ -1631,10 +1659,10 @@ export class Game {
     }
   }
 
-  private makeIncident(t: IncidentTypeDef, c: CityState, def: CityDef, pos: LatLng, street: string, parentId: string | null): Incident {
-    const district = this.districtFor(pos, def);
+  private makeIncident(t: IncidentTypeDef, c: CityState, def: CityDef, pos: LatLng, street: string, parentId: string | null, from?: Incident): Incident {
+    const district = from?.district ?? this.districtFor(pos, def);
     const num = (Math.floor(rand(1, 60)) * 2 + (Math.random() < 0.5 ? 1 : 0)) * 10 + Math.floor(rand(0, 9));
-    const address = street ? `${num} ${street}` : `Near ${district}`;
+    const address = from?.address ?? (street ? `${num} ${street}` : `Near ${district}`);
     const range = (r?: [number, number]) => (r ? Math.round(rand(r[0], r[1])) : 0);
     c.incidentCounter++;
     const inc: Incident = {
@@ -1645,6 +1673,7 @@ export class Game {
       escalated: false, late: false, partial: false, status: 'pending', workUntil: null, workStartedAt: null,
       reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
       patients: range(t.patients), prisoners: range(t.prisoners), parentId,
+      expandedFrom: from?.name,
     };
     // Each ambulance carries one patient and each police car one suspect, so a call needs
     // one of each per person. Never generate more people than the player can move.
@@ -1672,7 +1701,7 @@ export class Game {
     // calls that don't point to one need general care.
     if (inc.patients > 0) inc.specialty = specialtyForText(`${inc.name} ${inc.description}`);
     c.incidents.push(inc);
-    this.inCity(c.cityId, () => this.radio('call', `New call: ${inc.name}${inc.address ? ` at ${inc.address}` : ''}`, null, inc));
+    this.inCity(c.cityId, () => this.radio(from ? 'alert' : 'call', from ? `${from.name} has expanded into ${inc.name} at ${inc.address}` : `New call: ${inc.name}${inc.address ? ` at ${inc.address}` : ''}`, null, inc));
     this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
     this.changed();
     return inc;

@@ -30,7 +30,7 @@ def main():
                 page.mouse.click(x, y); page.click('[data-testid=build-confirm]'); page.wait_for_timeout(150)
             page.wait_for_timeout(400)
             if page.locator('text=Later').count(): page.click('text=Later')
-            page.evaluate("() => window.__game.spawnIncident()"); page.wait_for_timeout(300)
+            page.evaluate("() => { const g = window.__game; return g.spawnIncident(g.eligibleTypes().find(t => t.patients && t.patients[0] > 0)?.id); }"); page.wait_for_timeout(300)
 
             page.click('[data-testid=tab-dispatch]')
             page.click('[data-testid=tab-vehicles]')
@@ -48,6 +48,8 @@ def main():
             check(b2['width'] < b1['width'] - 40 and b2['height'] < b1['height'] - 80, 'radio window resizes from its corner')
             vbar = page.locator('[data-testid=win-bar-vehicles]').bounding_box()
             page.mouse.move(vbar['x'] + 60, vbar['y'] + 15); page.mouse.down(); page.mouse.move(vbar['x'] + 300, vbar['y'] + 15, steps=6); page.mouse.up()
+            check(page.locator('[data-testid=win-dispatch] [data-testid=row-patients]').count() > 0, 'patients and their status show on the call list')
+            page.locator('[data-testid=win-dispatch]').screenshot(path=os.path.join(shots, 'ipad-dispatch-list.png'))
             # Opening a call from the dispatch list stays inside the Dispatch window
             page.locator('[data-testid=win-dispatch] .row').first.click()
             page.wait_for_timeout(200)

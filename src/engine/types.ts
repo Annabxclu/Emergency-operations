@@ -215,6 +215,8 @@ export interface Incident {
   patients: number;
   prisoners: number;
   parentId?: string | null;
+  /** Came in at the same address after this call finished (MissionChief expansion). */
+  expandedFrom?: string;
 }
 
 export interface LedgerEntry { t: number; amount: number; cat: string; note: string }

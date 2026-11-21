@@ -52,6 +52,23 @@ const VIEWS = [
 let lastSort = 'oldest'; // remembered while the app is open
 let lastView = 'all';
 
+/** Patient names with their treatment countdown, shown on the call list. */
+function RowPatients({ inc, now }: { inc: Incident; now: number }) {
+  const list = inc.patientList ?? [];
+  const shown = list.slice(0, 6);
+  return (
+    <div className="row-patients" data-testid="row-patients">
+      {shown.map(p => (
+        <span key={p.id} className={`rp ${p.status}`}>
+          {p.name}{' '}
+          <b>{p.status === 'treating' ? dur(Math.max(0, (p.until ?? now) - now)) : p.status === 'untreated' ? 'waiting' : p.status === 'transport' ? 'hospital' : 'released'}</b>
+        </span>
+      ))}
+      {list.length > shown.length && <span className="rp more">+{list.length - shown.length} more</span>}
+    </div>
+  );
+}
+
 export function DispatchList() {
   const { game, push } = useCtx();
   const c = game.city;
@@ -86,8 +103,9 @@ export function DispatchList() {
             <button key={inc.id} className={`row mission-row st-${game.shownStatus(inc)}`} onClick={() => push({ kind: 'incident', id: inc.id })} data-testid="incident-row">
               <IncIcon inc={inc} />
               <div className="grow">
-                <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}</div>
+                <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}{inc.expandedFrom && <span className="tag warn">Expanded</span>}</div>
                 <div className="row-sub">{inc.address} · {inc.district}</div>
+                {inc.patientList && inc.patientList.length > 0 && <RowPatients inc={inc} now={game.state.time} />}
                 {(inc.status === 'working' || inc.workRemaining != null) && <div className={`progress ${inc.status !== 'working' ? 'paused' : ''}`}><span style={{ width: `${workPct(game, inc)}%` }} /></div>}
               </div>
               <div className="row-right">
@@ -179,6 +197,7 @@ export function IncidentDetail({ id }: { id: string }) {
       <div className="inc-info">
         <div className="addr" onClick={() => focus(inc.pos, 16)}>{inc.address}<span className="muted"> · {inc.district}</span></div>
         <p className="desc">{inc.description}</p>
+        {inc.expandedFrom && <p className="expanded-note" data-testid="expanded-from">↗ Expanded from {inc.expandedFrom}</p>}
         <div className="kv">
           {!closed && <span>{timerText(game, inc)}</span>}
           {closed ? <span className={inc.payout < 0 ? 'bad' : 'ok'}>{money(inc.payout)}</span> : <span>{inc.reward ? `Reward ${money(inc.reward)}` : 'No reward · your hospital earns per patient'}</span>}

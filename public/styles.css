@@ -448,3 +448,13 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .win-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 6px 14px 18px; overscroll-behavior: contain; }
 .win-size { position: absolute; right: 0; bottom: 0; width: 26px; height: 26px; cursor: nwse-resize; touch-action: none;
   background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.25) 50%, rgba(255,255,255,.25) 58%, transparent 58%, transparent 70%, rgba(255,255,255,.25) 70%, rgba(255,255,255,.25) 78%, transparent 78%); }
+
+/* Patients on the call list */
+.row-patients { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.row-patients .rp { font-size: 11.5px; padding: 2px 7px; border-radius: 9px; background: rgba(229,72,77,.14); color: #f3a5a7; white-space: nowrap; }
+.row-patients .rp b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.row-patients .rp.treating { background: rgba(245,165,36,.16); color: #f5c46b; }
+.row-patients .rp.transport, .row-patients .rp.released { background: rgba(48,164,108,.15); color: #6fd3a2; }
+.row-patients .rp.more { background: rgba(255,255,255,.07); color: var(--muted); }
+.expanded-note { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: #f5a524; }
+.tag.warn { background: rgba(245,165,36,.18); color: #f5c46b; }
