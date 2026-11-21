@@ -345,6 +345,12 @@ def main():
             check(game('g.city.resolved.length') >= 1, 'call history restored')
 
             # --- Settings / export
+            page.click('[data-testid=tab-radio]')
+            page.wait_for_selector('[data-testid=radio-msg]', timeout=5000)
+            check(page.locator('[data-testid=radio-msg][data-kind=call]').count() > 0 and page.locator('[data-testid=radio-msg][data-kind=dispatch]').count() > 0, f"radio tab shows calls and dispatches ({page.locator('[data-testid=radio-msg]').count()} messages)")
+            shot('radio')
+            page.click('[data-testid=radio-units]')
+            check(page.locator('[data-testid=radio-msg][data-kind=call]').count() == 0, 'radio Units view hides new-call messages')
             page.click('.gear')
             check(page.locator('[data-testid=export-btn]').count() == 0, 'settings groups start collapsed')
             check('First Responders' in page.inner_text('.topbar') and 'First Responders' in page.title(), 'game is named First Responders (top bar and page title)')

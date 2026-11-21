@@ -225,8 +225,13 @@ export interface FinanceBucket {
   byDept: Record<string, { income: number; expense: number }>;
 }
 
+export type RadioKind = 'call' | 'dispatch' | 'onscene' | 'patient' | 'transport' | 'clear' | 'available' | 'done' | 'alert';
+/** One line of radio traffic: what a unit or dispatch just did. */
+export interface RadioMsg { at: number /* wall-clock ms */; kind: RadioKind; text: string; unit?: string; vehicleId?: string; incidentId?: string }
+
 export interface CityState {
   cityId: string;
+  radio?: RadioMsg[];
   hospitals?: OwnedHospital[];
   academies?: Record<string, { classrooms: number }>; // fire / police academies (classrooms beyond the first)
   money: number;

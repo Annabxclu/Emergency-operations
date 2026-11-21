@@ -4,8 +4,7 @@
 
 import type {
   CityDef, CityState, Employee, Facility, IncidentTypeDef, Route, RouteData, VehicleTypeDef, FinanceBucket, GameEvent, GameState, Incident, LatLng, Outcome,
-  Requirement, RoutingProvider, Station, Vehicle,
-} from './types';
+  Requirement, RoutingProvider, Station, Vehicle, RadioKind, RadioMsg } from './types';
 import {
   CAPABILITIES, DEPARTMENTS, STARTER_KITS, STARTING_MONEY, STATION_TYPES, VEHICLE_TYPES,
   dept, qualification, stationType, stationTypeForDept, vehicleType, ACADEMIES, isTrainable } from '../data/departments';
@@ -180,6 +179,16 @@ export class Game {
   subscribe(fn: () => void) { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; }
   onEvent(fn: (e: GameEvent) => void) { this.eventListeners.add(fn); return () => { this.eventListeners.delete(fn); }; }
   changed() { this.version++; this.listeners.forEach(f => f()); }
+  /** Radio traffic for the Radio tab (newest first, last 250 kept per city). */
+  private radio(kind: RadioKind, text: string, v?: Vehicle | null, inc?: Incident | null) {
+    const c = this.city;
+    if (!c) return;
+    const list = c.radio ?? (c.radio = []);
+    list.unshift({ at: Date.now(), kind, text, unit: v?.name, vehicleId: v?.id, incidentId: inc?.id });
+    if (list.length > 250) list.length = 250;
+  }
+  radioLog(): RadioMsg[] { return this.city.radio ?? []; }
+
   private emit(e: GameEvent, cityId = this.cityId) { const ev = { ...e, cityId }; this.eventListeners.forEach(f => f(ev)); }
   private id(prefix: string) { return `${prefix}${this.state.seq++}`; }
 
@@ -880,10 +889,12 @@ export class Game {
     for (const v of sent) {
       const t = vehicleType(v.typeId);
       v.turnoutUntil = this.state.time + (v.status === 'returning' ? 5 : t.turnoutSec * this.mod('turnout') * TUNING.turnoutMultiplier);
+      const wasReturning = v.status === 'returning';
       v.status = 'dispatched';
       v.incidentId = inc.id;
       v.route = null;
       this.requestRoute(v, inc.pos);
+      this.radio('dispatch', `${wasReturning ? 'diverted' : 'responding'} to ${inc.name}${inc.address ? ` at ${inc.address}` : ''}`, v, inc);
     }
     if (inc.status === 'pending') inc.status = 'responding';
     this.changed();
@@ -908,6 +919,7 @@ export class Game {
       if (v.followUp) throw new ActionError(`${v.name} already has a follow-up.`);
       if (!ok.includes(id)) throw new ActionError(`${v.name} can't follow up right now.`);
       v.followUp = inc.id;
+      this.radio('dispatch', `will respond to ${inc.name} after current assignment`, v, inc);
     }
     this.changed();
   }
@@ -999,16 +1011,22 @@ export class Game {
         this.requestRoute(v, target.pos);
         if (target.status === 'pending') target.status = 'responding';
         this.emit({ type: 'notice', text: `${v.name} is following up to ${target.name}.` });
+        this.radio('dispatch', `clear, en route to ${target.name} (follow-up)`, v, target);
         return;
       }
     }
     const st = this.station(v.stationId);
+    const from = v.incidentId ? this.incident(v.incidentId) : null;
+    const where = from ? ` from ${from.name}` : v.cargo ? ` at ${v.cargo.destName}` : '';
     v.incidentId = null;
     if (!st || distanceM(v.pos, st.pos) < 25) {
+      const wasBusy = v.status !== 'available';
       v.status = 'available'; v.route = null; v.routeReq++;
       if (st) v.pos = [...st.pos] as LatLng;
+      if (wasBusy) this.radio('available', `clear${where}, in quarters and available`, v, from);
       return;
     }
+    this.radio('clear', `clear${where}, returning to ${st.name}`, v, from);
     v.status = 'returning';
     v.route = null;
     this.requestRoute(v, st.pos);
@@ -1203,7 +1221,7 @@ export class Game {
           if (now >= v.maintenanceUntil) { v.condition = 100; v.status = 'available'; this.changed(); }
           break;
         case 'handover':
-          if (now >= (v.busyUntil ?? 0)) { v.cargo = null; this.sendHome(v); this.changed(); }
+          if (now >= (v.busyUntil ?? 0)) { this.sendHome(v); v.cargo = null; this.changed(); }
           break;
       }
     }
@@ -1230,16 +1248,19 @@ export class Game {
       }
       v.status = 'handover';
       v.busyUntil = this.state.time + TUNING.handoverSeconds;
+      this.radio('transport', `arrived at ${cg.destName}, handing over ${cg.count} ${cg.kind === 'patient' ? (cg.count > 1 ? 'patients' : 'patient') : (cg.count > 1 ? 'suspects' : 'suspect')}${cg.fee ? ` (+$${cg.fee.toLocaleString()})` : ''}`, v);
       this.emit({ type: 'transport_done', id: v.id, kind: cg.kind, count: cg.count, fee: cg.fee, dest: cg.destName });
     } else if (v.status === 'returning') {
       const st = this.station(v.stationId);
       if (st) v.pos = [...st.pos] as LatLng;
       v.status = 'available';
+      this.radio('available', `back in quarters${st ? ` at ${st.name}` : ''}, available`, v);
     } else {
       v.status = 'onscene';
       v.calls++;
       const inc = v.incidentId ? this.incident(v.incidentId) : null;
       if (inc) v.pos = this.scenePos(inc, v);
+      if (inc) this.radio('onscene', `on scene at ${inc.name}`, v, inc);
       this.emit({ type: 'vehicle_arrived', id: v.id, incidentId: v.incidentId || '' });
     }
     this.changed();
@@ -1292,10 +1313,12 @@ export class Game {
         inc.xp = Math.round(inc.xp * 1.5);
         inc.deadline = now + t.deadlineMin * 60 * 0.8;
         this.emit({ type: 'incident_escalated', id: inc.id });
+        this.radio('alert', `${inc.name} has escalated, more units needed`, null, inc);
       } else if (!inc.late) {
         inc.late = true;
         inc.deadline = now + Math.max(300, t.deadlineMin * 60 * 0.6);
         this.emit({ type: 'incident_late', id: inc.id });
+        this.radio('alert', `${inc.name} is waiting too long for units`, null, inc);
       } else if (onScene.length > 0) {
         inc.partial = true;
         this.startWork(inc);
@@ -1368,6 +1391,7 @@ export class Game {
       for (const v of onScene) for (const e of this.crew(v.id)) e.xp += 5 * inc.severity;
     }
     c.stats.calls++;
+    this.radio(outcome === 'failed' ? 'alert' : 'done', outcome === 'failed' ? `${inc.name} failed` : `${inc.name} complete${payout ? ` (+$${Math.round(payout).toLocaleString()})` : ''}`, null, inc);
     inc.status = 'resolved';
     inc.outcome = outcome;
     inc.resolvedAt = this.state.time;
@@ -1479,12 +1503,13 @@ export class Game {
       if (cur && now >= (cur.until ?? 0)) {
         cur.status = cur.needsTransport ? 'transport' : 'released';
         if (cur.needsTransport) v.patientLoad = (v.patientLoad ?? 0) + 1;
+        this.radio('patient', cur.needsTransport ? `${cur.name} needs the hospital` : `${cur.name} treated and released on scene`, v, inc);
         cur = undefined;
         this.changed();
       }
       if (cur) continue;
       const next = (v.patientLoad ?? 0) < cap ? list.find(p => p.status === 'untreated') : undefined;
-      if (next) { next.status = 'treating'; next.vehicleId = v.id; next.until = now + next.treatSec; this.changed(); continue; }
+      if (next) { next.status = 'treating'; next.vehicleId = v.id; next.until = now + next.treatSec; this.radio('patient', `treating ${next.name} at ${inc.name}`, v, inc); this.changed(); continue; }
       if ((v.patientLoad ?? 0) > 0) this.takeToHospital(v, inc);
     }
   }
@@ -1496,6 +1521,8 @@ export class Game {
     const oh = dest.owned ? this.ownedHospital(dest.id) : null;
     if (oh) for (let i = 0; i < n; i++) oh.occupied.push(this.state.time + HOSPITAL.stayHours * 3600);
     v.cargo = { kind: 'patient', count: n, dest: dest.id, destName: dest.name, fee: 0, specialty: inc.specialty };
+    const names = (inc.patientList ?? []).filter(p => p.vehicleId === v.id && p.status === 'transport').map(p => p.name);
+    this.radio('transport', `transporting ${names.length ? names.join(', ') : `${n} patient${n > 1 ? 's' : ''}`} to ${dest.name}`, v, inc);
     v.status = 'transporting';
     v.incidentId = null;
     v.route = null;
@@ -1609,6 +1636,7 @@ export class Game {
     // calls that don't point to one need general care.
     if (inc.patients > 0) inc.specialty = specialtyForText(`${inc.name} ${inc.description}`);
     c.incidents.push(inc);
+    this.inCity(c.cityId, () => this.radio('call', `New call: ${inc.name}${inc.address ? ` at ${inc.address}` : ''}`, null, inc));
     this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
     this.changed();
     return inc;
@@ -1700,6 +1728,7 @@ export class Game {
       const oh = dest.owned ? this.ownedHospital(dest.id) : null;
       if (oh) for (let i = 0; i < n; i++) oh.occupied.push(this.state.time + HOSPITAL.stayHours * 3600);
       v.cargo = { kind: tr.kind, count: n, dest: dest.id, destName: dest.name, fee: 0, specialty: tr.kind === 'patient' ? inc.specialty : undefined };
+      this.radio('transport', `transporting ${n} ${tr.kind === 'patient' ? (n > 1 ? 'patients' : 'patient') : (n > 1 ? 'suspects' : 'suspect')} to ${dest.name}`, v, inc);
       v.status = 'transporting';
       v.incidentId = null;
       v.route = null;

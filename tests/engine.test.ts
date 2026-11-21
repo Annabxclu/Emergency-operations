@@ -327,6 +327,21 @@ async function run(g: Game, seconds: number, step = 1) {
     }
   }
 
+  // Radio: calls, dispatches, arrivals, clears are logged for the Radio tab.
+  {
+    const gr = new Game(newGameState(), fake);
+    gr.placeStation('fire_station', [33.755, -84.39]); gr.placeStation('police_precinct', [33.77, -84.385]); gr.placeStation('ems_station', [33.76, -84.37]);
+    const call = await gr.spawnIncident('fire_alarm');
+    if (call) {
+      gr.dispatch(call.id, gr.recommend(call.id).ids);
+      for (let i = 0; i < 4000 && gr.incident(call.id); i++) { gr.tick(1); if (i % 10 === 0) await flush(); }
+      for (let i = 0; i < 4000 && gr.city.vehicles.some(v => v.status !== 'available'); i++) { gr.tick(1); if (i % 10 === 0) await flush(); }
+      const kinds = new Set(gr.radioLog().map(m => m.kind));
+      assert(['call', 'dispatch', 'onscene', 'done', 'clear', 'available'].every(k => kinds.has(k as any)), `radio logs the whole call (${[...kinds].join(',')})`);
+      assert(gr.radioLog()[gr.radioLog().length - 1].text.startsWith('New call'), 'radio log is newest first');
+    }
+  }
+
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
   {
     const old = JSON.parse(JSON.stringify(newGameState()));

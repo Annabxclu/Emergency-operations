@@ -11,6 +11,7 @@ import { GameCtx, type Ctx, type Route } from './common';
 import { MapView, type MapApi, type Selection } from './MapView';
 import { OUTCOME, money, moneyShort } from './format';
 import { tabIcon } from './icons';
+import { RadioPanel } from './panels/Radio';
 import { DispatchList, IncidentDetail } from './panels/Dispatch';
 import { BuildChooser, StationDetail, StationsList } from './panels/Stations';
 import { VehicleDetail, VehiclesList } from './panels/Vehicles';
@@ -30,17 +31,17 @@ import type { CityDef } from '../engine/types';
 
 const TABS = [
   { id: 'map', label: 'Map' }, { id: 'dispatch', label: 'Dispatch' }, { id: 'stations', label: 'Stations' },
-  { id: 'vehicles', label: 'Vehicles' },
+  { id: 'vehicles', label: 'Vehicles' }, { id: 'radio', label: 'Radio' },
 ];
 const TAB_OF: Record<string, string> = {
   dispatch: 'dispatch', incident: 'dispatch', stations: 'stations', station: 'stations', build: 'stations', hire: 'stations', hospital: 'stations', academy: 'stations',
-  vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'settings', employee: 'settings', finances: 'settings', settings: 'settings', missions: 'settings', research: 'settings', goals: 'settings', real: 'stations',
+  radio: 'radio', vehicles: 'vehicles', vehicle: 'vehicles', personnel: 'settings', employee: 'settings', finances: 'settings', settings: 'settings', missions: 'settings', research: 'settings', goals: 'settings', real: 'stations',
 };
 
 interface Toast { id: number; text: string; tone: string; action?: () => void }
 
 // Panels opened from the tab bar or top bar fill the screen on phones; map taps open a half sheet.
-const FULL_SCREEN = new Set(['dispatch', 'stations', 'vehicles', 'finances', 'settings', 'personnel', 'missions', 'research', 'goals']);
+const FULL_SCREEN = new Set(['dispatch', 'stations', 'vehicles', 'radio', 'finances', 'settings', 'personnel', 'missions', 'research', 'goals']);
 
 export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRouting; firstRun: boolean }) {
   const [, setFrame] = useState(0);
@@ -345,6 +346,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       case 'academy': return <AcademyPanel key={r.dept} dept={r.dept} />;
       case 'hospital': return <HospitalPanel key={r.id} id={r.id} />;
       case 'vehicles': return <VehiclesList />;
+      case 'radio': return <RadioPanel />;
       case 'vehicle': return <VehicleDetail key={r.id} id={r.id} />;
       case 'personnel': return <PersonnelList />;
       case 'employee': return <EmployeeDetail key={r.id} id={r.id} />;
