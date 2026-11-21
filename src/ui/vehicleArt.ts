@@ -2,7 +2,7 @@ import type { VehicleTypeDef } from '../engine/types';
 
 // Original side-view vehicle drawings for the map markers (viewBox 0 0 40 22, facing right).
 
-const W = (cx: number) => `<circle cx="${cx}" cy="18" r="2.9" fill="#1b1f24"/><circle cx="${cx}" cy="18" r="1.2" fill="#9aa4ae"/>`;
+const W = (cx: number) => `<circle cx="${cx}" cy="18" r="2.9" fill="#0b0e12" stroke="#6b7682" stroke-width=".8"/><circle cx="${cx}" cy="18" r="1.2" fill="#b8c1ca"/>`;
 const LIGHTS = (x: number, y: number) => `<rect x="${x}" y="${y}" width="3" height="1.8" rx=".6" fill="#ff3b30"/><rect x="${x + 3}" y="${y}" width="3" height="1.8" rx=".6" fill="#3b82f6"/>`;
 const GLASS = '#cfe9ff';
 
@@ -75,13 +75,13 @@ export function vehicleSvg(art: Art, color: string): string {
         <rect x="2" y="12" width="35" height="1.6" fill="#fff" opacity=".9"/>
         ${LIGHTS(10, 2.8)}${W(9)}${W(31)}`;
       case 'heli': return `
-        <path d="M3 4h30" stroke="#3a434d" stroke-width="1.4" stroke-linecap="round"/>
-        <rect x="17" y="4" width="2" height="3" fill="#3a434d"/>
+        <path d="M3 4h30" stroke="#b8c1ca" stroke-width="1.4" stroke-linecap="round"/>
+        <rect x="17" y="4" width="2" height="3" fill="#b8c1ca"/>
         <path d="M12 9c0-1.8 1.5-3 3.4-3h8.4c3.6 0 7.2 2.4 7.2 5.6S28 16 24.6 16H15.4C13.5 16 12 14.6 12 12.8z" fill="${color}"/>
         <path d="M24 7.3c2.6.4 4.8 2 5.5 4.3h-5.5z" fill="${GLASS}"/>
         <path d="M12.5 10.5H2.5" stroke="${color}" stroke-width="2.2" stroke-linecap="round"/>
         <path d="M2.4 7.6v5" stroke="${color}" stroke-width="1.6" stroke-linecap="round"/>
-        <path d="M14 19h16M17 16v3M27 16v3" stroke="#3a434d" stroke-width="1.2" stroke-linecap="round"/>`;
+        <path d="M14 19h16M17 16v3M27 16v3" stroke="#b8c1ca" stroke-width="1.2" stroke-linecap="round"/>`;
       case 'plane': return `
         <path d="M3 11.5c0-1 .8-1.7 1.8-1.7H31c3 0 5.6 1 6.6 2.2-1 1.2-3.6 2.2-6.6 2.2H4.8C3.8 14.2 3 13.4 3 12.4z" fill="${color}"/>
         <path d="M3.5 10l-1.5-6h3.5l4 6z" fill="${color}"/>
@@ -96,17 +96,17 @@ export function vehicleSvg(art: Art, color: string): string {
         ${LIGHTS(16, 4)}
         <path d="M0 20.5c2 0 2-1 4-1s2 1 4 1 2-1 4-1 2 1 4 1 2-1 4-1 2 1 4 1 2-1 4-1 2 1 4 1 2-1 4-1" stroke="#60a5fa" stroke-width="1" fill="none"/>`;
       case 'tow': return `
-        <rect x="2" y="11.5" width="23" height="4" rx=".8" fill="#4b5563"/>
+        <rect x="2" y="11.5" width="23" height="4" rx=".8" fill="#7b8794"/>
         <path d="M24.5 6h7.5l4.5 5.4V16h-12z" fill="${color}"/>
         <path d="M26 7.4h5.3l3.2 3.8H26z" fill="${GLASS}"/>
-        <path d="M22 11L9 4.5" stroke="#4b5563" stroke-width="2" stroke-linecap="round"/>
-        <path d="M9 4.5v5.5" stroke="#1f2937" stroke-width=".9"/><path d="M7.6 10.2h2.8" stroke="#1f2937" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M22 11L9 4.5" stroke="#9aa4ae" stroke-width="2" stroke-linecap="round"/>
+        <path d="M9 4.5v5.5" stroke="#d6dbe0" stroke-width=".9"/><path d="M7.6 10.2h2.8" stroke="#d6dbe0" stroke-width="1.2" stroke-linecap="round"/>
         <rect x="27" y="4.2" width="5" height="1.8" rx=".6" fill="#f59e0b"/>
         ${W(8)}${W(31)}`;
       case 'trailer': return `
         <rect x="6" y="6" width="26" height="10" rx="1.4" fill="${color}"/>
         <rect x="6" y="11" width="26" height="1.4" fill="#fff" opacity=".85"/>
-        <path d="M32 14h6" stroke="#4b5563" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M32 14h6" stroke="#9aa4ae" stroke-width="1.6" stroke-linecap="round"/>
         ${W(19)}`;
       default: return `
         <rect x="2" y="5" width="23" height="12" rx="1.2" fill="${color}"/>

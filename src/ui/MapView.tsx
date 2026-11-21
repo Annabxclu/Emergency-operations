@@ -181,7 +181,10 @@ export function MapView(props: Props) {
           const isSel = selected?.kind === 'vehicle' && selected.id === v.id;
           setIcon(m, `${v.status}${isSel}`, () => {
             const art = artFor(t);
-            const color = art === 'ambulance' ? '#dc2626' : dept(t.dept).color;
+            const dc = dept(t.dept).color;
+            // Very dark department colors would vanish on the dark pin: lighten them.
+            const lum = (h: string) => { const n = parseInt(h.slice(1), 16); return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255); };
+            const color = art === 'ambulance' ? '#dc2626' : /^#[0-9a-f]{6}$/i.test(dc) && lum(dc) < 70 ? '#9aa7b6' : dc;
             return L.divIcon({
               className: '', iconSize: [50, 38], iconAnchor: [25, 38],
               html: `<div class="vpin ${v.status}${isSel ? ' sel' : ''}" data-id="${v.id}" style="--c:${dept(t.dept).color}" title="${v.name}">${vehicleSvg(art, color)}</div>`,
