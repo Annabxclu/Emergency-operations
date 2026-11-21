@@ -62,6 +62,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const [picker, setPicker] = useState((firstRun ? 'new' : null) as null | 'new' | 'add');
   const menu = false;
   const [hasSave, setHasSave] = useState(!firstRun);
+  const catchUpRef = useRef((() => {}) as () => void);
   const [bonusHidden, setBonusHidden] = useState(false);
   const blocked = useRef(true);
   blocked.current = menu || !!picker;
@@ -116,6 +117,9 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       const dtReal = Math.min(0.25, (now - last) / 1000);
       last = now;
       const speed = game.setupDone && !blocked.current ? game.state.settings.speed : 0;
+      // Back from the background (iOS can run a frame before the visibility event):
+      // simulate the time away instead of losing it.
+      if (game.state.lastSeen && Date.now() - game.state.lastSeen > 5000) catchUpRef.current();
       if (speed > 0) game.tick(dtReal * speed);
       game.state.lastSeen = Date.now();
       if (now - lastUi > 250) { lastUi = now; if (speed > 0) rerender(); }
@@ -198,6 +202,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
 
   // ---------------------------------------------------------- offline progress
   const catchUp = () => {
+    if (!game.setupDone && game.state.lastSeen) { game.state.lastSeen = Date.now(); return; }
     const last = game.state.lastSeen;
     const now = Date.now();
     game.state.lastSeen = now;
@@ -214,6 +219,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     if (Math.abs(r.money) >= 1) parts.push(`${r.money >= 0 ? '+' : ''}${money(r.money)}`);
     if (away >= 60) toast(`While you were away: ${parts.join(' · ')}`, r.failed ? 'warn' : 'info');
   };
+  catchUpRef.current = catchUp;
   useEffect(() => {
     if (!firstRun) catchUp();
     const onVis = () => { if (document.visibilityState === 'visible') catchUp(); };

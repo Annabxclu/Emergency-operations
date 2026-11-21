@@ -342,6 +342,28 @@ async function run(g: Game, seconds: number, step = 1) {
     }
   }
 
+  // Offline: patients keep being treated and transported while the app is closed.
+  {
+    const go = new Game(newGameState(), fake);
+    go.placeStation('fire_station', [33.755, -84.39]); go.placeStation('police_precinct', [33.77, -84.385]); go.placeStation('ems_station', [33.76, -84.37]);
+    let call: any = null;
+    for (const t of INCIDENT_TYPES) {
+      if (!(t.patients && t.patients[0] > 0) || t.requirements.some(r => !['ambulance', 'als'].includes(r.cap))) continue;
+      const c = await go.spawnIncident(t.id);
+      if (c && c.patientList?.length) { call = c; break; }
+    }
+    if (call) {
+      const medic = go.city.vehicles.find(v => go.isMedic(v) && v.status === 'available')!;
+      go.dispatch(call.id, [medic.id]);
+      for (let i = 0; i < 3000 && !call.patientList.some((p: any) => p.status === 'treating'); i++) { go.tick(1); if (i % 10 === 0) await flush(); }
+      assert(call.patientList.some((p: any) => p.status === 'treating'), 'ambulance starts treating before going offline');
+      go.catchUp(2 * 3600);
+      assert(call.patientList.every((p: any) => p.status === 'transport' || p.status === 'released'), 'patients finish treatment while offline');
+      assert(call.status === 'resolved', 'the call completes while offline');
+      assert(go.city.vehicles.every(v => v.status === 'available'), `ambulance transports and returns while offline (${go.city.vehicles.map(v => v.status).join(',')})`);
+    }
+  }
+
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
   {
     const old = JSON.parse(JSON.stringify(newGameState()));

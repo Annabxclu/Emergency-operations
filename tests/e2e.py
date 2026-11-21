@@ -345,6 +345,8 @@ def main():
             check(game('g.city.resolved.length') >= 1, 'call history restored')
 
             # --- Settings / export
+            t0 = game('g.state.time'); page.evaluate('() => { window.__game.state.lastSeen = Date.now() - 600000; }'); page.wait_for_timeout(600)
+            check(game('g.state.time') - t0 >= 500, f"coming back after 10 min catches up the time away ({round(game('g.state.time') - t0)} s)")
             page.click('[data-testid=tab-radio]')
             page.wait_for_selector('[data-testid=radio-msg]', timeout=5000)
             check(page.locator('[data-testid=radio-msg][data-kind=call]').count() > 0 and page.locator('[data-testid=radio-msg][data-kind=dispatch]').count() > 0, f"radio tab shows calls and dispatches ({page.locator('[data-testid=radio-msg]').count()} messages)")
