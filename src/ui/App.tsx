@@ -215,6 +215,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     saveGame(game.state);
     const h = Math.floor(away / 3600), m = Math.round((away % 3600) / 60);
     const parts = [`${h ? `${h}h ` : ''}${m}m away`];
+    if (r.newCalls) parts.push(`${r.newCalls} new call${r.newCalls > 1 ? 's' : ''}`);
     if (r.calls) parts.push(`${r.calls} call${r.calls > 1 ? 's' : ''} closed (${r.successful} successful${r.failed ? `, ${r.failed} failed` : ''})`);
     if (Math.abs(r.money) >= 1) parts.push(`${r.money >= 0 ? '+' : ''}${money(r.money)}`);
     if (away >= 60) toast(`While you were away: ${parts.join(' · ')}`, r.failed ? 'warn' : 'info');

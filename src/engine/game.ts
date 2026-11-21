@@ -147,7 +147,12 @@ export class Game {
   private listeners = new Set<() => void>();
   private eventListeners = new Set<(e: GameEvent) => void>();
   private spawning = false;
+  /** True while catching up after time away (no network; calls are created right away). */
   private noSpawn = false;
+  private offlineCalls = 0;
+  /** Wall-clock ms the simulation is at (during catch-up this runs behind the real clock). */
+  private wallAt: number | null = null;
+  private wall() { return this.wallAt ?? Date.now(); }
   version = 0;
 
   constructor(state: GameState, public routing: RoutingProvider) {
@@ -184,7 +189,7 @@ export class Game {
     const c = this.city;
     if (!c) return;
     const list = c.radio ?? (c.radio = []);
-    list.unshift({ at: Date.now(), kind, text, unit: v?.name, vehicleId: v?.id, incidentId: inc?.id });
+    list.unshift({ at: this.wall(), kind, text, unit: v?.name, vehicleId: v?.id, incidentId: inc?.id });
     if (list.length > 250) list.length = 250;
   }
   radioLog(): RadioMsg[] { return this.city.radio ?? []; }
@@ -1074,14 +1079,18 @@ export class Game {
     if (total < 1) return null;
     const before = Object.values(this.state.cities).map(c => ({ c, money: c.money, calls: c.stats.calls, ok: c.stats.successful, failed: c.stats.failed }));
     this.noSpawn = true;
+    this.offlineCalls = 0;
+    const speed = Math.max(0.1, this.state.settings.speed || 1);
+    const startWall = Date.now() - (total / speed) * 1000;
     try {
       const step = total > 6 * 3600 ? 10 : 3;
       let left = total;
-      while (left > 0) { const dt = Math.min(step, left); this.tick(dt); left -= dt; }
+      while (left > 0) { const dt = Math.min(step, left); this.wallAt = startWall + ((total - left) / speed) * 1000; this.tick(dt); left -= dt; }
     } finally {
       this.noSpawn = false;
+      this.wallAt = null;
     }
-    const sum = { seconds: total, money: 0, calls: 0, successful: 0, failed: 0 };
+    const sum = { seconds: total, money: 0, calls: 0, successful: 0, failed: 0, newCalls: this.offlineCalls };
     for (const b of before) {
       sum.money += b.c.money - b.money; sum.calls += b.c.stats.calls - b.calls;
       sum.successful += b.c.stats.successful - b.ok; sum.failed += b.c.stats.failed - b.failed;
@@ -1436,10 +1445,10 @@ export class Game {
 
   private maybeSpawn() {
     const c = this.city;
-    if (this.noSpawn) { c.nextIncidentAt = Math.max(c.nextIncidentAt, this.state.time + this.spawnInterval()); return; }
     if (this.spawning || this.state.time < c.nextIncidentAt) return;
     if (c.incidents.length >= this.activeCap()) { c.nextIncidentAt = this.state.time + 10; return; }
     c.nextIncidentAt = this.state.time + this.spawnInterval();
+    if (this.noSpawn) { this.spawnOffline(); this.offlineCalls++; return; }
     this.spawnIncident().catch(() => undefined);
   }
 
@@ -1582,13 +1591,17 @@ export class Game {
     }
   }
 
+  private randomPoint(def: CityDef, around: LatLng, radius: number): LatLng {
+    const [[s, w], [n, e]] = def.bounds;
+    const p = destination(around, rand(0, 360), Math.sqrt(Math.random()) * radius * 0.95 + 150);
+    return [Math.min(n, Math.max(s, p[0])), Math.min(e, Math.max(w, p[1]))];
+  }
+
   private async createIncident(t: IncidentTypeDef, c: CityState, def: CityDef, around: LatLng, radius: number, parentId: string | null): Promise<Incident | null> {
     const stateRef = this.state;
-    const [[s, w], [n, e]] = def.bounds;
     let pos: LatLng | null = null, street = '';
     for (let attempt = 0; attempt < 3; attempt++) {
-      let p = destination(around, rand(0, 360), Math.sqrt(Math.random()) * radius * 0.95 + 150);
-      p = [Math.min(n, Math.max(s, p[0])), Math.min(e, Math.max(w, p[1]))];
+      const p = this.randomPoint(def, around, radius);
       let snapped: { pos: LatLng; name: string } | null = null;
       try { snapped = await this.routing.nearest(p); } catch { snapped = null; }
       if (!snapped) { pos = pos || p; break; }          // routing service down: use the raw point
@@ -1596,6 +1609,29 @@ export class Game {
       if (snapped.name) { street = snapped.name; break; } // prefer named streets
     }
     if (this.state !== stateRef || !pos || !this.state.cities[c.cityId]) return null;
+    return this.makeIncident(t, c, def, pos, street, parentId);
+  }
+
+  /** While catching up after time away: create calls right away, without the network
+   *  (streets are reused from earlier calls in this city). */
+  private spawnOffline() {
+    const t = this.weightedPick(this.eligibleTypes());
+    const c = this.city, def = this.cityDef;
+    if (!t || !c.stations.length) return;
+    const primary = CAPABILITIES.find(x => x.id === t.requirements[0].cap)!.dept;
+    const anchors = c.stations.filter(s => s.dept === primary);
+    const anchor = pick(anchors.length ? anchors : c.stations);
+    const streets = [...c.incidents, ...c.resolved].map(i => i.address.replace(/^\d+\s+/, '')).filter(a => a && !a.startsWith('Near '));
+    const street = () => (streets.length ? pick(streets) : '');
+    const parent = this.makeIncident(t, c, def, this.randomPoint(def, anchor.pos, stationType(anchor.typeId).coverageKm * 1000), street(), null);
+    if (parent && t.children) {
+      const allowed = t.children.types.map(incidentType).filter(ct => this.fleetCovers(ct.requirements));
+      const n = Math.min(this.activeCap() - c.incidents.length, Math.round(rand(t.children.count[0], t.children.count[1])));
+      for (let i = 0; i < n && allowed.length; i++) this.makeIncident(pick(allowed), c, def, this.randomPoint(def, parent.pos, t.children.radiusKm * 1000), street(), parent.id);
+    }
+  }
+
+  private makeIncident(t: IncidentTypeDef, c: CityState, def: CityDef, pos: LatLng, street: string, parentId: string | null): Incident {
     const district = this.districtFor(pos, def);
     const num = (Math.floor(rand(1, 60)) * 2 + (Math.random() < 0.5 ? 1 : 0)) * 10 + Math.floor(rand(0, 9));
     const address = street ? `${num} ${street}` : `Near ${district}`;
@@ -1605,7 +1641,7 @@ export class Game {
       id: this.id('i'), number: `${def.prefix}-${String(c.incidentCounter).padStart(5, '0')}`,
       typeId: t.id, name: t.name, category: t.category, pos, address, district, severity: t.severity,
       description: pick(t.descriptions), requirements: t.requirements.map(r => ({ ...r })),
-      createdAt: this.state.time, receivedAt: Date.now(), deadline: this.state.time + t.deadlineMin * 60,
+      createdAt: this.state.time, receivedAt: this.wall(), deadline: this.state.time + t.deadlineMin * 60,
       escalated: false, late: false, partial: false, status: 'pending', workUntil: null, workStartedAt: null,
       reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
       patients: range(t.patients), prisoners: range(t.prisoners), parentId,

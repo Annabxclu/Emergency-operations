@@ -235,7 +235,10 @@ async function run(g: Game, seconds: number, step = 1) {
     await flush();
     const r = g5.catchUp(3 * 3600);
     assert(g5.city.resolved.find(i => i.id === call!.id)?.outcome === 'successful', 'offline: dispatched call finished while away');
-    assert(g5.city.incidents.length === 1 && g5.city.incidents[0].id === ignored!.id, 'offline: unattended call still waiting; no new calls were generated');
+    assert(g5.city.incidents.some(i => i.id === ignored!.id), 'offline: unattended call still waiting');
+    assert(r!.newCalls > 0 && g5.city.incidents.length > 1 && g5.city.incidents.length <= g5.activeCap(), `offline: new calls came in while away, up to the board limit (${r!.newCalls} new, ${g5.city.incidents.length} on the board)`);
+    const fresh = g5.city.incidents.filter(i => i.id !== ignored!.id);
+    assert(fresh.every(i => i.receivedAt < Date.now() - 60_000), 'offline: calls show the time they came in while you were away');
     assert(g5.city.vehicles.every(v => v.status === 'available'), 'offline: all units returned to their stations');
     assert(r!.calls === 1 && g5.state.time >= 8 * 3600 + 3 * 3600, `offline summary: ${r!.calls} calls, ${r!.successful} successful, money ${r!.money}`);
     g5.tick(g5.state.settings.callIntervalMin! * 60 + 1); await flush();
