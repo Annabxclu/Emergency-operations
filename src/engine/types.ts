@@ -215,6 +215,8 @@ export interface Incident {
   patients: number;
   prisoners: number;
   parentId?: string | null;
+  /** Address checked against the map (real street, neighborhood and city). */
+  addrChecked?: boolean;
   /** Came in at the same address after this call finished (MissionChief expansion). */
   expandedFrom?: string;
 }

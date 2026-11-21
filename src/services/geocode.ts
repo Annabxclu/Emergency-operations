@@ -159,3 +159,19 @@ export async function reverseAddress(p: LatLng): Promise<string | null> {
   } catch { return null; }
 }
 
+
+export interface PlaceParts { number?: string; road?: string; area?: string; city?: string; state?: string }
+/** Street, neighborhood, city and state at a point (OpenStreetMap Nominatim). */
+export async function reversePlace(p: LatLng): Promise<PlaceParts | null> {
+  const r = await getJson(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${p[0]}&lon=${p[1]}`, { headers: { 'Accept-Language': 'en' } });
+  const a = r?.address;
+  if (!a) return null;
+  const iso: string = a['ISO3166-2-lvl4'] || '';
+  return {
+    number: a.house_number,
+    road: a.road || a.pedestrian || a.footway || a.residential || a.highway || a.square,
+    area: a.neighbourhood || a.suburb || a.quarter || a.city_district || a.borough,
+    city: a.city || a.town || a.village || a.hamlet || a.municipality || a.county,
+    state: iso.startsWith('US-') ? iso.slice(3) : (STATE_CODES[a.state] ?? a.state),
+  };
+}

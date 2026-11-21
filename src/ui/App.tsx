@@ -6,7 +6,7 @@ import type { OsrmRouting } from '../services/routing';
 import { clearSave, importJson, saveGame } from '../services/storage';
 import { CloudSync } from '../services/cloudSync';
 import { CloudAccount, CloudConflict } from './Cloud';
-import { fetchHospitals, reverseAddress, searchAddress, type AddressResult } from '../services/geocode';
+import { fetchHospitals, reverseAddress, searchAddress, type AddressResult, reversePlace } from '../services/geocode';
 import { GameCtx, type Ctx, type Route } from './common';
 import { MapView, type MapApi, type Selection } from './MapView';
 import { OUTCOME, money, moneyShort } from './format';
@@ -249,6 +249,27 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     document.addEventListener('visibilitychange', onHide);
     window.addEventListener('pagehide', save);
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', save); };
+  }, [game]);
+
+  // ---------------------------------------------------------- real addresses
+  // Look up each call's real street, neighborhood and city (one lookup at a time,
+  // within OpenStreetMap's one-request-per-second policy). Also fixes calls made offline.
+  useEffect(() => {
+    const retryAt = new Map<string, number>();
+    let busy = false;
+    const iv = setInterval(() => {
+      if (busy || document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      const all = Object.values(game.state.cities).flatMap(c => c.incidents);
+      const inc = all.find(i => !i.addrChecked && (retryAt.get(i.id) ?? 0) <= now);
+      if (!inc) return;
+      busy = true;
+      reversePlace(inc.pos)
+        .then(place => game.applyPlace(inc.id, place))
+        .catch(() => retryAt.set(inc.id, Date.now() + 60_000))
+        .finally(() => { busy = false; });
+    }, 1500);
+    return () => clearInterval(iv);
   }, [game]);
 
   // ---------------------------------------------------------- cloud save

@@ -383,6 +383,18 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(owned.has(next.typeId), 'only expands into missions you can get');
   }
 
+  // Addresses: a map lookup corrects the street and shows the real town when a call is outside the city.
+  {
+    const ga = new Game(newGameState(), fake);
+    ga.placeStation('fire_station', [33.755, -84.39]); ga.placeStation('police_precinct', [33.77, -84.385]); ga.placeStation('ems_station', [33.76, -84.37]);
+    const a = (await ga.spawnIncident('fire_alarm'))!;
+    ga.applyPlace(a.id, { number: '77', road: 'Grand Street', area: 'Downtown', city: 'Jersey City', state: 'NJ' });
+    assert(a.address === '77 Grand Street' && a.district === 'Jersey City, NJ' && a.addrChecked, `call outside the city shows its real town (${a.address} · ${a.district})`);
+    const b = (await ga.spawnIncident('fire_alarm'))!;
+    ga.applyPlace(b.id, { road: 'Peachtree Street', area: 'Midtown', city: 'Atlanta', state: 'GA' });
+    assert(b.address.endsWith(' Peachtree Street') && b.district === 'Midtown', `call inside the city shows its neighborhood (${b.address} · ${b.district})`);
+  }
+
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
   {
     const old = JSON.parse(JSON.stringify(newGameState()));

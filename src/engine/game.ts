@@ -1678,6 +1678,7 @@ export class Game {
       reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
       patients: range(t.patients), prisoners: range(t.prisoners), parentId,
       expandedFrom: from?.name,
+      addrChecked: from?.addrChecked,
     };
     // Each ambulance carries one patient and each police car one suspect, so a call needs
     // one of each per person. Never generate more people than the player can move.
@@ -1812,6 +1813,30 @@ export class Game {
     let r = Math.random() * total;
     for (const it of items) { r -= it.weight; if (r <= 0) return it; }
     return items[items.length - 1] || null;
+  }
+
+  /** Correct a call's address from a map lookup (also fixes calls made offline). */
+  applyPlace(incId: string, place: { number?: string; road?: string; area?: string; city?: string; state?: string } | null) {
+    for (const c of Object.values(this.state.cities)) {
+      const inc = c.incidents.find(i => i.id === incId);
+      if (!inc) continue;
+      inc.addrChecked = true;
+      if (!place) return;
+      const def = this.defOf(c.cityId);
+      const norm = (x: string) => x.toLowerCase().replace(/^city of\s+/, '').replace(/\s+(city|town|village)$/, '').trim();
+      const outside = (place.state && place.state !== def.state) || (place.city && norm(place.city) !== norm(def.name));
+      const oldDistrict = inc.district;
+      if (outside && place.city) inc.district = `${place.city}${place.state ? `, ${place.state}` : ''}`;
+      else if (place.area) inc.district = place.area;
+      if (place.road) {
+        const num = place.number?.split(/[;,]/)[0] || inc.address.match(/^(\d+)\s/)?.[1] || String(Math.floor(rand(1, 99)) * 10 + 1);
+        inc.address = `${num} ${place.road}`;
+      } else if (inc.address.startsWith('Near ')) inc.address = `Near ${inc.district}`;
+      // Expanded calls share the address of the call they came from.
+      for (const other of c.incidents) if (other.expandedFrom && other.district === oldDistrict && other.pos[0] === inc.pos[0] && other.pos[1] === inc.pos[1]) { other.address = inc.address; other.district = inc.district; other.addrChecked = true; }
+      this.changed();
+      return;
+    }
   }
 
   districtFor(p: LatLng, def: CityDef = this.cityDef): string {
