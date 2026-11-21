@@ -476,7 +476,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
 
         {wide && !activeBuild && wins.wins.map((w: Win) => (
           <GameCtx.Provider key={w.key} value={{ ...ctx, push: (r: Route) => wins.push(w.key, r), back: () => wins.back(w.key) }}>
-            <FloatingWindow win={w} api={wins} title={WIN_TITLES[w.key] ?? 'Panel'}>{renderSheet(w.stack[w.stack.length - 1])}</FloatingWindow>
+            <FloatingWindow win={w} api={wins} title={WIN_TITLES[w.key] ?? 'Panel'} closable={!TABS.some(t => t.id === w.key)}>{renderSheet(w.stack[w.stack.length - 1])}</FloatingWindow>
           </GameCtx.Provider>
         ))}
 
@@ -484,7 +484,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
           <div className={`sheet ${expanded ? 'expanded' : ''} ${FULL_SCREEN.has(stack[0].kind) ? 'full' : ''}`} data-testid="sheet"
             onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
             <button className="grabber" aria-label={expanded ? 'Collapse panel' : 'Expand panel'} onClick={() => setExpanded(!expanded)}><span /></button>
-            <button className="close" aria-label="Close panel" onClick={() => openRoot(null)}>×</button>
+            {!TABS.some(t => t.id === stack[0].kind) && <button className="close" aria-label="Close panel" onClick={() => openRoot(null)}>×</button>}
             <div className="sheet-body">{renderSheet(top)}</div>
           </div>
         )}
@@ -513,7 +513,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
         <nav className="tabbar">
           {TABS.map(tab => (
             <button key={tab.id} className={tabOn(tab.id) ? 'on' : ''} data-testid={`tab-${tab.id}`}
-              onClick={() => wide ? (tab.id === 'map' ? wins.closeAll() : wins.toggle(tab.id)) : openRoot(tab.id === 'map' ? null : ({ kind: tab.id } as Route))}>
+              onClick={() => wide ? (tab.id === 'map' ? wins.closeAll() : wins.toggle(tab.id))
+                : openRoot(tab.id === 'map' || (activeTab === tab.id && stack.length === 1) ? null : ({ kind: tab.id } as Route))}>
               <span className="ti" dangerouslySetInnerHTML={{ __html: tabIcon(tab.id) }} />
               <span className="tl">{tab.label}</span>
               {tab.id === 'dispatch' && pendingCount > 0 && <span className="badge">{pendingCount}</span>}

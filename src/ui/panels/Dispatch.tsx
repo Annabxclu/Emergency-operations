@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { missingRequirements } from '../../engine/game';
 import { distanceM } from '../../engine/geo';
 import type { Incident, Vehicle } from '../../engine/types';
+import { useWide } from '../Windows';
 import { DEPARTMENTS, capability, dept, vehicleType } from '../../data/departments';
 import { CATEGORY_DEPT } from '../../data/incidents';
 import { Btn, Chip, Dot, Empty, Header, Section, StatusCode, useCtx } from '../common';
@@ -128,7 +129,9 @@ export function IncidentDetail({ id }: { id: string }) {
   const [unitTab, setUnitTab] = useState('all');
   const [hidePatients, setHidePatients] = useState(false);
 
-  useEffect(() => { if (inc) focus(inc.pos, 15); }, [id]);
+  // Phones jump the map to the call; on iPad the map stays put (tap the address to go there).
+  const wide = useWide();
+  useEffect(() => { if (inc && !wide) focus(inc.pos, 15); }, [id]);
   // Pre-select recommended units until the player changes the selection.
   const rec = inc ? game.recommend(inc.id) : { ids: [], unfilled: [] };
 
@@ -196,7 +199,7 @@ export function IncidentDetail({ id }: { id: string }) {
       <Header title={<><span className="inc-title-dot" style={{ background: deptColor }} />{inc.name}</>}
         sub={<span className="sub-row">{inc.number} · {SEVERITY[inc.severity]} {!closed ? <Chip tone={INCIDENT_STATUS[game.shownStatus(inc)].tone}>{INCIDENT_STATUS[game.shownStatus(inc)].label}</Chip> : <Chip tone={OUTCOME[inc.outcome!].tone}>{OUTCOME[inc.outcome!].label}</Chip>}</span>} />
       <div className="inc-info">
-        <div className="addr" onClick={() => focus(inc.pos, 16)}>{inc.address}<span className="muted"> · {inc.district}</span></div>
+        <div className="addr" onClick={() => focus(inc.pos, 16)} title="Show on map" data-testid="incident-address"><span className="addr-pin">📍</span>{inc.address}<span className="muted"> · {inc.district}</span></div>
         <p className="desc">{inc.description}</p>
         {inc.expandedFrom && <p className="expanded-note" data-testid="expanded-from">↗ Expanded from {inc.expandedFrom}</p>}
         <div className="kv">

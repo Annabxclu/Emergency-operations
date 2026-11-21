@@ -37,6 +37,7 @@ def main():
             page.click('[data-testid=tab-radio]')
             check(all(page.locator(f'[data-testid=win-{k}]').count() == 1 for k in ['dispatch', 'vehicles', 'radio']), 'dispatch, vehicles and radio open together as windows')
             check(page.locator('[data-testid=sheet]').count() == 0, 'no phone-style sheet on iPad')
+            check(page.locator('.win-x').count() == 0, 'tab windows have no X (close them from the tab bar)')
             b0 = page.locator('[data-testid=win-radio]').bounding_box()
             bar = page.locator('[data-testid=win-bar-radio]').bounding_box()
             page.mouse.move(bar['x'] + 60, bar['y'] + 15); page.mouse.down(); page.mouse.move(bar['x'] + 560, bar['y'] + 75, steps=8); page.mouse.up()
@@ -51,8 +52,9 @@ def main():
             check(page.locator('[data-testid=win-dispatch] [data-testid=row-patients]').count() > 0, 'patients and their status show on the call list')
             page.locator('[data-testid=win-dispatch]').screenshot(path=os.path.join(shots, 'ipad-dispatch-list.png'))
             # Opening a call from the dispatch list stays inside the Dispatch window
+            page.evaluate("() => { window.__focusCalls = 0; }")
             page.locator('[data-testid=win-dispatch] .row').first.click()
-            page.wait_for_timeout(200)
+            page.wait_for_timeout(300)
             check('Received' in page.inner_text('[data-testid=win-dispatch]'), 'a call opens inside the Dispatch window')
             page.screenshot(path=os.path.join(shots, 'ipad-windows.png'))
             page.click('[data-testid=tab-vehicles]')

@@ -94,7 +94,7 @@ export function useWindows(rootFor: (key: string) => Route) {
 export type WindowsApi = ReturnType<typeof useWindows>;
 
 /** A draggable, resizable floating panel. */
-export function FloatingWindow(p: { win: Win; title: string; api: WindowsApi; children: any }) {
+export function FloatingWindow(p: { win: Win; title: string; api: WindowsApi; closable?: boolean; children: any }) {
   const { win, api } = p;
   const drag = useRef(null as null | { mode: 'move' | 'size'; sx: number; sy: number; x: number; y: number; w: number; h: number });
   const start = (mode: 'move' | 'size') => (e: any) => {
@@ -118,7 +118,7 @@ export function FloatingWindow(p: { win: Win; title: string; api: WindowsApi; ch
       <div className="win-bar" onPointerDown={start('move')} onPointerMove={move} onPointerUp={end} onPointerCancel={end} data-testid={`win-bar-${win.key}`}>
         <span className="win-grip">⠿</span>
         <span className="win-title">{p.title}</span>
-        <button className="win-x" aria-label={`Close ${p.title}`} onClick={() => api.close(win.key)}>×</button>
+        {p.closable && <button className="win-x" aria-label={`Close ${p.title}`} onClick={() => api.close(win.key)}>×</button>}
       </div>
       <div className="win-body">{p.children}</div>
       <div className="win-size" onPointerDown={start('size')} onPointerMove={move} onPointerUp={end} onPointerCancel={end} aria-label="Resize" data-testid={`win-size-${win.key}`} />
