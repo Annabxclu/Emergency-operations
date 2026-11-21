@@ -80,6 +80,10 @@ export function migrate(raw: unknown): GameState {
   s.settings = { ...fresh.settings, ...(s.settings || {}) };
   s.settings.deptFilter = { ...fresh.settings.deptFilter, ...(s.settings.deptFilter || {}) };
   for (const c of Object.values(s.cities)) for (const i of [...c.incidents, ...c.resolved]) { i.patients ??= 0; i.prisoners ??= 0; }
+  // EMS-only calls pay again: open calls saved while they paid $0 get their reward back.
+  for (const c of Object.values(s.cities)) for (const i of c.incidents) {
+    if (!i.reward) { const t = INCIDENT_TYPES.find(x => x.id === i.typeId); if (t?.reward) { i.reward = t.reward; i.xp = t.xp; } }
+  }
   if (!['osm', 'hot'].includes(s.settings.tileStyle)) s.settings.tileStyle = 'osm'; // CARTO styles retired (need a key)
   if ((s.schema ?? 1) < 2) {
     // Station levels used to index a small table; now every level is one bay.

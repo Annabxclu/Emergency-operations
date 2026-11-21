@@ -226,10 +226,7 @@ export const INCIDENT_TYPES: IncidentTypeDef[] = [
 // The full catalog (several hundred calls) is appended after the hand-written ones above.
 INCIDENT_TYPES.push(...buildCatalogMissions(new Set(INCIDENT_TYPES.map(t => t.name.toLowerCase()))));
 
-// Like MissionChief, EMS-only calls pay nothing themselves: the money is earned when
-// patients are admitted to your own hospitals.
-const EMS_CAPS = new Set(['ambulance', 'als', 'ccu', 'ems_supervisor', 'mci']);
-for (const t of INCIDENT_TYPES) if (t.requirements.every(r => EMS_CAPS.has(r.cap))) { t.reward = 0; t.xp = 0; }
+// EMS-only calls pay their own reward too (on top of what your hospitals earn per patient).
 
 const BY_ID = new Map(INCIDENT_TYPES.map(t => [t.id, t]));
 export const incidentType = (id: string) => BY_ID.get(id)!;
