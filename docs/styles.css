@@ -460,3 +460,5 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .tag.warn { background: rgba(245,165,36,.18); color: #f5c46b; }
 .row-credits { font-size: 13px; font-weight: 700; color: #6fd3a2; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .addr { cursor: pointer; } .addr-pin { font-size: 12px; margin-right: 4px; }
+[data-testid=station-tabs] { flex-wrap: wrap; overflow-x: visible; }
+[data-testid=station-tabs-2] button { flex: 1; justify-content: center; }

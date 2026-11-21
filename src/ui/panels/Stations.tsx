@@ -29,7 +29,11 @@ export function StationsList() {
               <span className="dot" style={{ background: d.color }} /> {d.short} <span className="cnt">{c.stations.filter(s => s.dept === d.id).length}</span>
             </button>
           ))}
-          {extraTabs.length > 0 && <>
+        </div>
+      )}
+      {depts.length > 0 && extraTabs.length > 0 && (
+        <div className="seg tabs" data-testid="station-tabs-2">
+          {<>
             <button className={tab === 'hospital' ? 'on' : ''} onClick={() => setTab('hospital')} data-testid="station-tab-hospital">
               <span className="dot" style={{ background: '#e02424' }} /> Hospitals <span className="cnt">{(c.hospitals ?? []).length}</span>
             </button>
