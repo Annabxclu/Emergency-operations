@@ -467,3 +467,6 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .bar-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); width: 52px; flex: none; }
 .progress.patients span { background: #e5484d; }
 .progress.patients.treating span { background: #f5a524; }
+.mission-row { flex-wrap: wrap; }
+.row-bars { flex-basis: 100%; display: flex; flex-direction: column; gap: 2px; padding-left: 52px; }
+.row-bars .bar-label { width: 66px; white-space: nowrap; overflow: visible; }

@@ -117,16 +117,20 @@ export function DispatchList() {
                 <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}{inc.expandedFrom && <span className="tag warn">Expanded</span>}</div>
                 <div className="row-sub">{inc.address} · {inc.district}</div>
                 {inc.patientList && inc.patientList.length > 0 && <RowPatients inc={inc} now={game.state.time} />}
-                {(inc.status === 'working' || inc.workRemaining != null) && (
-                  <div className="bar-row"><span className="bar-label">Crew</span><div className={`progress ${inc.status !== 'working' ? 'paused' : ''}`}><span style={{ width: `${100 - workPct(game, inc)}%` }} /></div></div>)}
-                {inc.patientList && inc.patientList.length > 0 && (
-                  <div className="bar-row"><span className="bar-label">Patients</span><div className={`progress patients ${inc.patientList.some(p => p.status === 'treating') ? 'treating' : ''}`} data-testid="row-patient-bar"><span style={{ width: `${patientLeftPct(game, inc)}%` }} /></div></div>)}
               </div>
               <div className="row-right">
                 <Chip tone={st.tone}>{st.label}</Chip>
                 <div className="row-credits" data-testid="row-credits">{inc.reward ? money(inc.reward) : 'Paid at hospital'}</div>
                 <div className="timer">{timerText(game, inc)}</div>
               </div>
+              {((inc.status === 'working' || inc.workRemaining != null) || (inc.patientList && inc.patientList.length > 0)) && (
+                <div className="row-bars">
+                {(inc.status === 'working' || inc.workRemaining != null) && (
+                    <div className="bar-row"><span className="bar-label">Crew</span><div className={`progress ${inc.status !== 'working' ? 'paused' : ''}`}><span style={{ width: `${100 - workPct(game, inc)}%` }} /></div></div>)}
+                  {inc.patientList && inc.patientList.length > 0 && (
+                    <div className="bar-row"><span className="bar-label">Patients</span><div className={`progress patients ${inc.patientList.some(p => p.status === 'treating') ? 'treating' : ''}`} data-testid="row-patient-bar"><span style={{ width: `${patientLeftPct(game, inc)}%` }} /></div></div>)}
+                </div>
+              )}
             </button>
           );
         })}
