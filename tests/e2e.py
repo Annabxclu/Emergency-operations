@@ -347,6 +347,12 @@ def main():
             # --- Settings / export
             t0 = game('g.state.time'); page.evaluate('() => { window.__game.state.lastSeen = Date.now() - 600000; }'); page.wait_for_timeout(600)
             check(game('g.state.time') - t0 >= 500, f"coming back after 10 min catches up the time away ({round(game('g.state.time') - t0)} s)")
+            page.click('[data-testid=tab-stations]'); page.wait_for_selector('[data-testid=station-tab-hospital]')
+            page.click('[data-testid=station-tab-hospital]')
+            check(page.locator('[data-testid=station-row]').count() == 0 and page.locator('[data-testid=hospital-row]').count() >= 1, 'Stations > Hospitals tab shows only hospitals')
+            page.click('[data-testid=station-tab-academy]')
+            check(page.locator('[data-testid=station-row]').count() == 0 and page.locator('[data-testid=academy-fire]').count() == 1 and page.locator('[data-testid=academy-police]').count() == 1, 'Stations > Academies tab shows both academies')
+            page.click('[data-testid=tab-stations]')
             page.click('[data-testid=tab-radio]')
             page.wait_for_selector('[data-testid=radio-msg]', timeout=5000)
             check(page.locator('[data-testid=radio-msg][data-kind=call]').count() > 0 and page.locator('[data-testid=radio-msg][data-kind=dispatch]').count() > 0, f"radio tab shows calls and dispatches ({page.locator('[data-testid=radio-msg]').count()} messages)")

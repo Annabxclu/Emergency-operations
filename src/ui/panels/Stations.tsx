@@ -12,7 +12,9 @@ export function StationsList() {
   const { game, push, startBuild } = useCtx();
   const c = game.city;
   const depts = DEPARTMENTS.filter(d => c.stations.some(s => s.dept === d.id));
-  const [tab, setTabState] = useState(depts.some(d => d.id === rememberedTab) ? rememberedTab : 'all');
+  const extraTabs = game.setupDone ? ['hospital', 'academy'] : [];
+  const [tab, setTabState] = useState(depts.some(d => d.id === rememberedTab) || extraTabs.includes(rememberedTab) ? rememberedTab : 'all');
+  const academiesBuilt = Object.keys(ACADEMIES).filter(d => game.academyOf(d)).length;
   const setTab = (t: string) => { rememberedTab = t; setTabState(t); };
   return (
     <div>
@@ -27,6 +29,14 @@ export function StationsList() {
               <span className="dot" style={{ background: d.color }} /> {d.short} <span className="cnt">{c.stations.filter(s => s.dept === d.id).length}</span>
             </button>
           ))}
+          {extraTabs.length > 0 && <>
+            <button className={tab === 'hospital' ? 'on' : ''} onClick={() => setTab('hospital')} data-testid="station-tab-hospital">
+              <span className="dot" style={{ background: '#e02424' }} /> Hospitals <span className="cnt">{(c.hospitals ?? []).length}</span>
+            </button>
+            <button className={tab === 'academy' ? 'on' : ''} onClick={() => setTab('academy')} data-testid="station-tab-academy">
+              <span className="dot" style={{ background: '#8b5cf6' }} /> Academies <span className="cnt">{academiesBuilt}</span>
+            </button>
+          </>}
         </div>
       )}
       {DEPARTMENTS.filter(d => tab === 'all' || d.id === tab).map(d => {
@@ -52,7 +62,7 @@ export function StationsList() {
           </Section>
         );
       })}
-      {game.setupDone && (tab === 'all' || tab === 'ems') && (
+      {game.setupDone && (tab === 'all' || tab === 'ems' || tab === 'hospital') && (
         <Section title="Hospitals" right={<Btn small onClick={() => startBuild('hospital')} disabled={game.city.money < HOSPITAL.cost} testid="build-hospital">Build · {money(HOSPITAL.cost)}</Btn>}>
           {!(game.city.hospitals ?? []).length && <p className="hint">You don't own a hospital yet, so ambulances use the public hospital. Your own hospitals take patients nearby, earn {money(HOSPITAL.admissionFee)}–{money(Math.max(...SPECIALTIES.map(x => x.fee)))} per patient, and can add specialist care.</p>}
           <div className="list">
@@ -67,10 +77,10 @@ export function StationsList() {
           </div>
         </Section>
       )}
-      {game.setupDone && (tab === 'all' || ACADEMIES[tab]) && (
+      {game.setupDone && (tab === 'all' || tab === 'academy' || ACADEMIES[tab]) && (
         <Section title="Academies">
           <div className="list">
-            {Object.entries(ACADEMIES).filter(([d]) => tab === 'all' || d === tab).map(([d, a]) => {
+            {Object.entries(ACADEMIES).filter(([d]) => tab === 'all' || tab === 'academy' || d === tab).map(([d, a]) => {
               const built = game.academyOf(d);
               return (
                 <button key={d} className="row" onClick={() => push({ kind: 'academy', dept: d })} data-testid={`academy-${d}`}>
