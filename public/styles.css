@@ -437,3 +437,14 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .patient .ptime { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 1px; }
 .patient.treating .ptime { color: #f5a524; }
 .patient.untreated .ptime { opacity: .6; font-weight: 500; font-size: 11px; }
+
+/* ---------- floating windows (iPad / desktop) */
+.win { position: absolute; display: flex; flex-direction: column; background: var(--solid); border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.08); overflow: hidden; animation: sin .15s ease-out; }
+.win-bar { flex: none; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 6px 0 10px; background: rgba(255,255,255,.06); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.win-bar:active { cursor: grabbing; }
+.win-grip { opacity: .45; font-size: 14px; }
+.win-title { flex: 1; font-size: 13px; font-weight: 700; letter-spacing: .02em; opacity: .85; }
+.win-x { width: 26px; height: 26px; border-radius: 13px; background: var(--surface); color: var(--muted); font-size: 17px; line-height: 1; }
+.win-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 6px 14px 18px; overscroll-behavior: contain; }
+.win-size { position: absolute; right: 0; bottom: 0; width: 26px; height: 26px; cursor: nwse-resize; touch-action: none;
+  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.25) 50%, rgba(255,255,255,.25) 58%, transparent 58%, transparent 70%, rgba(255,255,255,.25) 70%, rgba(255,255,255,.25) 78%, transparent 78%); }

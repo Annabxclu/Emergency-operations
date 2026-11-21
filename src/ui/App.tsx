@@ -12,6 +12,7 @@ import { MapView, type MapApi, type Selection } from './MapView';
 import { OUTCOME, money, moneyShort } from './format';
 import { tabIcon } from './icons';
 import { RadioPanel } from './panels/Radio';
+import { FloatingWindow, useWide, useWindows, type Win } from './Windows';
 import { DispatchList, IncidentDetail } from './panels/Dispatch';
 import { BuildChooser, StationDetail, StationsList } from './panels/Stations';
 import { VehicleDetail, VehiclesList } from './panels/Vehicles';
@@ -41,11 +42,15 @@ const TAB_OF: Record<string, string> = {
 interface Toast { id: number; text: string; tone: string; action?: () => void }
 
 // Panels opened from the tab bar or top bar fill the screen on phones; map taps open a half sheet.
+const WIN_TITLES: Record<string, string> = { dispatch: 'Dispatch', stations: 'Stations', vehicles: 'Vehicles', radio: 'Radio', settings: 'Settings' };
 const FULL_SCREEN = new Set(['dispatch', 'stations', 'vehicles', 'radio', 'finances', 'settings', 'personnel', 'missions', 'research', 'goals']);
 
 export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRouting; firstRun: boolean }) {
   const [, setFrame] = useState(0);
   const [stack, setStack] = useState([] as Route[]);
+  // iPad / desktop: panels are floating windows that can stay open side by side.
+  const wide = useWide();
+  const wins = useWindows(key => ({ kind: key } as Route));
   const [expanded, setExpanded] = useState(false);
   const [toasts, setToasts] = useState([] as Toast[]);
   const [buildType, setBuildType] = useState(null as string | null);
@@ -99,7 +104,14 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
       if (stack.length > 1) back(); else openRoot(null);
     }
   };
-  const openRoot = (r: Route | null) => { setStack(r ? [r] : []); setExpanded(false); };
+  const openRoot = (r: Route | null) => {
+    if (wide) {
+      if (r) wins.open(TAB_OF[r.kind] ?? r.kind, r);
+      else for (const w of wins.wins) wins.open(w.key, { kind: w.key } as Route); // back to each window's main list
+      return;
+    }
+    setStack(r ? [r] : []); setExpanded(false);
+  };
   const focus = (p: LatLng, zoom?: number) => mapApi.current?.focus(p, zoom);
   const act = (fn: () => void, okText?: string) => {
     try { fn(); if (okText) toast(okText, 'ok'); return true; }
@@ -305,8 +317,10 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const activeBuild = picker || menu ? null : setup ? setupType : buildType;
   useEffect(() => { document.documentElement.dataset.theme = game.state.settings.theme ?? 'midnight'; }, [game.state.settings.theme]);
   const pendingCount = c.incidents.filter(i => game.shownStatus(i) === 'pending').length;
-  const top = stack[stack.length - 1];
+  const topWin = wide ? wins.topmost() : null;
+  const top = wide ? topWin?.stack[topWin.stack.length - 1] : stack[stack.length - 1];
   const activeTab = stack.length ? TAB_OF[stack[0].kind] : 'map';
+  const tabOn = (id: string) => (wide ? (id === 'map' ? !wins.wins.length : wins.isOpen(id)) : activeTab === id);
   const selected: Selection = top && (top.kind === 'incident' || top.kind === 'station' || top.kind === 'vehicle' || top.kind === 'hospital') ? { kind: top.kind, id: top.id } : null;
 
   const ctx: Ctx = { game, push, back, toast, act, focus, startBuild };
@@ -460,7 +474,13 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
           </div>
         )}
 
-        {stack.length > 0 && !activeBuild && (
+        {wide && !activeBuild && wins.wins.map((w: Win) => (
+          <GameCtx.Provider key={w.key} value={{ ...ctx, push: (r: Route) => wins.push(w.key, r), back: () => wins.back(w.key) }}>
+            <FloatingWindow win={w} api={wins} title={WIN_TITLES[w.key] ?? 'Panel'}>{renderSheet(w.stack[w.stack.length - 1])}</FloatingWindow>
+          </GameCtx.Provider>
+        ))}
+
+        {!wide && stack.length > 0 && !activeBuild && (
           <div className={`sheet ${expanded ? 'expanded' : ''} ${FULL_SCREEN.has(stack[0].kind) ? 'full' : ''}`} data-testid="sheet"
             onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
             <button className="grabber" aria-label={expanded ? 'Collapse panel' : 'Expand panel'} onClick={() => setExpanded(!expanded)}><span /></button>
@@ -492,8 +512,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
 
         <nav className="tabbar">
           {TABS.map(tab => (
-            <button key={tab.id} className={activeTab === tab.id ? 'on' : ''} data-testid={`tab-${tab.id}`}
-              onClick={() => openRoot(tab.id === 'map' ? null : ({ kind: tab.id } as Route))}>
+            <button key={tab.id} className={tabOn(tab.id) ? 'on' : ''} data-testid={`tab-${tab.id}`}
+              onClick={() => wide ? (tab.id === 'map' ? wins.closeAll() : wins.toggle(tab.id)) : openRoot(tab.id === 'map' ? null : ({ kind: tab.id } as Route))}>
               <span className="ti" dangerouslySetInnerHTML={{ __html: tabIcon(tab.id) }} />
               <span className="tl">{tab.label}</span>
               {tab.id === 'dispatch' && pendingCount > 0 && <span className="badge">{pendingCount}</span>}
