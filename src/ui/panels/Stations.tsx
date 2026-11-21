@@ -271,7 +271,7 @@ function RecruitControls({ stationId }: { stationId: string }) {
   const s = game.station(stationId)!;
   const cap = game.stationCapacity(s).staff;
   const staff = game.stationStaff(s.id).length;
-  const target = Math.max(s.hireTarget ?? staff, staff);
+  const target = Math.max(game.hireTargetOf(s), staff);
   const fee = dept(s.dept).hireCost;
   const set = (n: number) => act(() => game.setHireTarget(s.id, n));
   const left = s.nextHireAt ? Math.max(0, s.nextHireAt - Date.now()) : 0;

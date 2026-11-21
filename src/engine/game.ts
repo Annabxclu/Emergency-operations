@@ -668,12 +668,19 @@ export class Game {
     return e;
   }
 
-  /** Deliver free recruits that are due (runs for every city, also after time away). */
+  /** How many staff a station recruits toward: what you set, or full capacity if you never changed it. */
+  hireTargetOf(st: Station) { return Math.min(st.hireTarget ?? Infinity, this.stationCapacity(st).staff); }
+
+  /** Deliver free recruits that are due (runs for every city, also after time away).
+   *  Each station below its wanted staff gets one free untrained recruit every 24 real hours. */
   processRecruiting(now = Date.now()) {
     for (const cid of Object.keys(this.state.cities)) this.inCity(cid, () => {
+      if (!this.setupDone) return;
       for (const st of this.city.stations) {
-        if (!st.hireTarget || !st.nextHireAt) continue;
-        const cap = Math.min(st.hireTarget, this.stationCapacity(st).staff);
+        const cap = this.hireTargetOf(st);
+        if (this.stationStaff(st.id).length >= cap) { st.nextHireAt = undefined; continue; }
+        // Below target (new station, staff moved or dismissed): make sure the 24-hour clock is running.
+        if (!st.nextHireAt) { st.nextHireAt = now + Game.HIRE_INTERVAL_MS; continue; }
         let added = 0;
         while (st.nextHireAt && st.nextHireAt <= now && this.stationStaff(st.id).length < cap) {
           this.city.employees.push(this.makeEmployee(st.dept, st.id, false));

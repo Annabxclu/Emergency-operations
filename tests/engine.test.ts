@@ -481,6 +481,23 @@ async function run(g: Game, seconds: number, step = 1) {
     const fire2 = gr.placeStation('fire_station', [33.76, -84.37]);
     gr.moveEmployee(e.id, fire2.id);
     assert(gr.employee(e.id)!.stationId === fire2.id, 'staff can transfer between fire stations');
+    // Moving staff away restarts the 24-hour clock (it used to stay stopped forever).
+    const st2 = gr.city.stations.find(s => s.dept === 'fire' && s.id !== fire2.id)!;
+    const n2 = gr.stationStaff(st2.id).length;
+    const t1 = Date.now();
+    gr.moveEmployee(gr.stationStaff(st2.id)[0].id, fire2.id);
+    gr.processRecruiting(t1);
+    assert(!!st2.nextHireAt, 'after a transfer leaves a station short, the free-recruit clock starts again');
+    gr.processRecruiting(t1 + 24 * 3600 * 1000 + 5000);
+    assert(gr.stationStaff(st2.id).length === n2, 'the station gets its free recruit back after 24 hours');
+    // A station you never set a target for recruits toward full capacity on its own.
+    const fresh = gr.placeStation('fire_station', [33.74, -84.40]);
+    fresh.hireTarget = undefined;
+    const nf = gr.stationStaff(fresh.id).length;
+    const t2 = Date.now();
+    gr.processRecruiting(t2);
+    gr.processRecruiting(t2 + 24 * 3600 * 1000 + 5000);
+    assert(nf < gr.stationCapacity(fresh).staff ? gr.stationStaff(fresh.id).length === nf + 1 : true, `a new station gets a free recruit every 24 hours without setting anything (${nf} -> ${gr.stationStaff(fresh.id).length}, cap ${gr.stationCapacity(fresh).staff})`);
     const pol = gr.city.stations.find(s => s.dept === 'police')!;
     let threw = false; try { gr.moveEmployee(e.id, pol.id); } catch { threw = true; }
     assert(threw, 'fire staff cannot transfer to a police station');

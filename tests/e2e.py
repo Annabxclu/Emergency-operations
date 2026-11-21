@@ -144,9 +144,9 @@ def main():
             check(game('g.city.money') == 85000 and game('g.city.stations[3].level') == 1, 'bought station level 1 (+1 bay) for $10,000')
             page.locator('.sheet-body').evaluate('el => el.scrollTo(0, el.scrollHeight)'); shot('03c-station-level')
             page.click('[data-testid=group-st-personnel]')
-            page.click('[data-testid=hire-target-plus]')
+            check(page.locator('[data-testid=hire-target-plus]').is_disabled(), 'wanted staff starts at full capacity (recruits for free without setting anything)')
             page.wait_for_function("() => document.querySelector('[data-testid=recruit-status]').innerText.includes('next free recruit')", timeout=5000)
-            check('next free recruit in 23h' in page.inner_text('[data-testid=recruit-status]') or 'next free recruit in 24h' in page.inner_text('[data-testid=recruit-status]'), 'wanted staff set: next free recruit in 24 hours')
+            check('next free recruit in 23h' in page.inner_text('[data-testid=recruit-status]') or 'next free recruit in 24h' in page.inner_text('[data-testid=recruit-status]'), 'free recruiting runs by default: next free recruit in 24 hours')
             for i in range(3):
                 page.click('[data-testid=hire-now]')
                 page.wait_for_timeout(80)
