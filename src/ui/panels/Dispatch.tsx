@@ -15,16 +15,14 @@ function IncIcon({ inc }: { inc: Incident }) {
   return <span className={`inc-ico st-${useCtx().game.shownStatus(inc)}${inc.severity >= 3 ? ' major' : ''}`} dangerouslySetInnerHTML={{ __html: glyph(inc.category, 15) }} />;
 }
 
-/** How much of the call is left (100 = all), counting untreated patients as work still to do:
- *  the bar stays full while a patient waits and goes down as they are treated. */
-function leftPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
-  const work = 100 - workPct(game, inc);
+/** Treatment still to do across all patients (100 = nobody treated yet). */
+function patientLeftPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
   const list = inc.patientList ?? [];
   const total = list.reduce((n, p) => n + p.treatSec, 0);
-  if (!total) return work;
+  if (!total) return 0;
   const now = game.state.time;
   const left = list.reduce((n, p) => n + (p.status === 'untreated' ? p.treatSec : p.status === 'treating' ? Math.max(0, (p.until ?? now) - now) : 0), 0);
-  return Math.max(work, (left / total) * 100);
+  return (left / total) * 100;
 }
 
 function workPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
@@ -119,7 +117,10 @@ export function DispatchList() {
                 <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}{inc.expandedFrom && <span className="tag warn">Expanded</span>}</div>
                 <div className="row-sub">{inc.address} · {inc.district}</div>
                 {inc.patientList && inc.patientList.length > 0 && <RowPatients inc={inc} now={game.state.time} />}
-                {(inc.status === 'working' || inc.workRemaining != null) && <div className={`progress ${inc.status !== 'working' ? 'paused' : ''}`}><span style={{ width: `${leftPct(game, inc)}%` }} /></div>}
+                {(inc.status === 'working' || inc.workRemaining != null) && (
+                  <div className="bar-row"><span className="bar-label">Crew</span><div className={`progress ${inc.status !== 'working' ? 'paused' : ''}`}><span style={{ width: `${100 - workPct(game, inc)}%` }} /></div></div>)}
+                {inc.patientList && inc.patientList.length > 0 && (
+                  <div className="bar-row"><span className="bar-label">Patients</span><div className={`progress patients ${inc.patientList.some(p => p.status === 'treating') ? 'treating' : ''}`} data-testid="row-patient-bar"><span style={{ width: `${patientLeftPct(game, inc)}%` }} /></div></div>)}
               </div>
               <div className="row-right">
                 <Chip tone={st.tone}>{st.label}</Chip>
@@ -260,11 +261,11 @@ export function IncidentDetail({ id }: { id: string }) {
       })()}
 
       {!closed && inc.status === 'working' && (
-        <div className="progress big"><span style={{ width: `${leftPct(game, inc)}%` }} /></div>
+        <div className="progress big"><span style={{ width: `${100 - workPct(game, inc)}%` }} /></div>
       )}
       {!closed && inc.status !== 'working' && inc.workRemaining != null && (
         <>
-          <div className="progress big paused"><span style={{ width: `${leftPct(game, inc)}%` }} /></div>
+          <div className="progress big paused"><span style={{ width: `${100 - workPct(game, inc)}%` }} /></div>
           <div className="warnbox" style={{ marginTop: 8 }}>Work paused — a required unit left the scene. It resumes where it stopped once all required units are back.</div>
         </>
       )}

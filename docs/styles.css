@@ -462,3 +462,8 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .addr { cursor: pointer; } .addr-pin { font-size: 12px; margin-right: 4px; }
 [data-testid=station-tabs] { flex-wrap: wrap; overflow-x: visible; }
 [data-testid=station-tabs-2] button { flex: 1; justify-content: center; }
+.bar-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+.bar-row .progress { flex: 1; margin-top: 0; }
+.bar-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); width: 52px; flex: none; }
+.progress.patients span { background: #e5484d; }
+.progress.patients.treating span { background: #f5a524; }
