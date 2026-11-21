@@ -112,6 +112,20 @@ export function FloatingWindow(p: { win: Win; title: string; api: WindowsApi; cl
     else api.move(win.key, { w: d.w + dx, h: d.h + dy });
   };
   const end = () => { drag.current = null; };
+  // Swipe right inside a window to go back (or close it from its main list), like on the phone.
+  const swipe = useRef(null as null | { x: number; y: number; t: number });
+  const touchStart = (e: any) => {
+    const t = e.touches[0];
+    if (e.touches.length !== 1 || (e.target as HTMLElement).closest('input, textarea, select, .seg, .aao, .filters, .tabs, .hscroll, .type-chips')) { swipe.current = null; return; }
+    swipe.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  };
+  const touchEnd = (e: any) => {
+    const s0 = swipe.current; swipe.current = null;
+    if (!s0) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s0.x, dy = t.clientY - s0.y;
+    if (dx > 80 && Math.abs(dy) < dx * 0.5 && Date.now() - s0.t < 700) api.back(win.key);
+  };
   return (
     <div className="win" style={{ left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 1100 + win.z }}
       onPointerDown={() => api.front(win.key)} data-testid={`win-${win.key}`}>
@@ -120,7 +134,7 @@ export function FloatingWindow(p: { win: Win; title: string; api: WindowsApi; cl
         <span className="win-title">{p.title}</span>
         {p.closable && <button className="win-x" aria-label={`Close ${p.title}`} onClick={() => api.close(win.key)}>×</button>}
       </div>
-      <div className="win-body">{p.children}</div>
+      <div className="win-body" onTouchStart={touchStart} onTouchEnd={touchEnd} data-testid={`win-body-${win.key}`}>{p.children}</div>
       <div className="win-size" onPointerDown={start('size')} onPointerMove={move} onPointerUp={end} onPointerCancel={end} aria-label="Resize" data-testid={`win-size-${win.key}`} />
     </div>
   );

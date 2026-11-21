@@ -57,6 +57,16 @@ def main():
             page.wait_for_timeout(300)
             check('Received' in page.inner_text('[data-testid=win-dispatch]'), 'a call opens inside the Dispatch window')
             page.screenshot(path=os.path.join(shots, 'ipad-windows.png'))
+            body = page.locator('[data-testid=win-body-dispatch]')
+            box = body.bounding_box()
+            page.evaluate('''([x, y]) => {
+              const el = document.querySelector('[data-testid=win-body-dispatch]');
+              const mk = (cx) => new Touch({ identifier: 1, target: el, clientX: cx, clientY: y });
+              el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [mk(x)], changedTouches: [mk(x)] }));
+              el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [mk(x + 160)] }));
+            }''', [box['x'] + 40, box['y'] + 200])
+            page.wait_for_timeout(200)
+            check(page.locator('[data-testid=win-dispatch] [data-testid=incident-address]').count() == 0 and page.locator('[data-testid=win-dispatch] [data-testid=incident-row]').count() > 0, 'swiping right in a window goes back to its list')
             page.click('[data-testid=tab-vehicles]')
             check(page.locator('[data-testid=win-vehicles]').count() == 0 and page.locator('[data-testid=win-radio]').count() == 1, 'tapping a tab again closes just that window')
             page.evaluate("() => window.dispatchEvent(new Event('pagehide'))"); page.wait_for_timeout(500)
