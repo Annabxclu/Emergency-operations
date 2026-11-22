@@ -5,6 +5,7 @@ import { missingRequirements } from '../../engine/game';
 import { distanceM } from '../../engine/geo';
 import type { Incident, Vehicle } from '../../engine/types';
 import { useWide } from '../Windows';
+import { AllianceCalls } from '../Alliance';
 import { DEPARTMENTS, capability, dept, vehicleType } from '../../data/departments';
 import { CATEGORY_DEPT } from '../../data/incidents';
 import { Btn, Chip, Dot, Empty, Header, Section, StatusCode, useCtx } from '../common';
@@ -82,7 +83,8 @@ function RowPatients({ inc, now }: { inc: Incident; now: number }) {
 }
 
 export function DispatchList() {
-  const { game, push } = useCtx();
+  const { game, push, ally } = useCtx();
+  const hasAlly = !!game.state.alliance;
   const c = game.city;
   const [sort, setSortState] = useState(lastSort);
   const setSort = (v: string) => { lastSort = v; setSortState(v); };
@@ -90,24 +92,28 @@ export function DispatchList() {
   const setView = (v: string) => { lastView = v; setViewState(v); };
   const all = [...c.incidents].sort(SORTS.find(x => x.id === sort)!.cmp);
   const count = (id: string) => all.filter(i => VIEWS.find(v => v.id === id)!.test(game.shownStatus(i), i)).length;
-  const active = all.filter(i => VIEWS.find(v => v.id === view)!.test(game.shownStatus(i), i));
+  const allyView = view === 'ally' && hasAlly;
+  const vdef = VIEWS.find(v => v.id === view) ?? VIEWS[0];
+  const active = allyView ? [] : all.filter(i => vdef.test(game.shownStatus(i), i));
   return (
     <div>
       <div className="sheet-head"><div className="grow"><div className="title">Dispatch</div>
         <div className="sub">{active.length}/{game.activeCap()} active · new call every {(game.state.settings.callIntervalMin ?? 3) < 1 ? `${(game.state.settings.callIntervalMin ?? 3) * 60} sec` : `${game.state.settings.callIntervalMin ?? 3} min`}</div></div></div>
       {!game.setupDone && <Empty>Place your three starter stations to begin receiving calls.</Empty>}
-      {game.setupDone && !active.length && <Empty>No active calls. New calls will appear here and on the map.</Empty>}
-      {all.length > 0 && (
+      {game.setupDone && !active.length && !allyView && !all.length && <Empty>No active calls. New calls will appear here and on the map.</Empty>}
+      {(all.length > 0 || hasAlly) && (
         <div className="list-tools">
           <div className="seg views" data-testid="dispatch-views">
             {VIEWS.map(o => <button key={o.id} className={view === o.id ? 'on' : ''} onClick={() => setView(o.id)} data-testid={`view-${o.id}`}>{o.label} <b>{count(o.id)}</b></button>)}
+            {hasAlly && <button className={view === 'ally' ? 'on' : ''} onClick={() => setView('ally')} data-testid="view-ally" title="Alliance calls">🤝 <b>{ally?.calls.length ?? 0}</b></button>}
           </div>
           <select className="sort-select" value={sort} onChange={(e: any) => setSort(e.target.value)} data-testid="dispatch-sort" aria-label="Sort calls">
             {SORTS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
         </div>
       )}
-      {all.length > 0 && !active.length && <Empty>No calls in this view.</Empty>}
+      {allyView && <AllianceCalls />}
+      {all.length > 0 && !active.length && !allyView && <Empty>No calls in this view.</Empty>}
       <div className="list">
         {active.map(inc => {
           const st = INCIDENT_STATUS[game.shownStatus(inc)];
@@ -115,7 +121,7 @@ export function DispatchList() {
             <button key={inc.id} className={`row mission-row st-${game.shownStatus(inc)}`} onClick={() => push({ kind: 'incident', id: inc.id })} data-testid="incident-row">
               <IncIcon inc={inc} />
               <div className="grow">
-                <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}{inc.expandedFrom && <span className="tag warn">Expanded</span>}</div>
+                <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}{inc.expandedFrom && <span className="tag warn">Expanded</span>}{inc.mirror && <span className="tag info">🤝 {inc.mirror.ownerName}</span>}{inc.sharedId && <span className="tag info">🤝 Shared</span>}</div>
                 <div className="row-sub">{inc.address} · {inc.district}</div>
                 {inc.patientList && inc.patientList.length > 0 && <RowPatients inc={inc} now={game.state.time} />}
               </div>
@@ -141,7 +147,7 @@ export function DispatchList() {
 }
 
 export function IncidentDetail({ id }: { id: string }) {
-  const { game, act, push, back, focus } = useCtx();
+  const { game, act, push, back, focus, ally } = useCtx();
   const inc = game.incident(id);
   const [sel, setSel] = useState(() => new Set<string>());
   const [unitTab, setUnitTab] = useState('all');
@@ -157,7 +163,7 @@ export function IncidentDetail({ id }: { id: string }) {
   const closed = inc.status === 'resolved';
   const attached = game.incidentVehicles(inc.id);
   const responding = attached.filter(v => v.status !== 'onscene');
-  const onScene = attached.filter(v => v.status === 'onscene');
+  const onScene = game.sceneUnits(inc);
   const missingOnScene = missingRequirements(inc.requirements, onScene);
   const staffOnSceneMissing = game.missingStaff(inc, onScene);
   const missingAll = missingRequirements(inc.requirements, game.responding(inc));
@@ -220,6 +226,15 @@ export function IncidentDetail({ id }: { id: string }) {
         <div className="addr" onClick={() => focus(inc.pos, 16)} title="Show on map" data-testid="incident-address"><span className="addr-pin">📍</span>{inc.address}<span className="muted"> · {inc.district}</span></div>
         <p className="desc">{inc.description}</p>
         {inc.expandedFrom && <p className="expanded-note" data-testid="expanded-from">↗ Expanded from {inc.expandedFrom}</p>}
+        {inc.mirror && <p className="ally-note" data-testid="mirror-note">🤝 {inc.mirror.ownerName}'s call. Send units to help; you earn the full reward when they finish it{inc.mirror.helped ? ' (you have helped)' : ' (have at least one unit on scene)'}.</p>}
+        {!closed && !inc.mirror && game.state.alliance && (
+          inc.sharedId ? (
+            <div className="ally-note" data-testid="shared-note">
+              🤝 Shared with {game.state.alliance.name}
+              {(ally?.helpers.get(inc.id) ?? []).filter(h => h.units).map(h => <span key={h.name} className="tag info">{h.name}: {h.units} on scene</span>)}
+            </div>
+          ) : <Btn small kind="ghost" testid="share-call" onClick={() => act(() => game.shareIncident(inc.id), 'Shared with your alliance')}>🤝 Share with alliance</Btn>
+        )}
         <div className="kv">
           {!closed && <span>{timerText(game, inc)}</span>}
           {closed ? <span className={inc.payout < 0 ? 'bad' : 'ok'}>{money(inc.payout)}</span> : <span>{inc.reward ? `Reward ${money(inc.reward)}` : 'No reward · your hospital earns per patient'}</span>}
@@ -288,10 +303,10 @@ export function IncidentDetail({ id }: { id: string }) {
         </div>
       </Section>}
 
-      {(responding.length > 0 || onScene.length > 0) && (
+      {(responding.length > 0 || attached.some(v => v.status === 'onscene')) && (
         <Section title="Assigned units">
           <div className="list">
-            {[...onScene, ...responding].map(v => {
+            {[...attached.filter(v => v.status === 'onscene'), ...responding].map(v => {
               const t = vehicleType(v.typeId);
               const eta = game.etaRemaining(v);
               return (

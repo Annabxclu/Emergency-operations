@@ -5,6 +5,7 @@ import { DEPARTMENTS, dept, qualification, stationType, stationTypeForDept } fro
 import type { OsrmRouting } from '../services/routing';
 import { clearSave, importJson, saveGame } from '../services/storage';
 import { CloudSync } from '../services/cloudSync';
+import { AllianceSync } from '../services/alliance';
 import { CloudAccount, CloudConflict } from './Cloud';
 import { fetchHospitals, reverseAddress, searchAddress, type AddressResult, reversePlace } from '../services/geocode';
 import { GameCtx, type Ctx, type Route } from './common';
@@ -272,6 +273,16 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     return () => clearInterval(iv);
   }, [game]);
 
+  // ---------------------------------------------------------- alliance
+  const [ally] = useState(() => { const a = new AllianceSync(game); (window as any).__ally = a; return a; });
+  const [, setAllyTick] = useState(0);
+  useEffect(() => ally.on(() => setAllyTick((t: number) => t + 1)), [ally]);
+  useEffect(() => {
+    ally.poll();
+    const iv = setInterval(() => { if (document.visibilityState === 'visible') ally.poll(); }, 15000);
+    return () => clearInterval(iv);
+  }, [ally, hasSave]);
+
   // ---------------------------------------------------------- cloud save
   const loadFromCloud = useRef((() => {}) as (json: string, from: { device: string }) => void);
   loadFromCloud.current = (json: string, from: { device: string }) => {
@@ -344,7 +355,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const tabOn = (id: string) => (wide ? (id === 'map' ? !wins.wins.length : wins.isOpen(id)) : activeTab === id);
   const selected: Selection = top && (top.kind === 'incident' || top.kind === 'station' || top.kind === 'vehicle' || top.kind === 'hospital') ? { kind: top.kind, id: top.id } : null;
 
-  const ctx: Ctx = { game, push, back, toast, act, focus, startBuild };
+  const ctx: Ctx = { game, push, back, toast, act, focus, startBuild, ally };
 
   const placeAt = (p: LatLng, label: string | null) => {
     setPending(p); setPendingAddr(label); setAddrResults([]);

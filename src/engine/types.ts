@@ -83,7 +83,16 @@ export interface IncidentTypeDef {
 export interface Facility { id: string; kind: 'hospital' | 'jail'; name: string; pos: LatLng; owned?: boolean }
 
 /** A hospital the player built (MissionChief style). */
-export interface OwnedHospital { id: string; name: string; pos: LatLng; address?: string; extraBeds: number; specialties: string[]; occupied: number[] /* game time each bed frees up */ }
+export interface OwnedHospital { id: string; name: string; pos: LatLng; address?: string; extraBeds: number; specialties: string[]; occupied: number[] /* game time each bed frees up */
+  /** Shared with your alliance: the cut (0, 10 or 30 %) you take from other members' admission fees. Unset = not shared. */
+  allianceFee?: number | null }
+
+/** A hospital another alliance member has shared. */
+export interface AllyHospital { key: string; owner: string; ownerName: string; hid: string; name: string; pos: LatLng; freeBeds: number; specialties: string[]; feePct: number }
+
+/** A call another alliance member has shared. */
+export interface SharedCall { id: string; owner: string; ownerName: string; typeId: string; name: string; pos: LatLng; address: string; district: string;
+  requirements: Requirement[]; reward: number; status: 'open' | 'done' | 'cancelled'; paid?: boolean; helpers: Record<string, { name: string; units: string[] }> }
 
 export interface DistrictDef { name: string; center: LatLng }
 
@@ -142,7 +151,7 @@ export interface Vehicle {
   odometerKm: number;
   costs: { purchase: number; fuel: number; maintenance: number };
   calls: number;
-  cargo?: { kind: 'patient' | 'prisoner'; count: number; dest: string; destName: string; fee: number; specialty?: string } | null;
+  cargo?: { kind: 'patient' | 'prisoner'; count: number; dest: string; destName: string; fee: number; specialty?: string; destPos?: LatLng } | null;
   busyUntil?: number;
   followUp?: string | null; // incident to drive to straight after the current job
 }
@@ -182,6 +191,11 @@ export type IncidentStatus = 'pending' | 'responding' | 'onscene' | 'working' | 
 export type Outcome = 'successful' | 'delayed' | 'partial' | 'escalated' | 'failed';
 
 export interface Incident {
+  /** You shared this call with your alliance (id of the shared call). */
+  sharedId?: string;
+  sharedClosed?: boolean;
+  /** This is another member's shared call that you joined: your units help, their game finishes it. */
+  mirror?: { callId: string; owner: string; ownerName: string; helped?: boolean };
   patientList?: Patient[]; // individual patients (shown as cards on the call screen)
   specialty?: string;     // specialist care the patients need (hospital must have it)
   id: string;
@@ -278,6 +292,8 @@ export interface Settings {
 }
 
 export interface GameState {
+  /** Alliance you belong to (cloud accounts only). */
+  alliance?: { id: string; name: string; me?: string } | null;
   schema: number;
   createdAt: string;
   time: number;          // game seconds since start

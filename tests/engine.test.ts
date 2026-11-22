@@ -395,6 +395,55 @@ async function run(g: Game, seconds: number, step = 1) {
     assert(b.address.endsWith(' Peachtree Street') && b.district === 'Midtown', `call inside the city shows its neighborhood (${b.address} · ${b.district})`);
   }
 
+  // Alliance: shared hospitals, shared calls and joined calls.
+  {
+    const ga = new Game(newGameState(), fake);
+    ga.placeStation('fire_station', [33.755, -84.39]); ga.placeStation('police_precinct', [33.77, -84.385]); ga.placeStation('ems_station', [33.76, -84.37]);
+    ga.state.alliance = { id: 'ABC123', name: 'Test', me: 'me' };
+    const admits: number[] = [];
+    ga.alliance.hospitals = [{ key: 'ally:u2:h1', owner: 'u2', ownerName: 'Sam', hid: 'h1', name: 'Sam General', pos: [33.765, -84.38], freeBeds: 10, specialties: [], feePct: 30 }];
+    ga.alliance.admit = (_h, count, cut, fee) => { admits.push(count, cut, fee); };
+    let call: any = null;
+    for (const t of INCIDENT_TYPES) {
+      if (!(t.patients && t.patients[0] > 0) || t.requirements.some(r => !['ambulance', 'als'].includes(r.cap))) continue;
+      const c = await ga.spawnIncident(t.id);
+      if (c && c.patientList?.some((p: any) => p.needsTransport) && !c.specialty) { call = c; break; }
+    }
+    if (call) {
+      ga.dispatch(call.id, ga.city.vehicles.filter(v => ga.isMedic(v)).map(v => v.id));
+      for (let i = 0; i < 6000 && !admits.length; i++) { ga.tick(1); if (i % 10 === 0) await flush(); }
+      assert(admits.length === 3 && admits[1] === Math.round(admits[2] * 0.3), `patients go to an alliance member's hospital; they get their 30% cut (${admits.join(',')})`);
+      const income = ga.city.ledger.filter((l: any) => l.cat === 'hospital admissions').reduce((n: number, l: any) => n + l.amount, 0);
+      assert(income === admits[2] - admits[1], `you keep the admission fee minus their cut ($${income})`);
+    }
+    // Shared call: members' units on scene count toward your call.
+    const own = (await ga.spawnIncident('fire_alarm'))!;
+    ga.shareIncident(own.id);
+    assert(!!own.sharedId, 'a call can be shared with the alliance');
+    ga.alliance.remote.set(own.id, own.requirements.flatMap(r => Array(r.count).fill(VEHICLE_TYPES.find(v => v.caps.includes(r.cap))!.id)));
+    ga.tick(1);
+    assert(own.status === 'working', `alliance units on scene start the work on your shared call (${own.status})`);
+    // Joined call: your units help; you get paid only if you had units there.
+    const sc: any = { id: 'call-x', owner: 'u2', ownerName: 'Sam', typeId: 'fire_alarm', name: 'Fire alarm', pos: [33.756, -84.389], address: '1 Main St', district: 'Downtown', requirements: [{ cap: 'engine', count: 2 }], reward: 900, status: 'open', helpers: {} };
+    const m = ga.joinSharedCall(sc);
+    assert(!!m.mirror && ga.city.incidents.includes(m), 'joining a shared call puts it on your board');
+    const before = ga.city.money;
+    ga.resolveMirror('call-x', true);
+    assert(m.status === 'resolved' && ga.city.money === before, 'no pay if none of your units were on scene');
+    const m2 = ga.joinSharedCall({ ...sc, id: 'call-y' });
+    m2.mirror!.helped = true;
+    const b2 = ga.city.money;
+    ga.resolveMirror('call-y', true);
+    assert(ga.city.money - b2 >= 900, `helpers get the full reward when the owner finishes (+$${ga.city.money - b2})`);
+    // A member brings patients to your shared hospital.
+    ga.city.money = 1_000_000;
+    const h = ga.buildHospital([33.75, -84.39]);
+    ga.setHospitalShare(h.id, 10);
+    const freeBefore = ga.hospitalFreeBeds(h), mb = ga.city.money;
+    ga.allianceAdmitted(h.id, 2, 150, 'Sam');
+    assert(ga.hospitalFreeBeds(h) === freeBefore - 2 && ga.city.money === mb + 150, 'members\' patients fill your beds and you collect your cut');
+  }
+
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
   {
     const old = JSON.parse(JSON.stringify(newGameState()));

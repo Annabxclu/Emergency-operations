@@ -19,6 +19,16 @@ export function HospitalPanel({ id }: { id: string }) {
           <div className="actions"><Btn small kind="primary" onClick={() => { game.renameHospital(h.id, name); setRenaming(false); }}>Save</Btn><Btn small onClick={() => setRenaming(false)}>Cancel</Btn></div></div>
       ) : <div className="actions"><Btn small onClick={() => { setName(h.name); setRenaming(true); }}>Rename</Btn></div>}
       <p className="hint">Ambulances bring patients to your nearest hospital with a free bed and the care they need; otherwise they go to the public hospital. A general patient admitted here earns {money(HOSPITAL.admissionFee)}; specialist patients earn the fee shown below. Each patient keeps a bed for {HOSPITAL.stayHours} hour{HOSPITAL.stayHours === 1 ? '' : 's'}.</p>
+      <Section title="Alliance">
+        {game.state.alliance ? (<>
+          <p className="hint">Share this hospital so alliance members' ambulances can bring patients here. They earn the admission fee; you keep the cut you choose, and their patients use your beds.</p>
+          <div className="seg" data-testid="hospital-share">
+            {([null, 0, 10, 30] as (number | null)[]).map(p => (
+              <button key={String(p)} className={(h.allianceFee ?? null) === p ? 'on' : ''} onClick={() => act(() => game.setHospitalShare(h.id, p))} data-testid={`hospital-share-${p ?? 'off'}`}>{p == null ? 'Not shared' : `${p}% fee`}</button>
+            ))}
+          </div>
+        </>) : <p className="hint">Join an alliance (Settings → Alliance) to share this hospital with friends.</p>}
+      </Section>
       <Section title="Beds">
         <div className="kv"><span>{beds} beds · {beds - free} in use</span></div>
         {h.extraBeds < HOSPITAL.maxExtraBeds ? (

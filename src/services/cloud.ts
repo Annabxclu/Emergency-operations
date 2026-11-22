@@ -9,7 +9,7 @@ const CONFIG = {
 
 const AUTH = 'https://identitytoolkit.googleapis.com/v1/accounts';
 const TOKEN = 'https://securetoken.googleapis.com/v1/token';
-const DOCS = `https://firestore.googleapis.com/v1/projects/${CONFIG.projectId}/databases/(default)/documents`;
+export const DOCS = `https://firestore.googleapis.com/v1/projects/${CONFIG.projectId}/databases/(default)/documents`;
 const DOC_NAME = `projects/${CONFIG.projectId}/databases/(default)/documents`;
 const CHUNK = 700_000;
 const KEY = 'fr-cloud';
@@ -51,7 +51,7 @@ const MESSAGES: Record<string, string> = {
   PERMISSION_DENIED: 'Firebase refused access. Check the Firestore rules.',
 };
 
-async function call(url: string, init: RequestInit): Promise<any> {
+export async function call(url: string, init: RequestInit): Promise<any> {
   let res: Response;
   try { res = await fetch(url, init); } catch { throw new Error('No connection to the cloud. Check your internet.'); }
   const body = res.status === 204 ? {} : await res.json().catch(() => ({}));
@@ -83,6 +83,9 @@ export async function resetPassword(email: string) {
     body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: email.trim() }),
   });
 }
+
+/** Signed-in user with a fresh token (for the alliance). */
+export async function authed(): Promise<CloudUser> { return token(); }
 
 async function token(): Promise<CloudUser> {
   const s = read();

@@ -4,7 +4,7 @@
 
 import type {
   CityDef, CityState, Employee, Facility, IncidentTypeDef, Route, RouteData, VehicleTypeDef, FinanceBucket, GameEvent, GameState, Incident, LatLng, Outcome,
-  Requirement, RoutingProvider, Station, Vehicle, RadioKind, RadioMsg } from './types';
+  Requirement, RoutingProvider, Station, Vehicle, RadioKind, RadioMsg, AllyHospital, SharedCall } from './types';
 import {
   CAPABILITIES, DEPARTMENTS, STARTER_KITS, STARTING_MONEY, STATION_TYPES, VEHICLE_TYPES,
   dept, qualification, stationType, stationTypeForDept, vehicleType, ACADEMIES, isTrainable } from '../data/departments';
@@ -231,8 +231,8 @@ export class Game {
         this.sendHome(v);
       } else if (v.status === 'transporting' && !v.route) {
         const dest = v.cargo && [...this.hospitals(), ...this.jails()].find(f => f.id === v.cargo!.dest);
-        // (an owned hospital is in hospitals() too)
-        if (dest) this.requestRoute(v, dest.pos); else { v.cargo = null; this.sendHome(v); }
+        // (an owned hospital is in hospitals() too; an alliance hospital is remembered by position)
+        if (dest) this.requestRoute(v, dest.pos); else if (v.cargo?.destPos) this.requestRoute(v, v.cargo.destPos); else { v.cargo = null; this.sendHome(v); }
       }
     }
   }
@@ -827,8 +827,10 @@ export class Game {
   // ------------------------------------------------------------ dispatch
   /** Vehicles currently attached to an incident and not yet released. */
   responding(inc: Incident) {
-    return this.incidentVehicles(inc.id).filter(v => ['dispatched', 'enroute', 'onscene'].includes(v.status));
+    return [...this.incidentVehicles(inc.id).filter(v => ['dispatched', 'enroute', 'onscene'].includes(v.status)), ...this.remoteVehicles(inc)];
   }
+  /** Units on scene, including alliance members' units on a call you shared. */
+  sceneUnits(inc: Incident) { return [...this.incidentVehicles(inc.id).filter(v => v.status === 'onscene'), ...this.remoteVehicles(inc)]; }
 
   /** Suggest the closest eligible vehicles to cover what is still missing. */
   recommend(incId: string): { ids: string[]; unfilled: Requirement[] } {
@@ -1262,6 +1264,15 @@ export class Game {
       cg.fee = cg.kind === 'patient' ? 0 : Math.round((200 + 80 * km) * cg.count * this.mod('transport') * cells);
       this.progressGoal(cg.kind === 'patient' ? 'patients' : 'prisoners', cg.count);
       if (cg.fee) this.post(cg.fee, 'prisoner transport', vehicleType(v.typeId).dept, `${v.name} → ${cg.destName}`);
+      const ally = cg.kind === 'patient' && cg.dest.startsWith('ally:') ? this.alliance.hospitals.find(h => h.key === cg.dest) : null;
+      if (cg.kind === 'patient' && cg.dest.startsWith('ally:')) {
+        const fee = admissionFee(cg.specialty) * cg.count;
+        const pct = ally?.feePct ?? 0;
+        const cut = Math.round(fee * pct / 100);
+        cg.fee = fee - cut;
+        this.post(cg.fee, 'hospital admissions', 'ems', `${cg.destName}: ${cg.count} admitted${pct ? ` (${pct}% to ${ally?.ownerName})` : ''}`);
+        if (ally && this.alliance.admit) this.alliance.admit(ally, cg.count, cut, fee);
+      }
       const oh = cg.kind === 'patient' ? this.ownedHospital(cg.dest) : null;
       if (oh) {
         cg.fee = admissionFee(cg.specialty) * cg.count;
@@ -1297,9 +1308,17 @@ export class Game {
   private updateIncidents() {
     const now = this.state.time;
     for (const inc of [...this.city.incidents]) {
+      if (inc.mirror) {
+        // Another member's call: your units help, their game decides when it's done.
+        const here = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene');
+        if (here.length && !inc.mirror.helped) { inc.mirror.helped = true; this.changed(); }
+        const st = here.length ? 'onscene' : this.responding(inc).length ? 'responding' : 'pending';
+        if (inc.status !== st) { inc.status = st; this.changed(); }
+        continue;
+      }
       if (inc.patients > 0 && !inc.patientList) this.ensurePatients(inc); // calls from before patient cards
       this.updatePatients(inc, now);
-      const onScene = this.incidentVehicles(inc.id).filter(v => v.status === 'onscene');
+      const onScene = [...this.incidentVehicles(inc.id).filter(v => v.status === 'onscene'), ...this.remoteVehicles(inc)];
       // All patients handled and nothing else to do (EMS-only call): done.
       if (inc.patientList && this.patientsDone(inc) && this.sceneReqs(inc).length === 0 && !(incidentType(inc.typeId).staff ?? []).length && inc.firstOnSceneAt != null) {
         this.resolve(inc, this.outcomeFor(inc)); continue;
@@ -1428,7 +1447,7 @@ export class Game {
     c.resolved.unshift(inc);
     if (c.resolved.length > 40) c.resolved.length = 40;
     this.emit({ type: 'incident_resolved', id: inc.id, outcome, payout });
-    if (outcome !== 'failed') this.maybeExpand(inc);
+    if (outcome !== 'failed' && !inc.mirror) this.maybeExpand(inc);
     this.changed();
   }
 
@@ -1485,7 +1504,7 @@ export class Game {
   private maybeSpawn() {
     const c = this.city;
     if (this.spawning || this.state.time < c.nextIncidentAt) return;
-    if (c.incidents.length >= this.activeCap()) { c.nextIncidentAt = this.state.time + 10; return; }
+    if (this.ownCount(c) >= this.activeCap()) { c.nextIncidentAt = this.state.time + 10; return; }
     c.nextIncidentAt = this.state.time + this.spawnInterval();
     if (this.noSpawn) { this.spawnOffline(); this.offlineCalls++; return; }
     this.spawnIncident().catch(() => undefined);
@@ -1568,7 +1587,7 @@ export class Game {
     const dest = this.hospitalFor(v.pos, n, inc.specialty);
     const oh = dest.owned ? this.ownedHospital(dest.id) : null;
     if (oh) for (let i = 0; i < n; i++) oh.occupied.push(this.state.time + HOSPITAL.stayHours * 3600);
-    v.cargo = { kind: 'patient', count: n, dest: dest.id, destName: dest.name, fee: 0, specialty: inc.specialty };
+    v.cargo = { kind: 'patient', count: n, dest: dest.id, destName: dest.name, fee: 0, specialty: inc.specialty, destPos: dest.pos };
     const names = (inc.patientList ?? []).filter(p => p.vehicleId === v.id && p.status === 'transport').map(p => p.name);
     this.radio('transport', `transporting ${names.length ? names.join(', ') : `${n} patient${n > 1 ? 's' : ''}`} to ${dest.name}`, v, inc);
     v.status = 'transporting';
@@ -1615,7 +1634,7 @@ export class Game {
       if (parent && t.children) {
         // Major event: related calls appear around the main scene.
         const allowed = t.children.types.map(incidentType).filter(ct => this.fleetCovers(ct.requirements));
-        const room = this.activeCap() - c.incidents.length;
+        const room = this.activeCap() - this.ownCount(c);
         const n = Math.min(room, Math.round(rand(t.children.count[0], t.children.count[1])));
         let made = 0;
         for (let i = 0; i < n && allowed.length; i++) {
@@ -1665,7 +1684,7 @@ export class Game {
     const parent = this.makeIncident(t, c, def, this.randomPoint(def, anchor.pos, stationType(anchor.typeId).coverageKm * 1000), street(), null);
     if (parent && t.children) {
       const allowed = t.children.types.map(incidentType).filter(ct => this.fleetCovers(ct.requirements));
-      const n = Math.min(this.activeCap() - c.incidents.length, Math.round(rand(t.children.count[0], t.children.count[1])));
+      const n = Math.min(this.activeCap() - this.ownCount(c), Math.round(rand(t.children.count[0], t.children.count[1])));
       for (let i = 0; i < n && allowed.length; i++) this.makeIncident(pick(allowed), c, def, this.randomPoint(def, parent.pos, t.children.radiusKm * 1000), street(), parent.id);
     }
   }
@@ -1775,6 +1794,13 @@ export class Game {
       const h = own.reduce((b, x) => (distanceM(from, x.pos) < distanceM(from, b.pos) ? x : b));
       return { id: h.id, kind: 'hospital', name: h.name, pos: h.pos, owned: true };
     }
+    // Then a hospital an alliance member shares nearby (you earn the admission fee minus their cut).
+    const ally = this.alliance.hospitals.filter(h => h.freeBeds >= count && (!spec || h.specialties.includes(spec)) && distanceM(from, h.pos) < 40_000);
+    if (ally.length) {
+      const h = ally.reduce((b, x) => (distanceM(from, x.pos) < distanceM(from, b.pos) ? x : b));
+      h.freeBeds -= count; // until the next sync
+      return { id: h.key, kind: 'hospital', name: `${h.name} (${h.ownerName})`, pos: h.pos };
+    }
     return this.nearestFacility(this.hospitals().filter(f => !f.owned), from);
   }
 
@@ -1804,7 +1830,7 @@ export class Game {
       // Reserve the beds now so two ambulances don't overfill one hospital.
       const oh = dest.owned ? this.ownedHospital(dest.id) : null;
       if (oh) for (let i = 0; i < n; i++) oh.occupied.push(this.state.time + HOSPITAL.stayHours * 3600);
-      v.cargo = { kind: tr.kind, count: n, dest: dest.id, destName: dest.name, fee: 0, specialty: tr.kind === 'patient' ? inc.specialty : undefined };
+      v.cargo = { kind: tr.kind, count: n, dest: dest.id, destName: dest.name, fee: 0, specialty: tr.kind === 'patient' ? inc.specialty : undefined, destPos: dest.pos };
       this.radio('transport', `transporting ${n} ${tr.kind === 'patient' ? (n > 1 ? 'patients' : 'patient') : (n > 1 ? 'suspects' : 'suspect')} to ${dest.name}`, v, inc);
       v.status = 'transporting';
       v.incidentId = null;
@@ -1820,6 +1846,75 @@ export class Game {
     let r = Math.random() * total;
     for (const it of items) { r -= it.weight; if (r <= 0) return it; }
     return items[items.length - 1] || null;
+  }
+
+  // ------------------------------------------------------------ alliance
+  /** Filled in by the alliance sync (not saved): other members' units on your shared calls,
+   *  and the hospitals they share. */
+  alliance = {
+    remote: new Map<string, string[]>(),         // your incident id -> vehicle type ids of members' units on scene
+    hospitals: [] as AllyHospital[],
+    admit: null as null | ((h: AllyHospital, count: number, cut: number, fee: number) => void),
+  };
+
+  private remoteVehicles(inc: Incident): Vehicle[] {
+    const ids = this.alliance.remote.get(inc.id);
+    if (!ids?.length) return [];
+    return ids.map((typeId, i) => ({ id: `ally-${inc.id}-${i}`, typeId, name: 'Alliance unit', stationId: '', status: 'onscene', pos: inc.pos, incidentId: inc.id } as unknown as Vehicle));
+  }
+  /** Alliance members' units on scene at your shared call. */
+  allianceUnits(incId: string) { return this.alliance.remote.get(incId) ?? []; }
+
+  private ownCount(c: CityState) { return c.incidents.filter(i => !i.mirror).length; }
+
+  /** Share one of your calls with the alliance. */
+  shareIncident(id: string) {
+    const inc = this.city.incidents.find(i => i.id === id);
+    if (!inc || inc.mirror) throw new ActionError('Only your own open calls can be shared.');
+    if (!this.state.alliance) throw new ActionError('Join an alliance first (Settings → Alliance).');
+    inc.sharedId = inc.sharedId ?? `${this.state.alliance.id}-${inc.id}-${Math.floor(Math.random() * 1e6)}`;
+    this.radio('call', `${inc.name} shared with ${this.state.alliance.name}`, null, inc);
+    this.changed();
+  }
+
+  /** Join another member's shared call: it appears on your board so you can send units. */
+  joinSharedCall(sc: SharedCall): Incident {
+    const existing = this.city.incidents.find(i => i.mirror?.callId === sc.id);
+    if (existing) return existing;
+    const t = INCIDENT_TYPES.find(x => x.id === sc.typeId) ?? INCIDENT_TYPES[0];
+    const inc = this.makeIncident(t, this.city, this.cityDef, sc.pos, '', null);
+    inc.name = sc.name; inc.address = sc.address; inc.district = sc.district; inc.addrChecked = true;
+    inc.requirements = sc.requirements.map(r => ({ ...r }));
+    inc.reward = sc.reward; inc.patients = 0; inc.prisoners = 0; inc.patientList = undefined; inc.specialty = undefined;
+    inc.mirror = { callId: sc.id, owner: sc.owner, ownerName: sc.ownerName };
+    this.radio('call', `Joined ${sc.ownerName}'s call: ${sc.name}`, null, inc);
+    this.changed();
+    return inc;
+  }
+
+  /** The member who owns a shared call finished it (or took it down). */
+  resolveMirror(callId: string, paid: boolean) {
+    const inc = this.city.incidents.find(i => i.mirror?.callId === callId);
+    if (!inc) return;
+    if (!(paid && inc.mirror!.helped)) inc.reward = 0;
+    this.resolve(inc, 'successful');
+  }
+
+  /** Share one of your hospitals with the alliance (cut 0/10/30 %), or stop sharing (null). */
+  setHospitalShare(id: string, pct: number | null) {
+    const h = this.ownedHospital(id);
+    if (!h) throw new ActionError('Hospital not found.');
+    h.allianceFee = pct;
+    this.changed();
+  }
+
+  /** A member sent patients to your shared hospital: their beds fill, you get your cut. */
+  allianceAdmitted(hid: string, count: number, cut: number, from: string) {
+    const h = this.ownedHospital(hid);
+    if (h) for (let i = 0; i < count; i++) h.occupied.push(this.state.time + HOSPITAL.stayHours * 3600);
+    if (cut > 0) this.post(cut, 'hospital admissions', 'ems', `${h?.name ?? 'Hospital'}: ${count} from ${from}`);
+    this.radio('transport', `${from} brought ${count} patient${count > 1 ? 's' : ''} to ${h?.name ?? 'your hospital'}${cut ? ` (+$${cut.toLocaleString()})` : ''}`);
+    this.changed();
   }
 
   /** Correct a call's address from a map lookup (also fixes calls made offline). */

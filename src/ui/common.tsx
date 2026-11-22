@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { Game } from '../engine/game';
+import type { AllianceSync } from '../services/alliance';
 import type { LatLng } from '../engine/types';
 import { VEHICLE_STATUS } from './format';
 
@@ -18,6 +19,7 @@ export interface Ctx {
   act(fn: () => void, okText?: string): boolean;
   focus(p: LatLng, zoom?: number): void;
   startBuild(stationTypeId: string, at?: { pos: LatLng; name: string; address?: string }): void;
+  ally?: AllianceSync;
 }
 
 export const GameCtx = createContext(null as unknown as Ctx);

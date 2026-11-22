@@ -9,6 +9,7 @@ import type { CloudSync } from '../../services/cloudSync';
 import { pinHtml, type Art } from '../vehicleArt';
 import { VEHICLE_STATUS } from '../format';
 import { CloudAccount } from '../Cloud';
+import { AlliancePanel } from '../Alliance';
 
 export const THEMES = [
   { id: 'midnight', name: 'Midnight', bg: '#0e141b', surface: '#18212b' },
@@ -209,6 +210,10 @@ export function SettingsPanel(p: Props) {
 
       <Group id="cloud" title="Cloud save" sub="Play on several devices with one account">
         <CloudAccount cloud={p.cloud} />
+      </Group>
+
+      <Group id="alliance" title="Alliance" sub={game.state.alliance ? `${game.state.alliance.name} · code ${game.state.alliance.id}` : 'Share calls and hospitals with friends'}>
+        <AlliancePanel />
       </Group>
 
       <Group id="save" title="Save data" sub="Export, import or copy your save">
