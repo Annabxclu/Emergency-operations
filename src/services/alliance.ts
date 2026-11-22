@@ -168,12 +168,15 @@ export class AllianceSync {
       const mem = await listDocs(`${base}/members`);
       const now = Date.now();
       const units: AllyUnit[] = [];
+      // Only show members' units on shared calls you're part of (your shared calls, or ones you joined).
+      const mine = new Set(g.city.incidents.flatMap(i => [i.sharedId, i.mirror?.callId]).filter(Boolean) as string[]);
       for (const m of mem) {
         if (m.id === u.uid || !m.units || now - (m.unitsAt ?? 0) > 3 * 60_000) continue;
         let list: any[] = [];
         try { list = JSON.parse(m.units); } catch { list = []; }
         const age = Math.max(0, now - (m.unitsAt ?? now));
         for (const x of list) {
+          if (!x.sc || !mine.has(x.sc)) continue;
           units.push({ key: `${m.id}:${x.id}`, owner: m.id, ownerName: m.name ?? 'Ally', typeId: x.t, name: x.n, status: x.s,
             from: x.p, to: x.d, t0: now - Math.min(age, x.ms ?? 0), durMs: x.ms ?? 0 });
         }

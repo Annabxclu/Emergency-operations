@@ -1895,13 +1895,17 @@ export class Game {
   /** Your units out on the road, for alliance members' maps: where each is and where it's heading. */
   unitsForAlliance() {
     const speed = Math.max(0.1, this.state.settings.speed || 1);
-    return this.city.vehicles.filter(v => ['dispatched', 'enroute', 'onscene', 'returning', 'transporting', 'handover'].includes(v.status)).slice(0, 80).map(v => {
+    const shared = new Set(this.city.incidents.filter(i => i.sharedId || i.mirror).map(i => i.id));
+    return this.city.vehicles.filter(v => v.incidentId && shared.has(v.incidentId) && ['dispatched', 'enroute', 'onscene', 'transporting', 'handover'].includes(v.status)).slice(0, 80).map(v => {
       const r = v.route;
       const moving = !!r && r.startAt >= 0 && ['enroute', 'returning', 'transporting'].includes(v.status);
       const leftS = moving ? Math.max(0, r!.durationS - (this.state.time - r!.startAt)) : 0;
       const to = moving ? r!.coords[r!.coords.length - 1] : v.pos;
       const round = (p: LatLng) => [Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5];
-      return { id: v.id, t: v.typeId, n: v.name, s: v.status, p: round(v.pos), d: round(to), ms: Math.round((leftS / speed) * 1000) };
+      // Which shared alliance call this unit is working (members only see units on shared calls).
+      const inc = v.incidentId ? this.city.incidents.find(i => i.id === v.incidentId) : null;
+      const sc = inc?.sharedId ?? inc?.mirror?.callId ?? null;
+      return { id: v.id, t: v.typeId, n: v.name, s: v.status, p: round(v.pos), d: round(to), ms: Math.round((leftS / speed) * 1000), sc };
     });
   }
 
