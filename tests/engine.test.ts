@@ -458,6 +458,19 @@ Game.expansionChance = 0; // calls finish normally in tests (expansion is tested
     assert(!!quake && kids >= 1, `an earthquake sets off related calls (${kids})`);
   }
 
+  // Moving a station: costs 10% of the build price; parked vehicles move with it.
+  {
+    const gm = new Game(newGameState(), fake);
+    gm.placeStation('fire_station', [33.755, -84.39]); gm.placeStation('police_precinct', [33.77, -84.385]); gm.placeStation('ems_station', [33.76, -84.37]);
+    const st = gm.city.stations[0];
+    gm.city.money = 1_000_000;
+    const m0 = gm.city.money, cost = gm.moveCost('station', st.id);
+    gm.moveStation(st.id, [33.74, -84.41], '1 New Street');
+    const parked = gm.city.vehicles.filter(v => v.stationId === st.id && v.status === 'available');
+    assert(st.pos[0] === 33.74 && st.address === '1 New Street' && gm.city.money === m0 - cost && cost > 0, `station moved for ${cost}`);
+    assert(parked.length > 0 && parked.every(v => v.pos[0] === 33.74 && v.pos[1] === -84.41), 'parked vehicles moved with the station');
+  }
+
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
   {
     const old = JSON.parse(JSON.stringify(newGameState()));

@@ -19,6 +19,8 @@ export interface Ctx {
   act(fn: () => void, okText?: string): boolean;
   focus(p: LatLng, zoom?: number): void;
   startBuild(stationTypeId: string, at?: { pos: LatLng; name: string; address?: string }): void;
+  /** Pick a new spot on the map for a station or hospital. */
+  startMove?: (kind: 'station' | 'hospital', id: string) => void;
   ally?: AllianceSync;
 }
 

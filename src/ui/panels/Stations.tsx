@@ -135,7 +135,7 @@ export function BuildChooser() {
 }
 
 export function StationDetail({ id }: { id: string }) {
-  const { game, act, push, focus } = useCtx();
+  const { game, act, push, focus, startMove } = useCtx();
   const s = game.station(id);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(s?.name ?? '');
@@ -257,6 +257,12 @@ export function StationDetail({ id }: { id: string }) {
           </div>
         )}
         <p className="hint">Level 1 costs {money(game.levelCost(1))}, level 2 {money(game.levelCost(2))}, then {money(game.levelCost(3))} per level.</p>
+        <div className="actions">
+          <Btn small disabled={!game.setupDone || game.city.money < game.moveCost('station', s.id)} testid="station-move" onClick={() => startMove?.('station', s.id)}>
+            📍 Move station · {money(game.moveCost('station', s.id))}
+          </Btn>
+        </div>
+        <p className="hint">Pick a new spot on the map. Vehicles, staff, levels and extensions all come along; units out on calls return to the new spot.</p>
       </Group>
       </Section>
     </div>

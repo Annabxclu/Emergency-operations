@@ -62,6 +62,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const [addrBusy, setAddrBusy] = useState(false);
   const [addrError, setAddrError] = useState('');
   const [pendingAddr, setPendingAddr] = useState(null as string | null);
+  const [moving, setMoving] = useState(null as null | { kind: 'station' | 'hospital'; id: string; name: string });
   const [tileTrouble, setTileTrouble] = useState(false);
   const [routingOk, setRoutingOk] = useState(null as boolean | null);
   // First launch goes straight to choosing a city; afterwards the game opens on the map.
@@ -119,6 +120,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     catch (e) { toast(e instanceof ActionError ? e.message : `Something went wrong: ${(e as Error).message}`, 'bad'); if (!(e instanceof ActionError)) console.error(e); return false; }
   };
   const startBuild = (typeId: string, at?: { pos: LatLng; name: string; address?: string }) => {
+    setMoving(null);
     setBuildType(typeId); setPending(null); setBuildName(''); setAddrQuery(''); setAddrResults([]); setAddrError(''); setPendingAddr(null); setStack([]);
     if (at) { setBuildName(at.name); placeAt(at.pos, at.address || at.name); }
   };
@@ -355,7 +357,16 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
   const tabOn = (id: string) => (wide ? (id === 'map' ? !wins.wins.length : wins.isOpen(id)) : activeTab === id);
   const selected: Selection = top && (top.kind === 'incident' || top.kind === 'station' || top.kind === 'vehicle' || top.kind === 'hospital') ? { kind: top.kind, id: top.id } : null;
 
-  const ctx: Ctx = { game, push, back, toast, act, focus, startBuild, ally };
+  const startMove = (kind: 'station' | 'hospital', id: string) => {
+    const st = kind === 'station' ? game.station(id) : null;
+    const h = kind === 'hospital' ? game.ownedHospital(id) : null;
+    if (!st && !h) return;
+    startBuild(kind === 'hospital' ? 'hospital' : st!.typeId);
+    setMoving({ kind, id, name: (st ?? h)!.name });
+    focus((st ?? h)!.pos, 14);
+  };
+  const cancelBuild = () => { setBuildType(null); setPending(null); resetAddr(); if (moving) { const m = moving; setMoving(null); openRoot({ kind: m.kind, id: m.id } as Route); } };
+  const ctx: Ctx = { game, push, back, toast, act, focus, startBuild, startMove, ally };
 
   const placeAt = (p: LatLng, label: string | null) => {
     setPending(p); setPendingAddr(label); setAddrResults([]);
@@ -380,6 +391,13 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
     if (!activeBuild || !pending) return;
     let id = '';
     const addr = pendingAddr && pendingAddr !== 'Address not available' ? pendingAddr.replace(' (on the street)', '') : undefined;
+    if (moving) {
+      const m = moving;
+      if (act(() => { if (m.kind === 'hospital') game.moveHospital(m.id, pending, addr); else game.moveStation(m.id, pending, addr); }, `${m.name} moved`)) {
+        setPending(null); resetAddr(); setBuildType(null); setMoving(null); openRoot({ kind: m.kind, id: m.id } as Route);
+      }
+      return;
+    }
     const ok = activeBuild === 'hospital'
       ? act(() => { id = game.buildHospital(pending, buildName, addr).id; }, 'Hospital built')
       : act(() => { id = game.placeStation(activeBuild, pending, buildName, addr).id; }, setup ? undefined : `${stationType(activeBuild).name} built`);
@@ -471,8 +489,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
             <div className="grow">
               {!pending && setup && c.setupStep === 0 && <div className="welcome">Welcome, Director. Set up your first three stations — they come staffed and equipped.</div>}
               <div className="build-row"><span className="dot" style={{ background: dept(buildDept!).color }} />
-                <b>{setup ? `Step ${c.setupStep + 1} of 3: ` : ''}{buildInfo!.name}</b>
-                <span className="muted small">{setup ? 'Free starter station' : money(buildInfo!.cost)}</span></div>
+                <b>{moving ? `Move ${moving.name}` : `${setup ? `Step ${c.setupStep + 1} of 3: ` : ''}${buildInfo!.name}`}</b>
+                <span className="muted small">{setup ? 'Free starter station' : money(moving ? game.moveCost(moving.kind, moving.id) : buildInfo!.cost)}</span></div>
               {!pending ? (
                 <>
                   <form className="addr-form" onSubmit={(e: Event) => { e.preventDefault(); findAddress(); }}>
@@ -489,17 +507,17 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
                     </div>
                   )}
                   <div className="muted small">…or tap anywhere on the map.</div>
-                  {!setup && <div className="actions"><button className="btn ghost small" onClick={() => { setBuildType(null); resetAddr(); }}>Cancel</button></div>}
+                  {!setup && <div className="actions"><button className="btn ghost small" onClick={cancelBuild} data-testid="build-cancel">Cancel</button></div>}
                 </>
               ) : (
                 <>
                   <div className="addr-picked" data-testid="addr-picked">📍 {pendingAddr ?? 'Looking up address…'} <span className="muted">· {game.districtFor(pending)}</span></div>
-                  <input className="text" placeholder={activeBuild === 'hospital' ? `${game.cityDef.name} Hospital ${(c.hospitals?.length ?? 0) + 1}` : `${buildInfo!.name} ${c.stations.filter(st => st.typeId === activeBuild).length + 1}`} value={buildName}
-                    onChange={(e: any) => setBuildName(e.target.value)} />
+                  {!moving && <input className="text" placeholder={activeBuild === 'hospital' ? `${game.cityDef.name} Hospital ${(c.hospitals?.length ?? 0) + 1}` : `${buildInfo!.name} ${c.stations.filter(st => st.typeId === activeBuild).length + 1}`} value={buildName}
+                    onChange={(e: any) => setBuildName(e.target.value)} />}
                   <div className="actions">
-                    <button className="btn primary" onClick={confirmBuild} data-testid="build-confirm">{setup ? 'Place station' : `Build · ${money(buildInfo!.cost)}`}</button>
+                    <button className="btn primary" onClick={confirmBuild} data-testid="build-confirm">{setup ? 'Place station' : moving ? `Move here · ${money(game.moveCost(moving.kind, moving.id))}` : `Build · ${money(buildInfo!.cost)}`}</button>
                     <button className="btn ghost" onClick={() => { setPending(null); setPendingAddr(null); }}>Change</button>
-                    {!setup && <button className="btn ghost" onClick={() => { setBuildType(null); setPending(null); resetAddr(); }}>Cancel</button>}
+                    {!setup && <button className="btn ghost" onClick={cancelBuild}>Cancel</button>}
                   </div>
                   <div className="muted small">Tap elsewhere on the map to adjust the spot.</div>
                 </>

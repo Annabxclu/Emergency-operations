@@ -469,6 +469,44 @@ export class Game {
   }
 
   // ------------------------------------------------------------ actions: stations
+  /** Moving a building costs 10% of what that kind of building costs new. */
+  static MOVE_FRACTION = 0.1;
+  moveCost(kind: 'station' | 'hospital', id: string) {
+    if (kind === 'hospital') return Math.round(HOSPITAL.cost * Game.MOVE_FRACTION);
+    const st = this.station(id);
+    return st ? Math.round(stationType(st.typeId).cost * Game.MOVE_FRACTION) : 0;
+  }
+
+  /** Move a station to a new spot. Parked vehicles go with it; units out on calls come back to the new spot. */
+  moveStation(id: string, pos: LatLng, address?: string) {
+    const st = this.station(id);
+    if (!st) throw new ActionError('Station not found.');
+    const cost = this.moveCost('station', id);
+    this.spend(cost, 'stations', st.dept, `${st.name}: moved`);
+    const old = st.pos;
+    st.pos = [...pos] as LatLng;
+    st.address = address || undefined;
+    for (const v of this.city.vehicles.filter(x => x.stationId === id)) {
+      if (v.status === 'returning') this.requestRoute(v, st.pos);
+      else if (!['dispatched', 'enroute', 'onscene', 'transporting', 'handover'].includes(v.status) || distanceM(v.pos, old) < 30) { v.pos = [...st.pos] as LatLng; v.route = null; }
+    }
+    this.radio('available', `${st.name} has moved${address ? ` to ${address}` : ''}`);
+    this.changed();
+    return st;
+  }
+
+  moveHospital(id: string, pos: LatLng, address?: string) {
+    const h = this.ownedHospital(id);
+    if (!h) throw new ActionError('Hospital not found.');
+    this.spend(this.moveCost('hospital', id), 'stations', 'ems', `${h.name}: moved`);
+    h.pos = [...pos] as LatLng;
+    h.address = address || undefined;
+    // Ambulances already on their way there follow it to the new spot.
+    for (const v of this.city.vehicles) if (v.status === 'transporting' && v.cargo?.dest === id) this.requestRoute(v, h.pos);
+    this.changed();
+    return h;
+  }
+
   placeStation(typeId: string, pos: LatLng, name?: string, address?: string): Station {
     const c = this.city;
     const t = stationType(typeId);
