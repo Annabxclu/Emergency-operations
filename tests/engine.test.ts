@@ -3,7 +3,7 @@ import { Game, newGameState, missingRequirements, addEmsChief, xpForLevel, migra
 import type { LatLng, RoutingProvider } from '../src/engine/types';
 import { distanceM } from '../src/engine/geo';
 import { vehicleType, VEHICLE_TYPES, QUALIFICATIONS } from '../src/data/departments';
-import { INCIDENT_TYPES } from '../src/data/incidents';
+import { INCIDENT_TYPES, incidentType } from '../src/data/incidents';
 import { admissionFee } from '../src/data/hospitals';
 
 let routeCalls = 0;
@@ -442,6 +442,18 @@ async function run(g: Game, seconds: number, step = 1) {
     const freeBefore = ga.hospitalFreeBeds(h), mb = ga.city.money;
     ga.allianceAdmitted(h.id, 2, 150, 'Sam');
     assert(ga.hospitalFreeBeds(h) === freeBefore - 2 && ga.city.money === mb + 150, 'members\' patients fill your beds and you collect your cut');
+  }
+
+  // Large-scale disasters need the Disaster Response Center and set off related calls.
+  {
+    const gd = new Game(newGameState(), fake);
+    gd.placeStation('fire_station', [33.755, -84.39]); gd.placeStation('police_precinct', [33.77, -84.385]); gd.placeStation('ems_station', [33.76, -84.37]);
+    const ids = ['ice_storm', 'blizzard', 'mudslide', 'train_derailment', 'industrial_explosion', 'earthquake', 'hurricane', 'dam_failure', 'wildfire_evacuation'];
+    for (const id of ids) assert(incidentType(id).requirements.some(r => r.cap === 'heavy_equipment' || r.cap === 'relief'), `${incidentType(id).name} needs the Disaster Response Center`);
+    gd.city.incidents = [];
+    const quake = await gd.spawnIncident('earthquake');
+    const kids = gd.city.incidents.filter(i => i.parentId === quake?.id).length;
+    assert(!!quake && kids >= 1, `an earthquake sets off related calls (${kids})`);
   }
 
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
