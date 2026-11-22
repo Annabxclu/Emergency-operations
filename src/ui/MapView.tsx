@@ -172,7 +172,8 @@ export function MapView(props: Props) {
       const vIds = new Set<string>(), rIds = new Set<string>();
       for (const v of c.vehicles) {
         const t = vehicleType(v.typeId); // department buttons only hide stations; moving units always show
-        const away = ['enroute', 'onscene', 'returning', 'transporting', 'handover'].includes(v.status);
+        // On scene or at the hospital the unit is 'inside' the call/building, like at its station.
+        const away = ['enroute', 'returning', 'transporting'].includes(v.status);
         if (away) {
           vIds.add(v.id);
           let m = markers.vehicles.get(v.id);
@@ -208,7 +209,7 @@ export function MapView(props: Props) {
       const nowMs = Date.now();
       for (const u of game.alliance.units) {
         const t = vehicleType(u.typeId);
-        if (!t) continue;
+        if (!t || u.status === 'onscene' || u.status === 'handover' || u.status === 'dispatched') continue;
         aIds.add(u.key);
         const f = u.durMs > 0 ? Math.min(1, (nowMs - u.t0) / u.durMs) : 1;
         const pos: [number, number] = [u.from[0] + (u.to[0] - u.from[0]) * f, u.from[1] + (u.to[1] - u.from[1]) * f];

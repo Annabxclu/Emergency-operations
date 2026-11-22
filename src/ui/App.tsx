@@ -10,7 +10,7 @@ import { CloudAccount, CloudConflict } from './Cloud';
 import { fetchHospitals, reverseAddress, searchAddress, type AddressResult, reversePlace } from '../services/geocode';
 import { GameCtx, type Ctx, type Route } from './common';
 import { MapView, type MapApi, type Selection } from './MapView';
-import { OUTCOME, money, moneyShort } from './format';
+import { OUTCOME, money } from './format';
 import { tabIcon } from './icons';
 import { RadioPanel } from './panels/Radio';
 import { FloatingWindow, useWide, useWindows, type Win } from './Windows';
@@ -431,7 +431,7 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
 
         <header className="topbar">
           <button className="money" onClick={() => openRoot({ kind: 'finances' })} data-testid="money">
-            <span className={c.money < 0 ? 'bad' : ''}>{moneyShort(c.money)}</span>
+            <span className={`${c.money < 0 ? "bad" : ""} ${Math.abs(c.money) >= 1e7 ? "long" : ""}`}>{money(c.money)}</span>
           </button>
           <div className="topbrand">
             <div className="brand-name">First <span>Responders</span></div>
