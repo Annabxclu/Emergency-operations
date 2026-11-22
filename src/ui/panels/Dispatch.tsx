@@ -121,7 +121,7 @@ export function DispatchList() {
             <button key={inc.id} className={`row mission-row st-${game.shownStatus(inc)}`} onClick={() => push({ kind: 'incident', id: inc.id })} data-testid="incident-row">
               <IncIcon inc={inc} />
               <div className="grow">
-                <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}{inc.expandedFrom && <span className="tag warn">Expanded</span>}{inc.mirror && <span className="tag info">🤝 {inc.mirror.ownerName}</span>}{inc.sharedId && <span className="tag info">🤝 Shared</span>}</div>
+                <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}{inc.expandedFrom && <s className="old-name">{inc.expandedFrom}</s>}{inc.mirror && <span className="tag info">🤝 {inc.mirror.ownerName}</span>}{inc.sharedId && <span className="tag info">🤝 Shared</span>}</div>
                 <div className="row-sub">{inc.address} · {inc.district}</div>
                 {inc.patientList && inc.patientList.length > 0 && <RowPatients inc={inc} now={game.state.time} />}
               </div>
@@ -220,12 +220,12 @@ export function IncidentDetail({ id }: { id: string }) {
 
   return (
     <div>
-      <Header title={<><span className="inc-title-dot" style={{ background: deptColor }} />{inc.name}</>}
+      <Header title={<><span className="inc-title-dot" style={{ background: deptColor }} />{inc.name}{inc.expandedFrom && <s className="old-name">{inc.expandedFrom}</s>}</>}
         sub={<span className="sub-row">{inc.number} · {SEVERITY[inc.severity]} {!closed ? <Chip tone={INCIDENT_STATUS[game.shownStatus(inc)].tone}>{INCIDENT_STATUS[game.shownStatus(inc)].label}</Chip> : <Chip tone={OUTCOME[inc.outcome!].tone}>{OUTCOME[inc.outcome!].label}</Chip>}</span>} />
       <div className="inc-info">
         <div className="addr" onClick={() => focus(inc.pos, 16)} title="Show on map" data-testid="incident-address"><span className="addr-pin">📍</span>{inc.address}<span className="muted"> · {inc.district}</span></div>
         <p className="desc">{inc.description}</p>
-        {inc.expandedFrom && <p className="expanded-note" data-testid="expanded-from">↗ Expanded from {inc.expandedFrom}</p>}
+        {inc.expandedFrom && <p className="expanded-note" data-testid="expanded-from">↗ Expanded from <s>{inc.expandedFrom}</s>: more units are needed</p>}
         {inc.mirror && <p className="ally-note" data-testid="mirror-note">🤝 {inc.mirror.ownerName}'s call. Send units to help; you earn the full reward when they finish it{inc.mirror.helped ? ' (you have helped)' : ' (have at least one unit on scene)'}.</p>}
         {!closed && !inc.mirror && game.state.alliance && (
           inc.sharedId ? (

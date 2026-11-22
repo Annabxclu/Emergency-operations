@@ -1396,6 +1396,8 @@ export class Game {
   }
 
   private resolve(inc: Incident, outcome: Outcome) {
+    // MissionChief style: instead of finishing, the call sometimes turns into a bigger one in place.
+    if (outcome !== 'failed' && !inc.mirror && !inc.sharedId && this.maybeExpand(inc)) return;
     const c = this.city;
     const primary = this.primaryDept(inc);
     const mult: Record<Outcome, number> = { successful: 1, escalated: 0.8, delayed: 0.7, partial: 0.35, failed: 0 };
@@ -1447,7 +1449,6 @@ export class Game {
     c.resolved.unshift(inc);
     if (c.resolved.length > 40) c.resolved.length = 40;
     this.emit({ type: 'incident_resolved', id: inc.id, outcome, payout });
-    if (outcome !== 'failed' && !inc.mirror) this.maybeExpand(inc);
     this.changed();
   }
 
@@ -1464,16 +1465,39 @@ export class Game {
     });
   }
 
-  /** MissionChief style: a finished call sometimes expands into a bigger one at the same address. */
-  private maybeExpand(inc: Incident, force = false) {
-    if (!force && Math.random() >= EXPANSION_CHANCE) return null;
+  /** MissionChief style: when a call is about to finish, it sometimes expands into a bigger mission
+   *  right where it is. The call keeps its units, patients and address; it gets the bigger mission's
+   *  name, requirements and reward (the old name is shown crossed out) and has to be worked again. */
+  private maybeExpand(inc: Incident, force = false): boolean {
+    if (!force && Math.random() >= Game.expansionChance) return false;
     const options = this.expansionsFor(inc.typeId);
-    if (!options.length) return null;
+    if (!options.length) return false;
     const t = this.weightedPick(options);
-    if (!t) return null;
+    if (!t) return false;
     const c = this.city;
-    const next = this.makeIncident(t, c, this.cityDef, inc.pos, '', null, inc);
-    return next;
+    const big = this.makeIncident(t, c, this.cityDef, inc.pos, '', null, inc, false);
+    const oldName = inc.name;
+    inc.expandedFrom = oldName;
+    inc.typeId = t.id; inc.name = t.name; inc.category = t.category; inc.severity = t.severity;
+    inc.description = big.description;
+    inc.requirements = big.requirements;
+    inc.reward = big.reward; inc.xp = big.xp;
+    inc.deadline = this.state.time + t.deadlineMin * 60;
+    inc.escalated = false; inc.late = false; inc.partial = false;
+    inc.workUntil = null; inc.workStartedAt = null; inc.workRemaining = undefined;
+    // New people join the ones already there (treated patients stay treated).
+    if (big.patientList?.length) {
+      inc.patientList = [...(inc.patientList ?? []), ...big.patientList];
+      inc.patients = inc.patientList.length;
+      inc.specialty = inc.specialty ?? big.specialty;
+    }
+    inc.prisoners = Math.max(inc.prisoners ?? 0, big.prisoners ?? 0);
+    const units = this.incidentVehicles(inc.id);
+    inc.status = units.some(v => v.status === 'onscene') ? 'onscene' : units.length ? 'responding' : 'pending';
+    this.radio('alert', `${oldName} has expanded into ${t.name} at ${inc.address}, more units needed`, null, inc);
+    this.emit({ type: 'incident_escalated', id: inc.id });
+    this.changed();
+    return true;
   }
 
   /** All units on scene within the first half of the original response window. */
@@ -1537,6 +1561,8 @@ export class Game {
   }
 
   // ---- Individual patients
+  /** Chance a finished call expands into a bigger mission (tests set 0). */
+  static expansionChance = EXPANSION_CHANCE;
   static EMS_CAPS = ['ambulance', 'als', 'ccu', 'ems_supervisor', 'mci'];
   isMedic(v: Vehicle) { const t = vehicleType(v.typeId); return t.transport?.kind === 'patient' || ['ambulance', 'als', 'ccu'].some(c => t.caps.includes(c)); }
 
@@ -1689,12 +1715,12 @@ export class Game {
     }
   }
 
-  private makeIncident(t: IncidentTypeDef, c: CityState, def: CityDef, pos: LatLng, street: string, parentId: string | null, from?: Incident): Incident {
+  private makeIncident(t: IncidentTypeDef, c: CityState, def: CityDef, pos: LatLng, street: string, parentId: string | null, from?: Incident, add = true): Incident {
     const district = from?.district ?? this.districtFor(pos, def);
     const num = (Math.floor(rand(1, 60)) * 2 + (Math.random() < 0.5 ? 1 : 0)) * 10 + Math.floor(rand(0, 9));
     const address = from?.address ?? (street ? `${num} ${street}` : `Near ${district}`);
     const range = (r?: [number, number]) => (r ? Math.round(rand(r[0], r[1])) : 0);
-    c.incidentCounter++;
+    if (add) c.incidentCounter++;
     const inc: Incident = {
       id: this.id('i'), number: `${def.prefix}-${String(c.incidentCounter).padStart(5, '0')}`,
       typeId: t.id, name: t.name, category: t.category, pos, address, district, severity: t.severity,
@@ -1703,7 +1729,6 @@ export class Game {
       escalated: false, late: false, partial: false, status: 'pending', workUntil: null, workStartedAt: null,
       reward: Math.round(t.reward * rand(0.9, 1.15)), xp: t.xp, outcome: null, resolvedAt: null, payout: 0,
       patients: range(t.patients), prisoners: range(t.prisoners), parentId,
-      expandedFrom: from?.name,
       addrChecked: from?.addrChecked,
     };
     // Each ambulance carries one patient and each police car one suspect, so a call needs
@@ -1731,8 +1756,9 @@ export class Game {
     // The specialty follows what happened (a hit or crash -> traumatology, a birth -> gynecology ...);
     // calls that don't point to one need general care.
     if (inc.patients > 0) inc.specialty = specialtyForText(`${inc.name} ${inc.description}`);
+    if (!add) return inc;
     c.incidents.push(inc);
-    this.inCity(c.cityId, () => this.radio(from ? 'alert' : 'call', from ? `${from.name} has expanded into ${inc.name} at ${inc.address}` : `New call: ${inc.name}${inc.address ? ` at ${inc.address}` : ''}`, null, inc));
+    this.inCity(c.cityId, () => this.radio('call', `New call: ${inc.name}${inc.address ? ` at ${inc.address}` : ''}`, null, inc));
     this.emit({ type: 'incident_new', id: inc.id }, c.cityId);
     this.changed();
     return inc;

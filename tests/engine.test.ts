@@ -24,6 +24,7 @@ async function run(g: Game, seconds: number, step = 1) {
   await flush();
 }
 
+Game.expansionChance = 0; // calls finish normally in tests (expansion is tested on its own)
 (async () => {
   const g = new Game(newGameState(), fake);
   g.state.settings.runningCosts = true; // exercise the full economy
@@ -374,13 +375,14 @@ async function run(g: Game, seconds: number, step = 1) {
     const car = INCIDENT_TYPES.find(t => t.name === 'Burning car' && !t.id.endsWith('_tow'))!;
     const opts = gx.expansionsFor(car.id).map(t => t.name);
     assert(opts.includes('Burning trailer') || opts.includes('Garage fire'), `Burning car can expand into ${opts.join(', ') || 'nothing'}`);
-    const call = await gx.spawnIncident(car.id);
-    const before = gx.city.incidents.length;
-    const next = (gx as any).maybeExpand(call, true);
-    assert(next && next.address === call!.address && next.pos[0] === call!.pos[0] && next.expandedFrom === 'Burning car', `expansion comes in at the same address (${next?.name} at ${next?.address})`);
-    assert(gx.city.incidents.length === before + 1 && gx.radioLog()[0].text.includes('expanded into'), 'expanded call is on the board and announced on the radio');
+    const call = (await gx.spawnIncident(car.id))!;
+    const before = gx.city.incidents.length, id = call.id, addr = call.address;
+    const ok = (gx as any).maybeExpand(call, true);
+    assert(ok && call.id === id && call.address === addr && call.expandedFrom === 'Burning car' && call.name !== 'Burning car', `the call itself turns into the bigger mission (${call.name}, was ${call.expandedFrom})`);
+    assert(gx.city.incidents.length === before && call.status !== 'resolved' && call.workUntil == null, 'it stays on the board and has to be worked again');
+    assert(gx.radioLog()[0].text.includes('expanded into'), 'the radio announces it');
     const owned = new Set(gx.eligibleTypes().map(t => t.id));
-    assert(owned.has(next.typeId), 'only expands into missions you can get');
+    assert(owned.has(call.typeId), 'only expands into missions you can get');
   }
 
   // Addresses: a map lookup corrects the street and shows the real town when a call is outside the city.
