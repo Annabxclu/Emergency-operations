@@ -450,6 +450,8 @@ export function App({ game, routing, firstRun }: { game: Game; routing: OsrmRout
                 onClick={() => { game.state.settings.deptFilter[d.id] = !on; game.changed(); }}>{d.short}</button>
             );
           })}
+          <button className={`fchip ${game.state.settings.showCalls !== false ? 'on' : ''}`} style={{ '--c': '#f59e0b' } as any} data-testid="filter-calls"
+            onClick={() => { game.state.settings.showCalls = game.state.settings.showCalls === false; game.changed(); }}>Calls</button>
           <button className={`fchip ${game.state.settings.showCoverage ? 'on' : ''}`} style={{ '--c': '#64748b' } as any}
             onClick={() => { game.state.settings.showCoverage = !game.state.settings.showCoverage; game.changed(); }}>Coverage</button>
         </div>

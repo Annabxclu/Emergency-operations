@@ -156,6 +156,7 @@ export function MapView(props: Props) {
       // Incidents
       const iIds = new Set<string>();
       for (const inc of c.incidents) {
+        if (g.state.settings.showCalls === false) break; // hidden with the Calls button
         iIds.add(inc.id);
         let m = markers.incidents.get(inc.id);
         if (!m) { m = clickable(L.marker(inc.pos, { zIndexOffset: 300 }), { kind: 'incident', id: inc.id }); layers.incidents.addLayer(m); markers.incidents.set(inc.id, m); }

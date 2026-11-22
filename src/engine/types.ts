@@ -282,6 +282,7 @@ export interface Settings {
   routingUrl: string;
   tileStyle: string;
   showCoverage: boolean;
+  showCalls?: boolean;      // calls on the map (default on)
   deptFilter: Record<string, boolean>;
   sound: boolean;
   autoDispatch: 'off' | 'low' | 'all';
