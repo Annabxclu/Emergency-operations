@@ -4,7 +4,7 @@
 
 import type {
   CityDef, CityState, Employee, Facility, IncidentTypeDef, Route, RouteData, VehicleTypeDef, FinanceBucket, GameEvent, GameState, Incident, LatLng, Outcome,
-  Requirement, RoutingProvider, Station, Vehicle, RadioKind, RadioMsg, AllyHospital, SharedCall } from './types';
+  Requirement, RoutingProvider, Station, Vehicle, RadioKind, RadioMsg, AllyHospital, SharedCall, AllyUnit } from './types';
 import {
   CAPABILITIES, DEPARTMENTS, STARTER_KITS, STARTING_MONEY, STATION_TYPES, VEHICLE_TYPES,
   dept, qualification, stationType, stationTypeForDept, vehicleType, ACADEMIES, isTrainable } from '../data/departments';
@@ -1854,6 +1854,7 @@ export class Game {
   alliance = {
     remote: new Map<string, string[]>(),         // your incident id -> vehicle type ids of members' units on scene
     hospitals: [] as AllyHospital[],
+    units: [] as AllyUnit[],                     // members' units on the road (shown on your map)
     admit: null as null | ((h: AllyHospital, count: number, cut: number, fee: number) => void),
   };
 
@@ -1864,6 +1865,19 @@ export class Game {
   }
   /** Alliance members' units on scene at your shared call. */
   allianceUnits(incId: string) { return this.alliance.remote.get(incId) ?? []; }
+
+  /** Your units out on the road, for alliance members' maps: where each is and where it's heading. */
+  unitsForAlliance() {
+    const speed = Math.max(0.1, this.state.settings.speed || 1);
+    return this.city.vehicles.filter(v => ['dispatched', 'enroute', 'onscene', 'returning', 'transporting', 'handover'].includes(v.status)).slice(0, 80).map(v => {
+      const r = v.route;
+      const moving = !!r && r.startAt >= 0 && ['enroute', 'returning', 'transporting'].includes(v.status);
+      const leftS = moving ? Math.max(0, r!.durationS - (this.state.time - r!.startAt)) : 0;
+      const to = moving ? r!.coords[r!.coords.length - 1] : v.pos;
+      const round = (p: LatLng) => [Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5];
+      return { id: v.id, t: v.typeId, n: v.name, s: v.status, p: round(v.pos), d: round(to), ms: Math.round((leftS / speed) * 1000) };
+    });
+  }
 
   private ownCount(c: CityState) { return c.incidents.filter(i => !i.mirror).length; }
 

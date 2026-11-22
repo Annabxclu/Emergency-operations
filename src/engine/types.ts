@@ -90,6 +90,9 @@ export interface OwnedHospital { id: string; name: string; pos: LatLng; address?
 /** A hospital another alliance member has shared. */
 export interface AllyHospital { key: string; owner: string; ownerName: string; hid: string; name: string; pos: LatLng; freeBeds: number; specialties: string[]; feePct: number }
 
+/** An alliance member's unit out on the road, drawn on your map (moves from `from` to `to` over `durMs`). */
+export interface AllyUnit { key: string; owner: string; ownerName: string; typeId: string; name: string; status: VehicleStatus; from: LatLng; to: LatLng; t0: number; durMs: number }
+
 /** A call another alliance member has shared. */
 export interface SharedCall { id: string; owner: string; ownerName: string; typeId: string; name: string; pos: LatLng; address: string; district: string;
   requirements: Requirement[]; reward: number; status: 'open' | 'done' | 'cancelled'; paid?: boolean; helpers: Record<string, { name: string; units: string[] }> }

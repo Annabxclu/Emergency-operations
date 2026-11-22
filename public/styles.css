@@ -499,3 +499,6 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .alliance { display: flex; flex-direction: column; gap: 8px; }
 .alliance .kv { display: flex; justify-content: space-between; font-size: 14px; }
 .alliance .code { font-family: ui-monospace, Menlo, monospace; letter-spacing: .12em; font-size: 16px; }
+/* Alliance members' units */
+.vpin.ally { border-style: dashed; opacity: .88; }
+.vpin .ally-tag { position: absolute; top: -8px; left: -8px; min-width: 17px; height: 16px; padding: 0 3px; border-radius: 8px; background: #8b5cf6; color: #fff; font-size: 9.5px; font-weight: 800; display: grid; place-items: center; border: 1.5px solid #fff; }

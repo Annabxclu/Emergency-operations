@@ -7,7 +7,7 @@
 //   payouts/{auto}                 admission cut + beds for a hospital owner (they collect and delete it)
 
 import type { Game } from '../engine/game';
-import type { AllyHospital, LatLng, Requirement, SharedCall } from '../engine/types';
+import type { AllyHospital, AllyUnit, LatLng, Requirement, SharedCall } from '../engine/types';
 import { distanceM } from '../engine/geo';
 import { authed, call, cloudUser, DOCS } from './cloud';
 
@@ -153,7 +153,7 @@ export class AllianceSync {
   /** Called every ~15 s while the game is open. */
   async poll() {
     const g = this.game, a = g.state.alliance;
-    if (!a || !cloudUser()) { this.calls = []; g.alliance.remote.clear(); g.alliance.hospitals = []; return; }
+    if (!a || !cloudUser()) { this.calls = []; g.alliance.remote.clear(); g.alliance.hospitals = []; g.alliance.units = []; return; }
     if (this.busy) return;
     this.busy = true;
     const n = this.tickN++;
@@ -162,6 +162,23 @@ export class AllianceSync {
       const me = playerName(g);
       const base = `alliances/${a.id}`;
       if (n % 20 === 0) await writeMember(g, a.id, me);
+
+      // ---- units on the road: publish mine, read everyone else's (kept in the member docs)
+      await this.write(`${base}/members/${u.uid}`, { units: JSON.stringify(g.unitsForAlliance()), unitsAt: Date.now() }, ['units', 'unitsAt'], `${base}/members/${u.uid}#units`).catch(() => undefined);
+      const mem = await listDocs(`${base}/members`);
+      const now = Date.now();
+      const units: AllyUnit[] = [];
+      for (const m of mem) {
+        if (m.id === u.uid || !m.units || now - (m.unitsAt ?? 0) > 3 * 60_000) continue;
+        let list: any[] = [];
+        try { list = JSON.parse(m.units); } catch { list = []; }
+        const age = Math.max(0, now - (m.unitsAt ?? now));
+        for (const x of list) {
+          units.push({ key: `${m.id}:${x.id}`, owner: m.id, ownerName: m.name ?? 'Ally', typeId: x.t, name: x.n, status: x.s,
+            from: x.p, to: x.d, t0: now - Math.min(age, x.ms ?? 0), durMs: x.ms ?? 0 });
+        }
+      }
+      g.alliance.units = units;
 
       // ---- calls
       const docs = await listDocs(`${base}/calls`);

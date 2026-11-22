@@ -77,7 +77,7 @@ export function MapView(props: Props) {
       preview: L.layerGroup().addTo(map),
       facilities: L.layerGroup().addTo(map),
     };
-    const markers = { facilities: new Map<string, any>(), stations: new Map<string, any>(), incidents: new Map<string, any>(), vehicles: new Map<string, any>(), routes: new Map<string, any>(), coverage: new Map<string, any>() };
+    const markers = { facilities: new Map<string, any>(), stations: new Map<string, any>(), incidents: new Map<string, any>(), vehicles: new Map<string, any>(), allyUnits: new Map<string, any>(), routes: new Map<string, any>(), coverage: new Map<string, any>() };
     const keys = new Map<any, string>(); // marker -> last icon key, to avoid needless DOM work
     let previewMarker: any = null;
 
@@ -202,6 +202,28 @@ export function MapView(props: Props) {
       }
       sync(markers.vehicles, layers.vehicles, vIds);
       sync(markers.routes, layers.routes, rIds);
+
+      // Alliance members' units on the road: glide from where they were last reported toward where they're heading.
+      const aIds = new Set<string>();
+      const nowMs = Date.now();
+      for (const u of game.alliance.units) {
+        const t = vehicleType(u.typeId);
+        if (!t) continue;
+        aIds.add(u.key);
+        const f = u.durMs > 0 ? Math.min(1, (nowMs - u.t0) / u.durMs) : 1;
+        const pos: [number, number] = [u.from[0] + (u.to[0] - u.from[0]) * f, u.from[1] + (u.to[1] - u.from[1]) * f];
+        let m = markers.allyUnits.get(u.key);
+        if (!m) { m = L.marker(pos, { zIndexOffset: 400, interactive: true }); layers.vehicles.addLayer(m); markers.allyUnits.set(u.key, m); }
+        m.setLatLng(pos);
+        const ps = game.state.settings;
+        const initials = u.ownerName.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        setIcon(m, `a${u.status}${ps.pinBg}${ps.pinBorder}${initials}`, () => L.divIcon({
+          className: '', iconSize: [50, 38], iconAnchor: [25, 38],
+          html: pinHtml(artFor(t), dept(t.dept).color, u.status, ps, `title="${u.name} · ${u.ownerName}" data-testid="ally-unit"`)
+            .replace('class="vpin ', 'class="vpin ally ').replace('</div>', `<span class="ally-tag">${initials}</span></div>`),
+        }));
+      }
+      for (const [k, m] of markers.allyUnits) if (!aIds.has(k)) { layers.vehicles.removeLayer(m); markers.allyUnits.delete(k); keys.delete(m); }
 
       // Placement preview
       const pv = propsRef.current.preview;
