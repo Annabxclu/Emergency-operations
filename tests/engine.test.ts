@@ -534,6 +534,7 @@ async function run(g: Game, seconds: number, step = 1) {
     const st2 = gr.city.stations.find(s => s.dept === 'fire' && s.id !== fire2.id)!;
     const n2 = gr.stationStaff(st2.id).length;
     const t1 = Date.now();
+    for (const v of gr.city.vehicles) if (v.stationId === st2.id) { v.status = 'available'; v.incidentId = null; v.followUp = null; }
     gr.moveEmployee(gr.stationStaff(st2.id)[0].id, fire2.id);
     gr.processRecruiting(t1);
     assert(!!st2.nextHireAt, 'after a transfer leaves a station short, the free-recruit clock starts again');
