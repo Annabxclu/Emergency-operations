@@ -48,7 +48,7 @@ Game.expansionChance = 0; // calls finish normally in tests (expansion is tested
   assert(g.stationCapacity(st).bays === 1, 'a new station starts with 1 bay');
   const eng = g.buyVehicle('engine', st.id);
   assert(c().money === 95000, 'Type 1 engine costs $5,000');
-  assert(g.staffingProblem(eng) !== null, 'new engine with no staff is unstaffed');
+  assert(g.stationStaff(st.id).length === 2 && g.staffingProblem(eng) === null, 'new fire station comes with 2 employees who crew the new engine');
   threw = false;
   try { g.buyVehicle('heavy_rescue', st.id); } catch { threw = true; }
   assert(threw, 'heavy rescue needs 4 fire stations');
@@ -469,6 +469,15 @@ Game.expansionChance = 0; // calls finish normally in tests (expansion is tested
     const parked = gm.city.vehicles.filter(v => v.stationId === st.id && v.status === 'available');
     assert(st.pos[0] === 33.74 && st.address === '1 New Street' && gm.city.money === m0 - cost && cost > 0, `station moved for ${cost}`);
     assert(parked.length > 0 && parked.every(v => v.pos[0] === 33.74 && v.pos[1] === -84.41), 'parked vehicles moved with the station');
+  }
+
+  // A newly built fire station comes with 2 employees.
+  {
+    const gs = new Game(newGameState(), fake);
+    gs.placeStation('fire_station', [33.755, -84.39]); gs.placeStation('police_precinct', [33.77, -84.385]); gs.placeStation('ems_station', [33.76, -84.37]);
+    gs.city.money = 1_000_000;
+    const fs = gs.placeStation('fire_station', [33.74, -84.40]);
+    assert(gs.stationStaff(fs.id).length === 2, `new fire station starts with 2 employees (${gs.stationStaff(fs.id).length})`);
   }
 
   // Old saves: station levels convert to one-bay-per-level without losing capacity.
