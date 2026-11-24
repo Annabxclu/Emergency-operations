@@ -230,6 +230,12 @@ export function IncidentDetail({ id }: { id: string }) {
       if (next) push({ kind: 'incident', id: next.id });
     }
   };
+  // Next call that still needs you (no units, or units missing), after this one in received order; wraps around.
+  const nextCall = () => {
+    const open = [...game.city.incidents].filter(i => i.id !== inc.id && ['pending', 'onscene', 'responding'].includes(game.shownStatus(i))).sort((a, b) => a.createdAt - b.createdAt);
+    return open.find(i => i.createdAt > inc.createdAt) ?? open[0] ?? null;
+  };
+  const goNext = () => { const n = nextCall(); if (!n) return; back(); push({ kind: 'incident', id: n.id }); };
   const deptColor = dept(CATEGORY_DEPT[inc.category]).color;
 
   return (
@@ -494,6 +500,7 @@ export function IncidentDetail({ id }: { id: string }) {
             <div className="actions">
               <Btn kind="primary" onClick={() => dispatch(false)} disabled={!selCount} testid="dispatch-btn">Dispatch</Btn>
               <Btn onClick={() => dispatch(true)} disabled={!selCount} testid="dispatch-next">Dispatch & next</Btn>
+              <Btn onClick={goNext} disabled={!nextCall()} testid="next-call">Next ›</Btn>
             </div>
           </div>
         </Section>

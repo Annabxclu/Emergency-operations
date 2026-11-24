@@ -546,3 +546,7 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .missing-table tr.done td.still { color: #5fd38d; }
 .missing-table td.over { color: #f5c46b !important; font-weight: 700; }
 .missing-table td.over small { font-size: 10.5px; }
+/* Dispatch / Dispatch & next / Next on one line */
+.btn[data-testid=dispatch-btn], .btn[data-testid=dispatch-next], .btn[data-testid=next-call] { white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+.btn[data-testid=dispatch-next] { flex: 1.35 1 0; }
+.btn[data-testid=next-call] { flex: .75 1 0; }

@@ -218,6 +218,7 @@ def main():
                 el.uncheck()
                 page.wait_for_timeout(100)
             check(page.inner_text('[data-testid=dispatch-btn]').strip() == 'Dispatch', 'button reads "Dispatch"')
+            check(page.locator('[data-testid=next-call]').count() == 1, 'Next button shown next to Dispatch & next')
             t = page.inner_text('[data-testid=missing]')
             check(all(h in t for h in ['Missing on mission', 'En route', 'Still needed', 'Selected']), 'missing table has MissionChief columns')
             check(page.locator('[data-testid=aao] button').count() >= 2, 'quick-add unit buttons shown')
