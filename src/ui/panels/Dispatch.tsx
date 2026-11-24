@@ -63,6 +63,15 @@ function missionLeftPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) 
   return inc.status === 'working' || inc.workRemaining != null ? 100 - workPct(game, inc) : 100;
 }
 
+/** Countdown above the mission bar while crews work (paused when units leave); otherwise the call's status line. */
+function MissionClock({ inc }: { inc: Incident }) {
+  const { game } = useCtx();
+  const now = game.state.time;
+  if (inc.status === 'working' && inc.workUntil != null) return <div className="mclock" data-testid="mission-clock">{dur(Math.max(0, inc.workUntil - now))}</div>;
+  if (inc.workRemaining != null) return <div className="mclock paused" data-testid="mission-clock">{dur(inc.workRemaining)} <small>paused</small></div>;
+  return <div className="mclock idle">{timerText(game, inc)}</div>;
+}
+
 /** Patients under the mission bar: up to 4 by name with their own bar, more as a count with one bar. */
 function RowPatients({ inc, now }: { inc: Incident; now: number }) {
   const list = inc.patientList ?? [];
@@ -83,7 +92,7 @@ function RowPatients({ inc, now }: { inc: Incident; now: number }) {
     <div className="rpats" data-testid="row-patients">
       {list.map(p => (
         <div key={p.id} className={`rpat ${p.status}`}>
-          <span className="rpat-name">{p.name}{p.status === 'treating' && <b> {dur(Math.max(0, (p.until ?? now) - now))}</b>}</span>
+          <span className="rpat-name">{p.name}{p.status === 'treating' ? <b> {dur(Math.max(0, (p.until ?? now) - now))}</b> : p.status === 'untreated' ? <i> {dur(p.treatSec)}</i> : null}</span>
           <div className="rpat-bar" data-testid="row-patient-bar"><span style={{ width: `${left(p)}%` }} /></div>
         </div>
       ))}
@@ -136,11 +145,11 @@ export function DispatchList() {
                 </span>
               </div>
               <div className="mrow-body">
-                <IncIcon inc={inc} />
+                <div className="mrow-side"><IncIcon inc={inc} /><span className="row-credits" data-testid="row-credits">{inc.reward ? `≈ ${money(inc.reward)}` : 'Hospital pays'}</span></div>
                 <div className="grow">
+                  <MissionClock inc={inc} />
                   <div className={`mbar ${inc.status === 'working' ? 'working' : inc.workRemaining != null ? 'paused' : ''}`} data-testid="row-mission-bar"><span style={{ width: `${missionLeftPct(game, inc)}%` }} /></div>
                   {inc.patientList && inc.patientList.length > 0 && <RowPatients inc={inc} now={game.state.time} />}
-                  <div className="mrow-meta"><span>{timerText(game, inc)}</span><span className="row-credits" data-testid="row-credits">{inc.reward ? money(inc.reward) : 'Paid at hospital'}</span></div>
                 </div>
               </div>
             </div>
