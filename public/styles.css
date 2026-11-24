@@ -550,3 +550,14 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .btn[data-testid=dispatch-btn], .btn[data-testid=dispatch-next], .btn[data-testid=next-call] { white-space: nowrap; padding-left: 8px; padding-right: 8px; }
 .btn[data-testid=dispatch-next] { flex: 1.35 1 0; }
 .btn[data-testid=next-call] { flex: .75 1 0; }
+
+/* ---------- Stations list: each station with its vehicles underneath */
+.blds { display: flex; flex-direction: column; gap: 10px; }
+.bld-head { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; background: var(--surface); border-radius: 10px; cursor: pointer; }
+.bld-head .row-title { font-size: 16px; }
+.bld-details { flex: none; font-size: 13px; font-weight: 600; padding: 6px 11px; border-radius: 8px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.12); }
+.bld-units { display: flex; flex-direction: column; gap: 6px; padding: 7px 0 2px 6px; }
+.bld-unit { display: flex; align-items: center; gap: 8px; }
+.bld-loc { width: 32px; height: 30px; border-radius: 6px; display: grid; place-items: center; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.1); color: var(--muted); flex: none; }
+.bld-unit .fms { flex: none; width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 15px; }
+.bld-chip { min-width: 0; max-width: 100%; padding: 6px 12px; border-radius: 7px; background: rgba(255,255,255,.12); color: #e7edf3; font-weight: 700; font-size: 14.5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

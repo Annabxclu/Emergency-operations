@@ -5,11 +5,14 @@ import { Btn, Group, Chip, Dot, Empty, Header, Section, Stat, StatusCode, useCtx
 import { extensionsFor } from '../../data/progression';
 import { mi, money } from '../format';
 import { glyph } from '../icons';
+import { VEHICLE_STATUS } from '../format';
+
+const LOCATE = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg>';
 
 let rememberedTab = 'all'; // keeps the chosen tab when you open a station and come back
 
 export function StationsList() {
-  const { game, push, startBuild } = useCtx();
+  const { game, push, startBuild, focus } = useCtx();
   const c = game.city;
   const depts = DEPARTMENTS.filter(d => c.stations.some(s => s.dept === d.id));
   const extraTabs = game.setupDone ? ['hospital', 'academy'] : [];
@@ -48,18 +51,33 @@ export function StationsList() {
         if (!list.length) return null;
         return (
           <Section key={d.id} title={<><Dot color={d.color} /> {d.name}</>}>
-            <div className="list">
+            <div className="blds">
               {list.map(s => {
                 const cap = game.stationCapacity(s);
                 const vs = game.stationVehicles(s.id);
-                const ready = vs.filter(v => v.status === 'available' && !game.dispatchProblem(v)).length;
                 return (
-                  <button key={s.id} className="row" onClick={() => push({ kind: 'station', id: s.id })} data-testid="station-row">
-                    <span className="st-ico" style={{ background: d.color }} dangerouslySetInnerHTML={{ __html: glyph(d.id, 15) }} />
-                    <div className="grow"><div className="row-title">{s.name}</div>
-                      <div className="row-sub">Level {s.level} · {vs.length}/{cap.bays} vehicles · {game.stationStaff(s.id).length}/{cap.staff} staff</div></div>
-                    <div className="row-right"><Chip tone={ready ? 'ok' : 'muted'}>{ready} ready</Chip></div>
-                  </button>
+                  <div key={s.id} className="bld">
+                    <div className="bld-head" role="button" tabIndex={0} onClick={() => push({ kind: 'station', id: s.id })} data-testid="station-row">
+                      <span className="st-ico" style={{ background: d.color }} dangerouslySetInnerHTML={{ __html: glyph(d.id, 15) }} />
+                      <div className="grow"><div className="row-title">{s.name}</div>
+                        <div className="row-sub">Level {s.level} · {vs.length}/{cap.bays} vehicles · {game.stationStaff(s.id).length}/{cap.staff} staff</div></div>
+                      <span className="bld-details">Details</span>
+                    </div>
+                    {vs.length > 0 && (
+                      <div className="bld-units">
+                        {vs.map(v => {
+                          const st = VEHICLE_STATUS[v.status];
+                          return (
+                            <div key={v.id} className="bld-unit" data-testid="station-unit">
+                              <button className="bld-loc" aria-label={`Show ${v.name} on the map`} onClick={() => focus(v.pos, 16)} dangerouslySetInnerHTML={{ __html: LOCATE }} />
+                              <span className="fms" style={{ background: st.color }} title={st.label}>{st.code}</span>
+                              <button className="bld-chip" onClick={() => push({ kind: 'vehicle', id: v.id })}>{v.name}</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
