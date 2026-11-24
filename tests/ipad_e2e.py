@@ -53,7 +53,7 @@ def main():
             page.locator('[data-testid=win-dispatch]').screenshot(path=os.path.join(shots, 'ipad-dispatch-list.png'))
             # Opening a call from the dispatch list stays inside the Dispatch window
             page.evaluate("() => { window.__focusCalls = 0; }")
-            page.locator('[data-testid=win-dispatch] .row').first.click()
+            page.locator('[data-testid=win-dispatch] [data-testid=incident-row]').first.click()
             page.wait_for_timeout(300)
             check('Received' in page.inner_text('[data-testid=win-dispatch]'), 'a call opens inside the Dispatch window')
             page.screenshot(path=os.path.join(shots, 'ipad-windows.png'))

@@ -16,16 +16,6 @@ function IncIcon({ inc }: { inc: Incident }) {
   return <span className={`inc-ico st-${useCtx().game.shownStatus(inc)}${inc.severity >= 3 ? ' major' : ''}`} dangerouslySetInnerHTML={{ __html: glyph(inc.category, 15) }} />;
 }
 
-/** Treatment still to do across all patients (100 = nobody treated yet). */
-function patientLeftPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
-  const list = inc.patientList ?? [];
-  const total = list.reduce((n, p) => n + p.treatSec, 0);
-  if (!total) return 0;
-  const now = game.state.time;
-  const left = list.reduce((n, p) => n + (p.status === 'untreated' ? p.treatSec : p.status === 'treating' ? Math.max(0, (p.until ?? now) - now) : 0), 0);
-  return (left / total) * 100;
-}
-
 function workPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
   if (inc.workRemaining != null && inc.status !== 'working') {
     const total = inc.workRemaining + (inc.workDone ?? 0);
@@ -65,19 +55,38 @@ const VIEWS = [
 let lastSort = 'oldest'; // remembered while the app is open
 let lastView = 'all';
 
-/** Patient names with their treatment countdown, shown on the call list. */
+/** Red lane (nobody sent), yellow (on the way / units missing) or green (all units working). */
+function laneOf(st: string) { return st === 'working' ? 'green' : st === 'pending' ? 'red' : 'yellow'; }
+
+/** Mission bar: full until the crews start, then goes down as they work. */
+function missionLeftPct(game: ReturnType<typeof useCtx>['game'], inc: Incident) {
+  return inc.status === 'working' || inc.workRemaining != null ? 100 - workPct(game, inc) : 100;
+}
+
+/** Patients under the mission bar: up to 4 by name with their own bar, more as a count with one bar. */
 function RowPatients({ inc, now }: { inc: Incident; now: number }) {
   const list = inc.patientList ?? [];
-  const shown = list.slice(0, 6);
+  const left = (p: { status: string; treatSec: number; until?: number }) =>
+    p.status === 'untreated' ? 100 : p.status === 'treating' ? Math.max(0, Math.min(100, (((p.until ?? now) - now) / p.treatSec) * 100)) : 0;
+  if (list.length > 4) {
+    const waiting = list.filter(p => p.status === 'untreated').length;
+    const total = list.reduce((n, p) => n + p.treatSec, 0);
+    const rem = list.reduce((n, p) => n + (left(p) / 100) * p.treatSec, 0);
+    return (
+      <div className="rpats many" data-testid="row-patients">
+        <div className="rpat"><span className="rpat-name">{list.length} patients{waiting ? ` · ${waiting} waiting` : ''}</span>
+          <div className="rpat-bar" data-testid="row-patient-bar"><span style={{ width: `${(rem / total) * 100}%` }} /></div></div>
+      </div>
+    );
+  }
   return (
-    <div className="row-patients" data-testid="row-patients">
-      {shown.map(p => (
-        <span key={p.id} className={`rp ${p.status}`}>
-          {p.name}{' '}
-          <b>{p.status === 'treating' ? dur(Math.max(0, (p.until ?? now) - now)) : p.status === 'untreated' ? 'waiting' : p.status === 'transport' ? 'hospital' : 'released'}</b>
-        </span>
+    <div className="rpats" data-testid="row-patients">
+      {list.map(p => (
+        <div key={p.id} className={`rpat ${p.status}`}>
+          <span className="rpat-name">{p.name}{p.status === 'treating' && <b> {dur(Math.max(0, (p.until ?? now) - now))}</b>}</span>
+          <div className="rpat-bar" data-testid="row-patient-bar"><span style={{ width: `${left(p)}%` }} /></div>
+        </div>
       ))}
-      {list.length > shown.length && <span className="rp more">+{list.length - shown.length} more</span>}
     </div>
   );
 }
@@ -116,29 +125,25 @@ export function DispatchList() {
       {all.length > 0 && !active.length && !allyView && <Empty>No calls in this view.</Empty>}
       <div className="list">
         {active.map(inc => {
-          const st = INCIDENT_STATUS[game.shownStatus(inc)];
           return (
-            <button key={inc.id} className={`row mission-row st-${game.shownStatus(inc)}`} onClick={() => push({ kind: 'incident', id: inc.id })} data-testid="incident-row">
-              <IncIcon inc={inc} />
-              <div className="grow">
-                <div className="row-title">{inc.name}{inc.escalated && <span className="tag bad">Escalated</span>}{inc.expandedFrom && <s className="old-name">{inc.expandedFrom}</s>}{inc.mirror && <span className="tag info">🤝 {inc.mirror.ownerName}</span>}{inc.sharedId && <span className="tag info">🤝 Shared</span>}</div>
-                <div className="row-sub">{inc.address} · {inc.district}</div>
-                {inc.patientList && inc.patientList.length > 0 && <RowPatients inc={inc} now={game.state.time} />}
+            <div key={inc.id} role="button" tabIndex={0} className={`mrow lane-${laneOf(game.shownStatus(inc))}`} onClick={() => push({ kind: 'incident', id: inc.id })} data-testid="incident-row">
+              <div className="mrow-head">
+                <span className="mrow-btn">Dispatch</span>
+                <span className="mrow-title">
+                  <span className="row-title">{inc.name}{inc.expandedFrom && <s className="old-name">{inc.expandedFrom}</s>}</span>
+                  <span className="mrow-addr">, {inc.address}, {inc.district}</span>
+                  {inc.escalated && <span className="tag bad">Escalated</span>}{inc.mirror && <span className="tag info">🤝 {inc.mirror.ownerName}</span>}{inc.sharedId && <span className="tag info">🤝 Shared</span>}
+                </span>
               </div>
-              <div className="row-right">
-                <Chip tone={st.tone}>{st.label}</Chip>
-                <div className="row-credits" data-testid="row-credits">{inc.reward ? money(inc.reward) : 'Paid at hospital'}</div>
-                <div className="timer">{timerText(game, inc)}</div>
-              </div>
-              {((inc.status === 'working' || inc.workRemaining != null) || (inc.patientList && inc.patientList.length > 0)) && (
-                <div className="row-bars">
-                {(inc.status === 'working' || inc.workRemaining != null) && (
-                    <div className="bar-row"><span className="bar-label">Crew</span><div className={`progress ${inc.status !== 'working' ? 'paused' : ''}`}><span style={{ width: `${100 - workPct(game, inc)}%` }} /></div></div>)}
-                  {inc.patientList && inc.patientList.length > 0 && (
-                    <div className="bar-row"><span className="bar-label">Patients</span><div className={`progress patients ${inc.patientList.some(p => p.status === 'treating') ? 'treating' : ''}`} data-testid="row-patient-bar"><span style={{ width: `${patientLeftPct(game, inc)}%` }} /></div></div>)}
+              <div className="mrow-body">
+                <IncIcon inc={inc} />
+                <div className="grow">
+                  <div className={`mbar ${inc.status === 'working' ? 'working' : inc.workRemaining != null ? 'paused' : ''}`} data-testid="row-mission-bar"><span style={{ width: `${missionLeftPct(game, inc)}%` }} /></div>
+                  {inc.patientList && inc.patientList.length > 0 && <RowPatients inc={inc} now={game.state.time} />}
+                  <div className="mrow-meta"><span>{timerText(game, inc)}</span><span className="row-credits" data-testid="row-credits">{inc.reward ? money(inc.reward) : 'Paid at hospital'}</span></div>
                 </div>
-              )}
-            </button>
+              </div>
+            </div>
           );
         })}
       </div>
