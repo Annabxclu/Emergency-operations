@@ -478,6 +478,9 @@ Game.expansionChance = 0; // calls finish normally in tests (expansion is tested
     gs.city.money = 1_000_000;
     const fs = gs.placeStation('fire_station', [33.74, -84.40]);
     assert(gs.stationStaff(fs.id).length === 2, `new fire station starts with 2 employees (${gs.stationStaff(fs.id).length})`);
+    const ps = gs.placeStation('police_precinct', [33.73, -84.41]);
+    const es = gs.placeStation('ems_station', [33.72, -84.42]);
+    assert(gs.stationStaff(ps.id).length === 2 && gs.stationStaff(es.id).length === 2, 'new police and EMS stations start with 2 employees too');
   }
 
   // Old saves: station levels convert to one-bay-per-level without losing capacity.

@@ -471,7 +471,7 @@ export class Game {
   // ------------------------------------------------------------ actions: stations
   /** Moving a building costs 10% of what that kind of building costs new. */
   static MOVE_FRACTION = 0.1;
-  static NEW_FIRE_STATION_STAFF = 2;
+  static NEW_STATION_STAFF = 2;
   moveCost(kind: 'station' | 'hospital', id: string) {
     if (kind === 'hospital') return Math.round(HOSPITAL.cost * Game.MOVE_FRACTION);
     const st = this.station(id);
@@ -519,9 +519,9 @@ export class Game {
     const st: Station = { id: this.id('s'), typeId, dept: t.dept, name: name?.trim() || `${t.name.replace(' (Small)', '')} ${n}`, pos, level: 0, address: address || undefined };
     if (setup) st.level = Math.max(0, STARTER_KITS[t.dept].vehicles.length - 1); // room for the starter fleet
     c.stations.push(st);
-    // New fire stations come with a starting crew of 2 (untrained; send them to the academy as needed).
-    if (!setup && t.dept === 'fire') {
-      for (let i = 0; i < Game.NEW_FIRE_STATION_STAFF; i++) c.employees.push(this.makeEmployee(t.dept, st.id, false));
+    // Every new station comes with a starting crew of 2 (untrained; train them as needed).
+    if (!setup) {
+      for (let i = 0; i < Game.NEW_STATION_STAFF; i++) c.employees.push(this.makeEmployee(t.dept, st.id, false));
       this.autoStaff(st.id);
     }
     if (setup) {
