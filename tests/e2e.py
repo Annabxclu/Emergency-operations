@@ -213,13 +213,13 @@ def main():
                 el = extra.first.element_handle()
                 el.check()
                 page.wait_for_timeout(100)
-                cells = page.locator('[data-testid=missing] td.still').all_inner_texts()
-                if any(c.strip().startswith('-') for c in cells):
-                    check(True, f'selecting one unit too many shows a minus number in Still needed ({cells})')
+                if page.locator('[data-testid=missing] td.over').count():
+                    check('(+1)' in page.inner_text('[data-testid=missing]'), 'selecting one unit too many shows (+1) in Selected')
                 el.uncheck()
                 page.wait_for_timeout(100)
             check(page.inner_text('[data-testid=dispatch-btn]').strip() == 'Dispatch', 'button reads "Dispatch"')
-            check('Missing' in page.inner_text('[data-testid=missing]'), '"Missing" line shown')
+            t = page.inner_text('[data-testid=missing]')
+            check(all(h in t for h in ['Missing on mission', 'En route', 'Still needed', 'Selected']), 'missing table has MissionChief columns')
             check(page.locator('[data-testid=aao] button').count() >= 2, 'quick-add unit buttons shown')
             all_n = page.locator('[data-testid=dispatch-candidate]').count()
             page.click('[data-testid=dispatch-tab-police]')

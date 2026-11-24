@@ -541,3 +541,8 @@ textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; ma
 .mclock.paused small { font-size: 11px; font-weight: 600; text-transform: uppercase; }
 .mclock.idle { font-size: 12.5px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
 .rpat-name i { font-style: normal; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Covered rows go green like MissionChief; extra selected units show in amber */
+.missing-table tr.done td { color: #5fd38d; }
+.missing-table tr.done td.still { color: #5fd38d; }
+.missing-table td.over { color: #f5c46b !important; font-weight: 700; }
+.missing-table td.over small { font-size: 10.5px; }

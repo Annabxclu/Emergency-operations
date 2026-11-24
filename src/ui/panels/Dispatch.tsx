@@ -395,24 +395,34 @@ export function IncidentDetail({ id }: { id: string }) {
               const follow = free([...selFollowV, ...queued]);
               if (miss > 0) rows.unshift({ cap: 'patients', miss, enroute, selected, follow, still: miss - enroute - selected - follow });
             }
-            const anyFollow = rows.some(r => r.follow > 0) || staffRows.some(r => r.follow > 0) || selFollowV.length > 0 || queued.length > 0;
-            const allCovered = rows.every(r => r.still <= 0) && staffRows.every(r => r.still === 0);
-            const tone = allCovered && !anyFollow ? 'covered' : anyFollow ? 'follow' : '';
+            // MissionChief-style columns. "Still needed" is what's missing after units already on the way
+            // (en route and follow-ups); "Selected" is what you're about to send. A row turns green once
+            // en route + selected cover it, and disappears from the table when those units are on scene.
+            type Row = { key: string; name: string; miss: number; enroute: number; selected: number; follow: number; staff?: boolean };
+            const all: Row[] = [
+              ...rows.map(r => ({ key: r.cap, name: r.cap === 'patients' ? 'Ambulance (untreated patients)' : capability(r.cap).name, miss: r.miss, enroute: r.enroute, selected: r.selected, follow: r.follow })),
+              ...staffRows.map(r => ({ key: r.key, name: r.name, miss: r.miss, enroute: r.enroute, selected: r.selected, follow: r.follow, staff: true })),
+            ].filter(r => r.miss > 0);
+            const stillOf = (r: Row) => Math.max(0, r.miss - r.enroute - r.follow);
+            const anyFollow = all.some(r => r.follow > 0) || selFollowV.length > 0 || queued.length > 0;
+            const covered = (r: Row) => r.selected >= stillOf(r);
+            const allCovered = all.every(covered);
+            const tone = allCovered && !anyFollow ? 'covered' : anyFollow && allCovered ? 'follow' : '';
+            if (!all.length) return null;
             return (
               <div className={`missing-table ${tone}`} data-testid="missing">
                 <table>
-                  <thead><tr><th>Missing</th><th>On mission</th><th>En route</th><th>Selected</th><th>Follow-up</th><th>Still needed</th></tr></thead>
+                  <thead><tr><th></th><th>Missing on mission</th><th>En route</th>{anyFollow && <th>Follow-up</th>}<th>Still needed</th><th>Selected</th></tr></thead>
                   <tbody>
-                    {rows.map(r => (
-                      <tr key={r.cap} className={r.still < 0 ? 'done over' : r.still === 0 ? 'done' : ''}>
-                        <td>{r.cap === 'patients' ? 'Ambulance (untreated patients)' : capability(r.cap).name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td>{r.follow}</td><td className="still">{r.still}</td>
-                      </tr>
-                    ))}
-                    {staffRows.map(r => (
-                      <tr key={r.key} className={`staff ${r.still === 0 ? 'done' : ''}`}>
-                        <td>{r.name}</td><td>{r.miss}</td><td>{r.enroute}</td><td>{r.selected}</td><td>{r.follow}</td><td className="still">{r.still}</td>
-                      </tr>
-                    ))}
+                    {all.map(r => {
+                      const still = stillOf(r), extra = r.selected - still;
+                      return (
+                        <tr key={r.key} className={`${r.staff ? 'staff ' : ''}${covered(r) ? 'done' : ''}`} data-testid="missing-row">
+                          <td>{r.name}</td><td>{r.miss}</td><td>{r.enroute}</td>{anyFollow && <td>{r.follow}</td>}<td className="still">{still}</td>
+                          <td className={extra > 0 ? 'over' : ''}>{r.selected}{extra > 0 && <small> (+{extra})</small>}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
